@@ -1084,6 +1084,19 @@ TEMPLATE = r"""<!DOCTYPE html>
   .hjem-pr-val { font-size: 16px; font-weight: 700; }
   .hjem-goal-bar { background: var(--hj-line); border-radius: 8px; height: 8px; overflow: hidden; margin-top: 8px; }
   .hjem-goal-bar > div { background: var(--hj-accent); height: 100%; }
+  .hjem-streak-record { font-size: 12px; color: var(--hj-accent); font-weight: 700; margin-top: 2px; }
+  .hjem-week-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; text-align: center; }
+  .hjem-week-grid b { display: block; font-size: 16px; }
+  .hjem-week-grid span { display: block; font-size: 11px; color: var(--hj-muted); margin-top: 2px; }
+  .hjem-reminder-banner {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+    background: rgba(246, 198, 103, 0.14); border: 1px solid var(--hj-accent); color: var(--hj-ink);
+    border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; font-size: 13px;
+  }
+  .hjem-reminder-banner button {
+    background: var(--hj-accent); color: #14151a; border: none; border-radius: 8px;
+    padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: Nunito, sans-serif;
+  }
 
   .quicklog-bar {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 90;
@@ -1227,6 +1240,7 @@ TEMPLATE = r"""<!DOCTYPE html>
       <button class="hjem-badday-toggle" id="hjem-badday-toggle">🌧️ Dårlig dag</button>
     </div>
 
+    <div id="hjem-reminder"></div>
     <section class="hjem-zone hjem-briefing">
       <div class="hjem-card hjem-session" id="hjem-session"></div>
       <div class="hjem-card hjem-ring-card" id="hjem-kcal-ring"></div>
@@ -1255,6 +1269,7 @@ TEMPLATE = r"""<!DOCTYPE html>
         <div class="hjem-card" id="hjem-streak"></div>
         <div class="hjem-card" id="hjem-latest-pr"></div>
         <div class="hjem-card" id="hjem-savings-goal"></div>
+        <div class="hjem-card" id="hjem-week-summary"></div>
       </div>
     </section>
 
@@ -1981,6 +1996,7 @@ const BADDAY_LOG_KEY = "garminDashboardBadDayLog_v1";
 const BADDAY_MODE_KEY = "garminDashboardBadDayActive_v1";
 const WATER_KEY = "garminDashboardWater_v1";
 const WEATHER_CACHE_KEY = "garminDashboardWeatherCache_v1";
+const STREAK_BEST_KEY = "garminDashboardStreakBest_v1";
 
 function loadLS(key, fallback) {
   try {
@@ -2974,7 +2990,7 @@ async function fetchWeather() {
   const now = Date.now();
   if (cache && now - cache.ts < 45 * 60 * 1000) return cache.data;
   try {
-    const res = await fetch("https://wttr.in/?format=j1");
+    const res = await fetch("https://wttr.in/Oslo?format=j1");
     if (!res.ok) throw new Error("weather fetch failed");
     const json = await res.json();
     const cur = json.current_condition[0];
@@ -3009,14 +3025,26 @@ function renderHjemBody() {
 
   const autoregEl = document.getElementById("hjem-autoreg");
   const reasons = (DATA.program && DATA.program.today && DATA.program.today.reasons) || [];
-  autoregEl.innerHTML = `<div class="hjem-card-title">Autoregulering</div><ul>${reasons.map(r => `<li>${r}</li>`).join("")}</ul>`;
+  let html = `<div class="hjem-card-title">Autoregulering</div><ul>${reasons.map(r => `<li>${r}</li>`).join("")}</ul>`;
+
+  const pr = latestPR();
+  const recentSets = loadSetLog().filter(s => s.date >= isoAddDays(todayISO(), -14));
+  if (pr && recentSets.length && (new Date(todayISO()) - new Date(pr.date)) / 86400000 >= 21) {
+    html += `<div style="margin-top:8px;font-size:12px;color:var(--hj-muted);">💪 Ingen ny PR siste 3 ukene - vurder å øke vekten litt eller bytte øvelse.</div>`;
+  }
+  autoregEl.innerHTML = html;
 }
 
 function renderHjemProgress() {
   const streak = computeStreak();
+  const best = loadLS(STREAK_BEST_KEY, 0);
+  const isNewBest = streak > 0 && streak > best;
+  if (isNewBest) saveLS(STREAK_BEST_KEY, streak);
+  const bestShown = Math.max(best, streak);
   document.getElementById("hjem-streak").innerHTML = `
     <div class="hjem-card-title">Streak</div>
     <div class="hjem-streak-num">${streak} ${streak === 1 ? "dag" : "dager"}</div>
+    ${isNewBest ? `<div class="hjem-streak-record">🔥 Ny personlig rekord!</div>` : `<div class="hjem-pr-ex">Rekord: ${bestShown} ${bestShown === 1 ? "dag" : "dager"}</div>`}
   `;
 
   const pr = latestPR();
@@ -3034,10 +3062,76 @@ function renderHjemProgress() {
     <div class="hjem-goal-bar"><div style="width:${Math.min(100, pct)}%"></div></div>
     <div class="hjem-pr-ex" style="margin-top:6px;">${etaText}</div>
   `;
+
+  renderHjemWeekSummary();
+}
+
+function renderHjemWeekSummary() {
+  const p = DATA.program;
+  const el = document.getElementById("hjem-week-summary");
+  if (!p || !el) return;
+  const overrides = loadPlanOverrides();
+  const todayStr = p.today.date;
+  const thByDate = {};
+  (DATA.trainingHistory || []).forEach(d => { thByDate[d.date] = d; });
+
+  let doneCount = 0, plannedCount = 0, stepDays = 0;
+  p.week.forEach(day => {
+    if (day.date > todayStr) return;
+    const resolved = resolvePlanDay(day, overrides);
+    if (resolved.type !== "rest") {
+      plannedCount++;
+      if (resolved.done) doneCount++;
+    }
+    const th = thByDate[day.date];
+    if (th && th.stepGoalMet) stepDays++;
+  });
+
+  const weekStart = p.week[0].date;
+  const savedThisWeek = loadTransactions()
+    .filter(t => t.category === DATA.dogFund.category && t.date >= weekStart && t.date <= todayStr)
+    .reduce((s, t) => s + t.amount, 0);
+
+  el.innerHTML = `
+    <div class="hjem-card-title">Denne uken</div>
+    <div class="hjem-week-grid">
+      <div><b>${doneCount}/${plannedCount}</b><span>økter</span></div>
+      <div><b>${stepDays}</b><span>stegmål</span></div>
+      <div><b>${Math.round(savedThisWeek)} kr</b><span>spart</span></div>
+    </div>
+  `;
+}
+
+function renderHjemReminder() {
+  const el = document.getElementById("hjem-reminder");
+  const p = DATA.program;
+  if (!p || !el) { if (el) el.innerHTML = ""; return; }
+  const overrides = loadPlanOverrides();
+  const todayDay = p.week.find(d => d.isToday);
+  if (!todayDay) { el.innerHTML = ""; return; }
+  const resolved = resolvePlanDay(todayDay, overrides);
+  const hour = new Date().getHours();
+  const pending = resolved.type !== "rest" && !resolved.done;
+  if (!pending || hour < 17) { el.innerHTML = ""; return; }
+
+  el.innerHTML = `
+    <div class="hjem-reminder-banner">
+      <span>⏰ Du har ikke logget ${resolved.label.toLowerCase()} ennå i dag.</span>
+      <button id="hjem-reminder-link">Gå til økta</button>
+    </div>
+  `;
+  document.getElementById("hjem-reminder-link").addEventListener("click", () => {
+    showTab("trening");
+    setTimeout(() => {
+      const target = document.getElementById("plan-today");
+      if (target) target.scrollIntoView({ behavior: "smooth" });
+    }, 50);
+  });
 }
 
 function renderHjem() {
   renderHjemGreeting();
+  renderHjemReminder();
   renderHjemSession();
   renderHjemKcalRing();
   renderHjemSavingsRing();
@@ -3142,7 +3236,7 @@ renderHjem();
 const BACKUP_KEYS = [
   WEIGHT_LOG_KEY, MEASURE_LOG_KEY, SHOP_LIST_KEY, TX_KEY,
   BUDGET_CONFIG_KEY, PLAN_OVERRIDES_KEY, SET_LOG_KEY, SEEN_KEY, REST_PREFS_KEY,
-  FORGOTTEN_SAVINGS_KEY, BADDAY_LOG_KEY, EXTRAS_KEY, WATER_KEY,
+  FORGOTTEN_SAVINGS_KEY, BADDAY_LOG_KEY, EXTRAS_KEY, WATER_KEY, STREAK_BEST_KEY,
 ];
 
 document.getElementById("backup-export").addEventListener("click", () => {
