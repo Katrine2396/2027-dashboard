@@ -694,6 +694,7 @@ TEMPLATE = r"""<!DOCTYPE html>
     box-shadow: var(--shadow);
     padding: 22px;
     border-left: 5px solid var(--accent);
+    margin-top: 16px;
   }
   .plan-card.caution { border-left-color: #d9a441; }
   .plan-card.light { border-left-color: var(--accent3); }
@@ -1127,8 +1128,8 @@ TEMPLATE = r"""<!DOCTYPE html>
   <section>
     <h2>Treningsplan</h2>
     <div class="section-sub" id="plan-sub"></div>
-    <div class="plan-card" id="plan-today"></div>
     <div class="week-row" id="plan-week"></div>
+    <div class="plan-card" id="plan-today"></div>
     <div class="card" id="rest-timer-card"></div>
   </section>
   </div>
