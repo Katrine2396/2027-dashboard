@@ -1318,7 +1318,6 @@ TEMPLATE = r"""<!DOCTYPE html>
 
 <header class="hero">
   <div class="wrap">
-    <div class="eyebrow" id="goal-eyebrow">Training goal</div>
     <h1 id="goal-headline">Katrine 2027</h1>
     <div class="sub" id="date-range-sub"></div>
     <div class="goal-row" id="goal-chips"></div>
