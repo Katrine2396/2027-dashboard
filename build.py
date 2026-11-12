@@ -133,6 +133,7 @@ BUDGET_DEFAULTS = {
     ],
 }
 DOG_FUND = {"target": 30000, "startSaved": 5000, "category": "hundefond"}
+ACTIVE_CAL_GOAL_DEFAULT = 400
 
 # ---- points / levels ----
 POINTS_CONFIG = {
@@ -280,6 +281,7 @@ def main():
         }
         top_stats["steps"] = {
             "value": safe_round(steps),
+            "goal": safe_round((d0.get("movement") or {}).get("steps", {}).get("goal")),
             "date": last_k,
             "trend": trend_series(daily, daily_keys, lambda v: safe_round((v.get("movement") or {}).get("steps", {}).get("value"))),
         }
@@ -504,6 +506,7 @@ def main():
         "steps": (daily, daily_keys, lambda v: (v.get("movement") or {}).get("steps", {}).get("value")),
         "stress": (daily, daily_keys, lambda v: (v.get("stress") or {}).get("avgLevel")),
         "calories": (daily, daily_keys, lambda v: (v.get("calories") or {}).get("burnedTotal")),
+        "activeCalories": (daily, daily_keys, lambda v: (v.get("calories") or {}).get("burnedActive")),
     }
     report_metrics = {}
     for rm_key, (rm_src, rm_keys, rm_extractor) in REPORT_METRIC_DEFS.items():
@@ -672,6 +675,7 @@ def main():
         "sportOrder": SPORT_ORDER,
         "budgetDefaults": BUDGET_DEFAULTS,
         "dogFund": DOG_FUND,
+        "activeCalGoalDefault": ACTIVE_CAL_GOAL_DEFAULT,
         "pointsConfig": POINTS_CONFIG,
         "trainingHistory": training_history,
         "programStart": GS_START.isoformat(),
@@ -1115,7 +1119,7 @@ TEMPLATE = r"""<!DOCTYPE html>
     --hj-bg: #14151a; --hj-card: #1d1f26; --hj-card2: #23262f; --hj-ink: #f2f1f6;
     --hj-muted: #9a9bab; --hj-accent: #f6c667; --hj-accent2: #a46cc0; --hj-line: #2d2f3a;
     background: var(--hj-bg); color: var(--hj-ink); border-radius: 20px; padding: 16px;
-    margin: 0 -2px 24px; font-family: Nunito, sans-serif;
+    padding-bottom: 86px; margin: 0 -2px 24px; font-family: Nunito, sans-serif;
   }
   .hjem-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
   .hjem-greeting { font-family: "Playfair Display", serif; font-size: 19px; }
@@ -1132,53 +1136,71 @@ TEMPLATE = r"""<!DOCTYPE html>
     padding: 12px 14px; color: var(--hj-ink);
   }
   .hjem-card-title { font-size: 12px; color: var(--hj-muted); margin-bottom: 6px; }
-  .hjem-briefing { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .hjem-session, .hjem-weather { grid-column: 1 / -1; }
+  .hjem-topbar-btns { display: flex; align-items: center; gap: 6px; }
+  .hjem-refresh-btn {
+    background: var(--hj-card2); color: var(--hj-ink); border: 1px solid var(--hj-line);
+    border-radius: 50%; width: 30px; height: 30px; font-size: 15px; line-height: 1; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .hjem-refresh-btn.spinning { animation: hjem-spin .6s linear; }
+  @keyframes hjem-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .hjem-section-1 .hjem-card { margin-bottom: 10px; }
+  .hjem-section-1 .hjem-card:last-child { margin-bottom: 0; }
   .hjem-session { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
   .hjem-session .hs-label { font-size: 15px; font-weight: 700; }
   .hjem-session .hs-sub { font-size: 12px; color: var(--hj-muted); }
+  .hjem-session .hs-badges { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
   .hjem-session .hs-readiness { font-size: 11px; padding: 3px 9px; border-radius: 12px; background: var(--hj-card2); }
   .hjem-session .hs-readiness.go { color: #7bd88f; }
   .hjem-session .hs-readiness.caution { color: var(--hj-accent); }
   .hjem-session .hs-readiness.light { color: #e37878; }
+  .hjem-session .hs-status { font-size: 11px; padding: 3px 9px; border-radius: 12px; font-weight: 700; }
+  .hjem-session .hs-status.notstarted { background: var(--hj-card2); color: var(--hj-muted); }
+  .hjem-session .hs-status.inprogress { background: rgba(246,198,103,.18); color: var(--hj-accent); }
+  .hjem-session .hs-status.done { background: rgba(123,216,143,.16); color: #7bd88f; }
   .hjem-session .hs-link {
     background: none; border: 1px solid var(--hj-line); color: var(--hj-ink);
-    border-radius: 10px; padding: 6px 10px; font-size: 12px; cursor: pointer;
+    border-radius: 10px; padding: 6px 10px; font-size: 12px; cursor: pointer; font-family: Nunito, sans-serif;
   }
-  .hjem-ring-card { display: flex; align-items: center; gap: 10px; }
-  .hjem-ring {
-    width: 56px; height: 56px; min-width: 56px; border-radius: 50%; display: flex;
-    align-items: center; justify-content: center;
+  .hjem-nutri-quick { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .hjem-nutri-quick .hnq-label { font-size: 12px; color: var(--hj-muted); }
+  .hjem-nutri-quick .hnq-val { font-size: 17px; font-weight: 700; margin-top: 2px; }
+  .hjem-nutri-quick .hnq-val.over { color: #e37878; }
+  .hjem-nutri-quick .hnq-macro { font-size: 11px; color: var(--hj-muted); margin-top: 2px; }
+  .hjem-nutri-quick button {
+    background: var(--hj-accent); color: #14151a; border: none; border-radius: 10px;
+    padding: 8px 12px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: Nunito, sans-serif; white-space: nowrap;
   }
-  .hjem-ring-inner {
-    width: 44px; height: 44px; border-radius: 50%; background: var(--hj-card);
-    display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700;
-  }
-  .hjem-ring-label { font-size: 11px; color: var(--hj-muted); line-height: 1.4; }
-  .hjem-weather { display: flex; align-items: center; justify-content: space-between; }
-  .hjem-weather .hw-temp { font-size: 22px; font-weight: 700; }
-  .hjem-weather .hw-desc { font-size: 12px; color: var(--hj-muted); }
-  .hjem-body-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 10px; }
-  .hjem-stat-chip {
-    background: var(--hj-card); border: 1px solid var(--hj-line); border-radius: 12px;
-    padding: 10px 12px;
-  }
-  .hjem-stat-chip .label { font-size: 11px; color: var(--hj-muted); text-transform: uppercase; }
-  .hjem-stat-chip .value { font-size: 18px; font-weight: 700; margin-top: 2px; }
-  .hjem-body .hjem-card { margin-bottom: 10px; }
-  .hjem-body .hjem-card:last-child { margin-bottom: 0; }
-  .hjem-autoreg ul { margin: 0; padding-left: 18px; font-size: 12px; color: var(--hj-muted); }
-  .hjem-progress { padding-bottom: 86px; }
-  .hjem-progress-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
-  .hjem-streak-num { font-size: 28px; font-weight: 700; font-family: "Playfair Display", serif; }
-  .hjem-pr-ex { font-size: 13px; color: var(--hj-muted); }
-  .hjem-pr-val { font-size: 16px; font-weight: 700; }
-  .hjem-goal-bar { background: var(--hj-line); border-radius: 8px; height: 8px; overflow: hidden; margin-top: 8px; }
-  .hjem-goal-bar > div { background: var(--hj-accent); height: 100%; }
-  .hjem-streak-record { font-size: 12px; color: var(--hj-accent); font-weight: 700; margin-top: 2px; }
-  .hjem-week-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; text-align: center; }
-  .hjem-week-grid b { display: block; font-size: 16px; }
-  .hjem-week-grid span { display: block; font-size: 11px; color: var(--hj-muted); margin-top: 2px; }
+  .hjem-tx-list { list-style: none; margin: 0; padding: 0; font-size: 13px; max-height: 120px; overflow-y: auto; }
+  .hjem-tx-list li { display: flex; justify-content: space-between; gap: 8px; padding: 5px 0; border-top: 1px solid var(--hj-line); }
+  .hjem-tx-list li:first-child { border-top: none; }
+  .hjem-tx-list .tx-name { color: var(--hj-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hjem-tx-empty { color: var(--hj-muted); }
+  .hjem-tx-total { display: flex; justify-content: space-between; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--hj-line); font-weight: 700; font-size: 13px; }
+  .hjem-body-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .hjem-bigstat .hbs-label { font-size: 11px; color: var(--hj-muted); text-transform: uppercase; }
+  .hjem-bigstat .hbs-num { font-size: 24px; font-weight: 700; margin: 2px 0 6px; font-family: "Playfair Display", serif; }
+  .hjem-bigstat .hbs-bar { background: var(--hj-line); border-radius: 8px; height: 7px; overflow: hidden; }
+  .hjem-bigstat .hbs-bar > div { background: var(--hj-accent); height: 100%; }
+  .hjem-bigstat .hbs-bar > div.goalmet { background: #7bd88f; }
+  .hjem-minirow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; grid-column: 1 / -1; }
+  .hjem-minicard .label { font-size: 11px; color: var(--hj-muted); text-transform: uppercase; }
+  .hjem-minicard .value { font-size: 15px; font-weight: 700; margin-top: 3px; display: flex; align-items: center; }
+  .hjem-minicard .sub { font-size: 11px; color: var(--hj-muted); margin-top: 1px; min-height: 13px; }
+  .stress-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; flex: 0 0 auto; }
+  .stress-dot.green { background: #7bd88f; }
+  .stress-dot.yellow { background: var(--hj-accent); }
+  .stress-dot.red { background: #e37878; }
+  .hjem-finance-row { margin-bottom: 10px; cursor: default; }
+  .hjem-finance-row:last-child { margin-bottom: 0; }
+  .hjem-finance-row .hf-label { font-size: 12px; color: var(--hj-muted); display: flex; justify-content: space-between; }
+  .hjem-finance-row .hf-val { font-size: 15px; font-weight: 700; margin-top: 2px; }
+  .hjem-finance-bar { background: var(--hj-line); border-radius: 8px; height: 8px; overflow: hidden; margin-top: 6px; }
+  .hjem-finance-bar > div { background: var(--hj-accent); height: 100%; }
+  .hjem-finance-bar > div.over { background: #e37878; }
+  .hjem-invest-change { font-size: 12px; font-weight: 700; margin-left: 6px; }
+  .hjem-invest-change.pos { color: #7bd88f; }
+  .hjem-invest-change.neg { color: #e37878; }
   .hjem-reminder-banner {
     display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
     background: rgba(246, 198, 103, 0.14); border: 1px solid var(--hj-accent); color: var(--hj-ink);
@@ -1228,8 +1250,7 @@ TEMPLATE = r"""<!DOCTYPE html>
   .quicklog-drawer .btn { width: 100%; }
 
   @media (max-width: 480px) {
-    .hjem-briefing { grid-template-columns: 1fr 1fr; }
-    .hjem-dash { padding: 14px; }
+    .hjem-dash { padding: 14px; padding-bottom: 86px; }
   }
 
   /* ---- access gate ---- */
@@ -1329,41 +1350,30 @@ TEMPLATE = r"""<!DOCTYPE html>
   <div class="hjem-dash" id="hjem-dash">
     <div class="hjem-topbar">
       <div class="hjem-greeting" id="hjem-greeting"></div>
-      <button class="hjem-badday-toggle" id="hjem-badday-toggle">🌧️ Dårlig dag</button>
+      <div class="hjem-topbar-btns">
+        <button class="hjem-refresh-btn" id="hjem-refresh-btn" title="Oppdater">⟳</button>
+        <button class="hjem-badday-toggle" id="hjem-badday-toggle">🌧️ Dårlig dag</button>
+      </div>
     </div>
     <div class="hjem-why" id="hjem-why"></div>
 
     <div id="hjem-reminder"></div>
-    <section class="hjem-zone hjem-briefing">
+
+    <section class="hjem-zone hjem-section-1">
+      <h3 class="hjem-zone-title">Dagens Plan &amp; Handling</h3>
       <div class="hjem-card hjem-session" id="hjem-session"></div>
-      <div class="hjem-card hjem-ring-card" id="hjem-kcal-ring"></div>
-      <div class="hjem-card hjem-ring-card" id="hjem-savings-ring"></div>
-      <div class="hjem-card hjem-weather" id="hjem-weather"></div>
+      <div class="hjem-card hjem-nutri-quick" id="hjem-kcal-ring"></div>
+      <div class="hjem-card" id="hjem-tx-today"></div>
     </section>
 
-    <section class="hjem-zone hjem-body">
-      <h3 class="hjem-zone-title">Kropp &amp; Form</h3>
-      <div class="hjem-body-grid">
-        <div class="hjem-stat-chip" id="hjem-stat-hrv"></div>
-        <div class="hjem-stat-chip" id="hjem-stat-sleep"></div>
-        <div class="hjem-stat-chip" id="hjem-stat-steps"></div>
-        <div class="hjem-stat-chip" id="hjem-stat-rhr"></div>
-      </div>
-      <div class="hjem-card">
-        <div class="hjem-card-title">Vekttrend</div>
-        <div class="chart-wrap"><svg id="chart-weight-mini"></svg><div class="tooltip" id="tt-weight-mini"></div></div>
-      </div>
-      <div class="hjem-card" id="hjem-autoreg"></div>
+    <section class="hjem-zone hjem-section-2">
+      <h3 class="hjem-zone-title">Dagens Kropp</h3>
+      <div id="hjem-body-today"></div>
     </section>
 
-    <section class="hjem-zone hjem-progress">
-      <h3 class="hjem-zone-title">Fremdrift</h3>
-      <div class="hjem-progress-grid">
-        <div class="hjem-card" id="hjem-streak"></div>
-        <div class="hjem-card" id="hjem-latest-pr"></div>
-        <div class="hjem-card" id="hjem-savings-goal"></div>
-        <div class="hjem-card" id="hjem-week-summary"></div>
-      </div>
+    <section class="hjem-zone hjem-section-3">
+      <h3 class="hjem-zone-title">Månedens Økonomi</h3>
+      <div class="hjem-card" id="hjem-finance"></div>
     </section>
 
     <div class="quicklog-drawer" id="quicklog-drawer">
@@ -1375,7 +1385,7 @@ TEMPLATE = r"""<!DOCTYPE html>
     </div>
     <nav class="quicklog-bar" id="quicklog-bar">
       <button data-ql="vann"><span class="ql-icon">💧</span><span class="ql-label">Vann</span><span class="ql-badge" id="ql-water-badge"></span></button>
-      <button data-ql="mat"><span class="ql-icon">🍫</span><span class="ql-label">Mat</span></button>
+      <button data-ql="mat"><span class="ql-icon">🍫</span><span class="ql-label">Måltid</span></button>
       <button data-ql="utgift"><span class="ql-icon">💸</span><span class="ql-label">Utgift</span></button>
       <button data-ql="okt"><span class="ql-icon">🏋️</span><span class="ql-label">Økt</span></button>
     </nav>
@@ -2041,6 +2051,7 @@ function renderPlan() {
       startRestTimer(restDurationFor(exKey), label);
       renderPlan();
       renderPrBoard();
+      renderHjemSession();
     });
   });
 
@@ -2181,6 +2192,7 @@ function renderNutrition() {
       if (isMealEatenToday(type, opt.name)) unlogMeal(type); else logMealEaten(type, opt);
       renderNutrition();
       renderNutritionCoach();
+      renderHjemKcalRing();
     });
   });
 
@@ -2225,6 +2237,7 @@ function addExtra(name, kcal) {
   saveExtras(list);
   renderExtras();
   renderNutritionCoach();
+  renderHjemKcalRing();
 }
 
 function renderExtras() {
@@ -2244,6 +2257,7 @@ function renderExtras() {
       softDeleteExtra(btn.dataset.extraRemove);
       renderExtras();
       renderNutritionCoach();
+      renderHjemKcalRing();
     });
   });
 }
@@ -2302,6 +2316,7 @@ const SEEN_KEY = "garminDashboardSeen_v1";
 const WAGE_KEY = "garminDashboardWage_v1";
 const RATE_KEY = "garminDashboardInvestRate_v1";
 const FORGOTTEN_SAVINGS_KEY = "garminDashboardForgottenSavings_v1";
+const INVEST_FUND_KEY = "garminDashboardInvestFund_v1";
 const BADDAY_LOG_KEY = "garminDashboardBadDayLog_v1";
 const BADDAY_MODE_KEY = "garminDashboardBadDayActive_v1";
 const WATER_KEY = "garminDashboardWater_v1";
@@ -2607,7 +2622,6 @@ document.getElementById("weight-add").addEventListener("click", () => {
   renderWeightLog();
   renderWeightTrend();
   renderWeightChart();
-  renderWeightChart("chart-weight-mini", "tt-weight-mini");
   renderLevel();
   renderWeeklySnapshot();
   renderPlateau();
@@ -2879,8 +2893,6 @@ function renderFund() {
     saveSettings(s);
     DATA.dogFund.target = val;
     renderBudget();
-    renderHjemProgress();
-    renderHjemSavingsRing();
   });
 }
 
@@ -2918,6 +2930,8 @@ function renderBudget() {
   renderForgottenSavings();
   renderLevel();
   renderWeeklySnapshot();
+  renderHjemTodayTx();
+  renderHjemFinance();
 }
 
 document.getElementById("month-label").textContent = monthLabel(currentMonth);
@@ -3025,7 +3039,6 @@ document.querySelectorAll(".save-presets button[data-preset]").forEach(btn => {
 renderWeightLog();
 renderWeightTrend();
 renderWeightChart();
-renderWeightChart("chart-weight-mini", "tt-weight-mini");
 renderMeasureLog();
 renderPlateau();
 renderShopList();
@@ -3276,7 +3289,7 @@ document.getElementById("hjem-why").addEventListener("click", () => {
 function renderHjemSession() {
   const p = DATA.program;
   const el = document.getElementById("hjem-session");
-  if (!p) { el.innerHTML = ""; return; }
+  if (!p || !el) return;
   if (isVacationActive()) {
     el.innerHTML = `
       <div>
@@ -3290,14 +3303,26 @@ function renderHjemSession() {
   const todayDay = p.week.find(d => d.isToday);
   const resolved = resolvePlanDay(todayDay, overrides);
   const readinessLabel = { go: "Klar for økta", caution: "Vurder lettere", light: "Prioriter hvile" }[p.today.readiness];
-  const doneBadge = resolved.done ? " · ✓ Gjort" : "";
+
+  let statusKey = "notstarted", statusLabel = "Ikke startet";
+  if (resolved.type === "rest") {
+    statusKey = "done"; statusLabel = "Hviledag";
+  } else if (resolved.done) {
+    statusKey = "done"; statusLabel = "Fullført";
+  } else if (loadSetLog().some(s => s.date === todayISO() && s.exercise.startsWith(resolved.key + "::"))) {
+    statusKey = "inprogress"; statusLabel = "Pågår";
+  }
+
   el.innerHTML = `
     <div>
-      <div class="hs-label">${resolved.type === "rest" ? "Hviledag" : resolved.label}${doneBadge}</div>
+      <div class="hs-label">${resolved.type === "rest" ? "Hviledag" : resolved.label}</div>
       <div class="hs-sub">Uke ${p.currentWeek}${p.weekIsDeload ? " · Deload" : " av 4"} · ${p.weekFocus}</div>
     </div>
-    <span class="hs-readiness ${p.today.readiness}">${readinessLabel}</span>
-    <button class="hs-link" id="hjem-session-link">Til plan →</button>
+    <div class="hs-badges">
+      ${resolved.type !== "rest" ? `<span class="hs-readiness ${p.today.readiness}">${readinessLabel}</span>` : ""}
+      <span class="hs-status ${statusKey}">${statusLabel}</span>
+    </div>
+    <button class="hs-link" id="hjem-session-link">${resolved.type === "rest" ? "Til plan →" : "Til økta →"}</button>
   `;
   document.getElementById("hjem-session-link").addEventListener("click", () => {
     showTab("trening");
@@ -3311,27 +3336,35 @@ function renderHjemSession() {
 function renderHjemKcalRing() {
   const n = DATA.nutritionPlan;
   const el = document.getElementById("hjem-kcal-ring");
-  if (!n) { el.innerHTML = ""; return; }
-  const extrasTotal = loadExtras().filter(e => e.date === todayISO()).reduce((s, e) => s + (e.kcal || 0), 0);
-  const total = n.dailyKcal + extrasTotal;
-  const pct = Math.round(100 * total / n.dailyKcal);
-  const over = total > n.dailyKcal;
+  if (!n || !el) return;
+  const totals = dayNutritionTotals(todayISO());
+  const over = totals.kcal > n.dailyKcal;
   el.innerHTML = `
-    <div class="hjem-ring" style="background: conic-gradient(${over ? "var(--hj-accent2)" : "var(--hj-accent)"} ${Math.min(100, pct)}%, rgba(255,255,255,.12) 0);">
-      <div class="hjem-ring-inner">${pct}%</div>
+    <div>
+      <div class="hnq-label">Spist / Budsjett</div>
+      <div class="hnq-val${over ? " over" : ""}">${totals.kcal} / ${n.dailyKcal} kcal</div>
+      <div class="hnq-macro">${totals.protein} / ${n.proteinMin} g protein</div>
     </div>
-    <div class="hjem-ring-label">Kalorier<br>${total} / ${n.dailyKcal} kcal</div>
+    <button id="hjem-logg-maltid-btn">+ Logg måltid</button>
   `;
+  document.getElementById("hjem-logg-maltid-btn").addEventListener("click", openMatDrawer);
 }
 
-function renderHjemSavingsRing() {
-  const { pct, remaining } = fundProgress();
-  const el = document.getElementById("hjem-savings-ring");
+function renderHjemTodayTx() {
+  const el = document.getElementById("hjem-tx-today");
+  if (!el) return;
+  const cfg = loadBudgetConfig();
+  const catLabel = key => (cfg.categories.find(c => c.key === key) || {}).label || key;
+  const tx = loadTransactions().filter(t => t.date === todayISO());
+  const total = tx.reduce((s, t) => s + t.amount, 0);
   el.innerHTML = `
-    <div class="hjem-ring" style="background: conic-gradient(var(--hj-accent2) ${Math.min(100, Math.round(pct))}%, rgba(255,255,255,.12) 0);">
-      <div class="hjem-ring-inner">${Math.round(pct)}%</div>
-    </div>
-    <div class="hjem-ring-label">Hundefond<br>${Math.max(0, Math.round(remaining)).toLocaleString()} kr igjen</div>
+    <div class="hjem-card-title">Dagens transaksjoner</div>
+    <ul class="hjem-tx-list">
+      ${tx.length
+        ? tx.map(t => `<li><span class="tx-name">${t.name || catLabel(t.category)}</span><b>${t.amount.toLocaleString()} kr</b></li>`).join("")
+        : `<li class="hjem-tx-empty">Ingen transaksjoner i dag</li>`}
+    </ul>
+    <div class="hjem-tx-total"><span>Totalt i dag</span><span>${total.toLocaleString()} kr</span></div>
   `;
 }
 
@@ -3352,104 +3385,112 @@ async function fetchWeather() {
   }
 }
 
-function renderHjemWeather() {
-  const el = document.getElementById("hjem-weather");
-  el.innerHTML = `<div class="hw-desc">Henter vær…</div>`;
-  fetchWeather().then(data => {
-    if (!data) { el.innerHTML = ""; return; }
-    el.innerHTML = `<div class="hw-temp">${data.tempC}°</div><div class="hw-desc">${data.desc}</div>`;
-  });
-}
+function renderHjemBodyToday() {
+  const el = document.getElementById("hjem-body-today");
+  if (!el) return;
+  const ts = DATA.topStats || {};
+  const steps = ts.steps || {};
+  const stepsGoal = steps.goal || 8000;
+  const stepsPct = stepsGoal ? Math.min(100, Math.round(100 * (steps.value || 0) / stepsGoal)) : 0;
 
-function renderHjemBody() {
-  const ts = DATA.topStats;
-  function chip(id, label, val, unit) {
-    const e = document.getElementById(id);
-    if (!e) return;
-    e.innerHTML = `<div class="label">${label}</div><div class="value">${val !== null && val !== undefined ? val : "–"}${val !== null && val !== undefined && unit ? " " + unit : ""}</div>`;
-  }
-  if (ts.hrv) chip("hjem-stat-hrv", "HRV", ts.hrv.value, "ms");
-  if (ts.sleep) chip("hjem-stat-sleep", "Søvn", ts.sleep.hours, "t");
-  if (ts.steps) chip("hjem-stat-steps", "Steg", ts.steps.value != null ? ts.steps.value.toLocaleString() : null, "");
-  if (ts.restingHR) chip("hjem-stat-rhr", "Hvilepuls", ts.restingHR.value, "bpm");
+  const activeCal = reportMetric("activeCalories").today;
+  const calGoal = DATA.activeCalGoalDefault || 400;
+  const calPct = calGoal ? Math.min(100, Math.round(100 * (activeCal || 0) / calGoal)) : 0;
 
-  const autoregEl = document.getElementById("hjem-autoreg");
-  const reasons = (DATA.program && DATA.program.today && DATA.program.today.reasons) || [];
-  let html = `<div class="hjem-card-title">Autoregulering</div><ul>${reasons.map(r => `<li>${r}</li>`).join("")}</ul>`;
-
-  const pr = latestPR();
-  const recentSets = loadSetLog().filter(s => s.date >= isoAddDays(todayISO(), -14));
-  if (pr && recentSets.length && (new Date(todayISO()) - new Date(pr.date)) / 86400000 >= 21) {
-    html += `<div style="margin-top:8px;font-size:12px;color:var(--hj-muted);">💪 Ingen ny PR siste 3 ukene - vurder å øke vekten litt eller bytte øvelse.</div>`;
-  }
-  autoregEl.innerHTML = html;
-}
-
-function renderHjemProgress() {
-  const streak = computeStreak();
-  const best = loadLS(STREAK_BEST_KEY, 0);
-  const isNewBest = streak > 0 && streak > best;
-  if (isNewBest) saveLS(STREAK_BEST_KEY, streak);
-  const bestShown = Math.max(best, streak);
-  document.getElementById("hjem-streak").innerHTML = `
-    <div class="hjem-card-title">Streak</div>
-    <div class="hjem-streak-num">${streak} ${streak === 1 ? "dag" : "dager"}</div>
-    ${isNewBest ? `<div class="hjem-streak-record">🔥 Ny personlig rekord!</div>` : `<div class="hjem-pr-ex">Rekord: ${bestShown} ${bestShown === 1 ? "dag" : "dager"}</div>`}
-  `;
-
-  const pr = latestPR();
-  document.getElementById("hjem-latest-pr").innerHTML = pr ? `
-    <div class="hjem-card-title">Siste PR</div>
-    <div class="hjem-pr-ex">${pr.label}</div>
-    <div class="hjem-pr-val">${pr.weight != null ? pr.weight + " kg × " : ""}${pr.reps} reps</div>
-    <div class="hjem-pr-ex">${fmtShort(pr.date)}</div>
-  ` : `<div class="hjem-card-title">Siste PR</div><div class="hjem-pr-ex">Ingen sett logget ennå</div>`;
-
-  const { balance, pct, etaText } = fundProgress();
-  document.getElementById("hjem-savings-goal").innerHTML = `
-    <div class="hjem-card-title">Sparemål</div>
-    <div class="hjem-pr-val">${balance.toLocaleString()} / ${DATA.dogFund.target.toLocaleString()} kr</div>
-    <div class="hjem-goal-bar"><div style="width:${Math.min(100, pct)}%"></div></div>
-    <div class="hjem-pr-ex" style="margin-top:6px;">${etaText}</div>
-  `;
-
-  renderHjemWeekSummary();
-}
-
-function renderHjemWeekSummary() {
-  const p = DATA.program;
-  const el = document.getElementById("hjem-week-summary");
-  if (!p || !el) return;
-  const overrides = loadPlanOverrides();
-  const todayStr = p.today.date;
-  const thByDate = {};
-  (DATA.trainingHistory || []).forEach(d => { thByDate[d.date] = d; });
-
-  let doneCount = 0, plannedCount = 0, stepDays = 0;
-  p.week.forEach(day => {
-    if (day.date > todayStr) return;
-    const resolved = resolvePlanDay(day, overrides);
-    if (resolved.type !== "rest") {
-      plannedCount++;
-      if (resolved.done) doneCount++;
-    }
-    const th = thByDate[day.date];
-    if (th && th.stepGoalMet) stepDays++;
-  });
-
-  const weekStart = p.week[0].date;
-  const savedThisWeek = loadTransactions()
-    .filter(t => t.category === DATA.dogFund.category && t.date >= weekStart && t.date <= todayStr)
-    .reduce((s, t) => s + t.amount, 0);
+  const sleep = ts.sleep || {};
+  const stress = reportMetric("stress").today;
+  const stressColor = stress == null ? null : stress <= 50 ? "green" : stress <= 75 ? "yellow" : "red";
+  const bodyBattery = reportMetric("bodyBatteryLatest").today;
 
   el.innerHTML = `
-    <div class="hjem-card-title">Denne uken</div>
-    <div class="hjem-week-grid">
-      <div><b>${doneCount}/${plannedCount}</b><span>økter</span></div>
-      <div><b>${stepDays}</b><span>stegmål</span></div>
-      <div><b>${Math.round(savedThisWeek)} kr</b><span>spart</span></div>
+    <div class="hjem-body-grid">
+      <div class="hjem-card hjem-bigstat">
+        <div class="hbs-label">Skritt</div>
+        <div class="hbs-num">${steps.value != null ? steps.value.toLocaleString() : "–"}</div>
+        <div class="hbs-bar"><div class="${stepsPct >= 100 ? "goalmet" : ""}" style="width:${stepsPct}%"></div></div>
+      </div>
+      <div class="hjem-card hjem-bigstat">
+        <div class="hbs-label">Aktive kalorier</div>
+        <div class="hbs-num">${activeCal != null ? Math.round(activeCal) : "–"}</div>
+        <div class="hbs-bar"><div class="${calPct >= 100 ? "goalmet" : ""}" style="width:${calPct}%"></div></div>
+      </div>
+      <div class="hjem-minirow">
+        <div class="hjem-card hjem-minicard">
+          <div class="label">Søvn</div>
+          <div class="value">${sleep.score != null ? sleep.score : "–"}</div>
+          <div class="sub">${sleep.hours != null ? sleep.hours + " t" : ""}</div>
+        </div>
+        <div class="hjem-card hjem-minicard">
+          <div class="label">Stress</div>
+          <div class="value">${stressColor ? `<span class="stress-dot ${stressColor}"></span>` : ""}${stress != null ? Math.round(stress) : "–"}</div>
+          <div class="sub"></div>
+        </div>
+        <div class="hjem-card hjem-minicard">
+          <div class="label">Body Battery</div>
+          <div class="value">${bodyBattery != null ? Math.round(bodyBattery) : "–"}</div>
+          <div class="sub"></div>
+        </div>
+      </div>
     </div>
   `;
+}
+
+function loadInvestFundLog() { return loadLS(INVEST_FUND_KEY, []); }
+function saveInvestFundLog(l) { saveLS(INVEST_FUND_KEY, l); }
+function setInvestFundValue(date, value) {
+  const log = loadInvestFundLog().filter(e => e.date !== date);
+  log.push({ date, value });
+  log.sort((a, b) => a.date.localeCompare(b.date));
+  saveInvestFundLog(log);
+}
+function investFundStatus() {
+  const log = loadInvestFundLog();
+  if (!log.length) return { value: null, date: null, changeKr: null, changePct: null };
+  const latest = log[log.length - 1];
+  const prev = log.length > 1 ? log[log.length - 2] : null;
+  const changeKr = prev ? latest.value - prev.value : null;
+  const changePct = prev && prev.value ? (100 * changeKr / prev.value) : null;
+  return { value: latest.value, date: latest.date, changeKr, changePct };
+}
+
+function renderHjemFinance() {
+  const el = document.getElementById("hjem-finance");
+  if (!el) return;
+  const cfg = loadBudgetConfig();
+  const totalBudget = cfg.categories.reduce((s, c) => s + (c.cap || 0), 0);
+  const today = todayISO();
+  const monthStart = monthOf(today) + "-01";
+  const spent = loadTransactions()
+    .filter(t => t.date >= monthStart && t.date <= today)
+    .reduce((s, t) => s + t.amount, 0);
+  const pct = totalBudget ? Math.min(100, Math.round(100 * spent / totalBudget)) : 0;
+  const over = spent > totalBudget;
+
+  const inv = investFundStatus();
+  const changeClass = inv.changeKr == null ? "" : inv.changeKr >= 0 ? "pos" : "neg";
+  const changeSign = inv.changeKr == null ? "" : inv.changeKr >= 0 ? "+" : "";
+  const changeHtml = inv.changeKr != null
+    ? `<span class="hjem-invest-change ${changeClass}">${changeSign}${Math.round(inv.changeKr).toLocaleString()} kr / ${changeSign}${inv.changePct.toFixed(1)}%</span>`
+    : "";
+
+  el.innerHTML = `
+    <div class="hjem-finance-row">
+      <div class="hf-label"><span>Brukt denne måneden</span><span>${spent.toLocaleString()} / ${totalBudget.toLocaleString()} kr</span></div>
+      <div class="hjem-finance-bar"><div class="${over ? "over" : ""}" style="width:${pct}%"></div></div>
+    </div>
+    <div class="hjem-finance-row" id="hjem-invest-row" style="cursor:pointer;">
+      <div class="hf-label"><span>Fond</span><span>${inv.date ? "Oppdatert " + fmtShort(inv.date) : "Ikke satt"}</span></div>
+      <div class="hf-val">${inv.value != null ? inv.value.toLocaleString() + " kr" : "– kr"} ${changeHtml}</div>
+    </div>
+  `;
+  document.getElementById("hjem-invest-row").addEventListener("click", () => {
+    const next = prompt("Fondsverdi i dag (kr):", inv.value != null ? inv.value : "");
+    if (next === null) return;
+    const val = parseFloat(next.replace(",", "."));
+    if (Number.isNaN(val)) return;
+    setInvestFundValue(todayISO(), val);
+    renderHjemFinance();
+  });
 }
 
 function renderHjemReminder() {
@@ -3486,10 +3527,9 @@ function renderHjem() {
   renderHjemReminder();
   renderHjemSession();
   renderHjemKcalRing();
-  renderHjemSavingsRing();
-  renderHjemWeather();
-  renderHjemBody();
-  renderHjemProgress();
+  renderHjemTodayTx();
+  renderHjemBodyToday();
+  renderHjemFinance();
 }
 
 // ---- quick-log bottom bar & drawer ----
@@ -3529,7 +3569,6 @@ function openMatDrawer() {
   document.querySelectorAll("#quicklog-drawer-body [data-extra-preset]").forEach(btn => {
     btn.addEventListener("click", () => {
       addExtra(btn.dataset.extraPreset, parseInt(btn.dataset.extraKcal, 10));
-      renderHjemKcalRing();
       closeQuicklogDrawer();
     });
   });
@@ -3538,7 +3577,6 @@ function openMatDrawer() {
     if (!name) return;
     const kcal = parseInt(document.getElementById("ql-mat-kcal").value, 10) || null;
     addExtra(name, kcal);
-    renderHjemKcalRing();
     closeQuicklogDrawer();
   });
 }
@@ -3559,8 +3597,6 @@ function openUtgiftDrawer() {
     const name = document.getElementById("ql-tx-name").value.trim();
     addTransactionWithRoundUp(todayISO(), amount, category, name);
     renderBudget();
-    renderHjemSavingsRing();
-    renderHjemProgress();
     closeQuicklogDrawer();
   });
 }
@@ -3584,6 +3620,48 @@ document.querySelectorAll("#quicklog-bar button[data-ql]").forEach(btn => {
 renderWaterBadge();
 renderHjem();
 renderNutritionCoach();
+
+// ---- Hjem live refresh: re-fetch own published page for fresh Garmin data ----
+async function refreshGarminData() {
+  try {
+    const res = await fetch(location.href, { cache: "no-store" });
+    if (!res.ok) return false;
+    const html = await res.text();
+    const startTag = "const DATA = ";
+    const marker = "// ---------------------------------------------------------------- settings";
+    const startIdx = html.indexOf(startTag);
+    const endIdx = html.indexOf(marker, startIdx);
+    if (startIdx === -1 || endIdx === -1) return false;
+    let jsonText = html.slice(startIdx + startTag.length, endIdx).trim();
+    if (jsonText.endsWith(";")) jsonText = jsonText.slice(0, -1);
+    const fresh = JSON.parse(jsonText);
+    DATA.topStats = fresh.topStats;
+    DATA.reportMetrics = fresh.reportMetrics;
+    DATA.program = fresh.program;
+    DATA.trainingHistory = fresh.trainingHistory;
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function refreshHjemGarminSections() {
+  renderHjemSession();
+  renderHjemBodyToday();
+  renderHjemReminder();
+}
+
+document.getElementById("hjem-refresh-btn").addEventListener("click", async (e) => {
+  const btn = e.currentTarget;
+  btn.classList.add("spinning");
+  await refreshGarminData();
+  renderHjem();
+  setTimeout(() => btn.classList.remove("spinning"), 650);
+});
+
+setInterval(() => {
+  refreshGarminData().then(ok => { if (ok) refreshHjemGarminSections(); });
+}, 20 * 60 * 1000);
 
 // ---------------------------------------------------------------- rapport (personlig coach)
 function reportMetric(key) {
@@ -3981,7 +4059,7 @@ const BACKUP_KEYS = [
   WEIGHT_LOG_KEY, MEASURE_LOG_KEY, SHOP_LIST_KEY, TX_KEY,
   BUDGET_CONFIG_KEY, PLAN_OVERRIDES_KEY, SET_LOG_KEY, SEEN_KEY, REST_PREFS_KEY,
   FORGOTTEN_SAVINGS_KEY, BADDAY_LOG_KEY, EXTRAS_KEY, WATER_KEY, STREAK_BEST_KEY,
-  SETTINGS_KEY, WHY_KEY, VACATION_KEY, CUSTOM_MEALS_KEY, MEAL_LOG_KEY,
+  SETTINGS_KEY, WHY_KEY, VACATION_KEY, CUSTOM_MEALS_KEY, MEAL_LOG_KEY, INVEST_FUND_KEY,
 ];
 
 document.getElementById("backup-export").addEventListener("click", () => {

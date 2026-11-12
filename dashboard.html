@@ -424,7 +424,7 @@
     --hj-bg: #14151a; --hj-card: #1d1f26; --hj-card2: #23262f; --hj-ink: #f2f1f6;
     --hj-muted: #9a9bab; --hj-accent: #f6c667; --hj-accent2: #a46cc0; --hj-line: #2d2f3a;
     background: var(--hj-bg); color: var(--hj-ink); border-radius: 20px; padding: 16px;
-    margin: 0 -2px 24px; font-family: Nunito, sans-serif;
+    padding-bottom: 86px; margin: 0 -2px 24px; font-family: Nunito, sans-serif;
   }
   .hjem-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
   .hjem-greeting { font-family: "Playfair Display", serif; font-size: 19px; }
@@ -441,53 +441,71 @@
     padding: 12px 14px; color: var(--hj-ink);
   }
   .hjem-card-title { font-size: 12px; color: var(--hj-muted); margin-bottom: 6px; }
-  .hjem-briefing { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .hjem-session, .hjem-weather { grid-column: 1 / -1; }
+  .hjem-topbar-btns { display: flex; align-items: center; gap: 6px; }
+  .hjem-refresh-btn {
+    background: var(--hj-card2); color: var(--hj-ink); border: 1px solid var(--hj-line);
+    border-radius: 50%; width: 30px; height: 30px; font-size: 15px; line-height: 1; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .hjem-refresh-btn.spinning { animation: hjem-spin .6s linear; }
+  @keyframes hjem-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .hjem-section-1 .hjem-card { margin-bottom: 10px; }
+  .hjem-section-1 .hjem-card:last-child { margin-bottom: 0; }
   .hjem-session { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
   .hjem-session .hs-label { font-size: 15px; font-weight: 700; }
   .hjem-session .hs-sub { font-size: 12px; color: var(--hj-muted); }
+  .hjem-session .hs-badges { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
   .hjem-session .hs-readiness { font-size: 11px; padding: 3px 9px; border-radius: 12px; background: var(--hj-card2); }
   .hjem-session .hs-readiness.go { color: #7bd88f; }
   .hjem-session .hs-readiness.caution { color: var(--hj-accent); }
   .hjem-session .hs-readiness.light { color: #e37878; }
+  .hjem-session .hs-status { font-size: 11px; padding: 3px 9px; border-radius: 12px; font-weight: 700; }
+  .hjem-session .hs-status.notstarted { background: var(--hj-card2); color: var(--hj-muted); }
+  .hjem-session .hs-status.inprogress { background: rgba(246,198,103,.18); color: var(--hj-accent); }
+  .hjem-session .hs-status.done { background: rgba(123,216,143,.16); color: #7bd88f; }
   .hjem-session .hs-link {
     background: none; border: 1px solid var(--hj-line); color: var(--hj-ink);
-    border-radius: 10px; padding: 6px 10px; font-size: 12px; cursor: pointer;
+    border-radius: 10px; padding: 6px 10px; font-size: 12px; cursor: pointer; font-family: Nunito, sans-serif;
   }
-  .hjem-ring-card { display: flex; align-items: center; gap: 10px; }
-  .hjem-ring {
-    width: 56px; height: 56px; min-width: 56px; border-radius: 50%; display: flex;
-    align-items: center; justify-content: center;
+  .hjem-nutri-quick { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .hjem-nutri-quick .hnq-label { font-size: 12px; color: var(--hj-muted); }
+  .hjem-nutri-quick .hnq-val { font-size: 17px; font-weight: 700; margin-top: 2px; }
+  .hjem-nutri-quick .hnq-val.over { color: #e37878; }
+  .hjem-nutri-quick .hnq-macro { font-size: 11px; color: var(--hj-muted); margin-top: 2px; }
+  .hjem-nutri-quick button {
+    background: var(--hj-accent); color: #14151a; border: none; border-radius: 10px;
+    padding: 8px 12px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: Nunito, sans-serif; white-space: nowrap;
   }
-  .hjem-ring-inner {
-    width: 44px; height: 44px; border-radius: 50%; background: var(--hj-card);
-    display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700;
-  }
-  .hjem-ring-label { font-size: 11px; color: var(--hj-muted); line-height: 1.4; }
-  .hjem-weather { display: flex; align-items: center; justify-content: space-between; }
-  .hjem-weather .hw-temp { font-size: 22px; font-weight: 700; }
-  .hjem-weather .hw-desc { font-size: 12px; color: var(--hj-muted); }
-  .hjem-body-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 10px; }
-  .hjem-stat-chip {
-    background: var(--hj-card); border: 1px solid var(--hj-line); border-radius: 12px;
-    padding: 10px 12px;
-  }
-  .hjem-stat-chip .label { font-size: 11px; color: var(--hj-muted); text-transform: uppercase; }
-  .hjem-stat-chip .value { font-size: 18px; font-weight: 700; margin-top: 2px; }
-  .hjem-body .hjem-card { margin-bottom: 10px; }
-  .hjem-body .hjem-card:last-child { margin-bottom: 0; }
-  .hjem-autoreg ul { margin: 0; padding-left: 18px; font-size: 12px; color: var(--hj-muted); }
-  .hjem-progress { padding-bottom: 86px; }
-  .hjem-progress-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
-  .hjem-streak-num { font-size: 28px; font-weight: 700; font-family: "Playfair Display", serif; }
-  .hjem-pr-ex { font-size: 13px; color: var(--hj-muted); }
-  .hjem-pr-val { font-size: 16px; font-weight: 700; }
-  .hjem-goal-bar { background: var(--hj-line); border-radius: 8px; height: 8px; overflow: hidden; margin-top: 8px; }
-  .hjem-goal-bar > div { background: var(--hj-accent); height: 100%; }
-  .hjem-streak-record { font-size: 12px; color: var(--hj-accent); font-weight: 700; margin-top: 2px; }
-  .hjem-week-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; text-align: center; }
-  .hjem-week-grid b { display: block; font-size: 16px; }
-  .hjem-week-grid span { display: block; font-size: 11px; color: var(--hj-muted); margin-top: 2px; }
+  .hjem-tx-list { list-style: none; margin: 0; padding: 0; font-size: 13px; max-height: 120px; overflow-y: auto; }
+  .hjem-tx-list li { display: flex; justify-content: space-between; gap: 8px; padding: 5px 0; border-top: 1px solid var(--hj-line); }
+  .hjem-tx-list li:first-child { border-top: none; }
+  .hjem-tx-list .tx-name { color: var(--hj-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hjem-tx-empty { color: var(--hj-muted); }
+  .hjem-tx-total { display: flex; justify-content: space-between; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--hj-line); font-weight: 700; font-size: 13px; }
+  .hjem-body-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .hjem-bigstat .hbs-label { font-size: 11px; color: var(--hj-muted); text-transform: uppercase; }
+  .hjem-bigstat .hbs-num { font-size: 24px; font-weight: 700; margin: 2px 0 6px; font-family: "Playfair Display", serif; }
+  .hjem-bigstat .hbs-bar { background: var(--hj-line); border-radius: 8px; height: 7px; overflow: hidden; }
+  .hjem-bigstat .hbs-bar > div { background: var(--hj-accent); height: 100%; }
+  .hjem-bigstat .hbs-bar > div.goalmet { background: #7bd88f; }
+  .hjem-minirow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; grid-column: 1 / -1; }
+  .hjem-minicard .label { font-size: 11px; color: var(--hj-muted); text-transform: uppercase; }
+  .hjem-minicard .value { font-size: 15px; font-weight: 700; margin-top: 3px; display: flex; align-items: center; }
+  .hjem-minicard .sub { font-size: 11px; color: var(--hj-muted); margin-top: 1px; min-height: 13px; }
+  .stress-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; flex: 0 0 auto; }
+  .stress-dot.green { background: #7bd88f; }
+  .stress-dot.yellow { background: var(--hj-accent); }
+  .stress-dot.red { background: #e37878; }
+  .hjem-finance-row { margin-bottom: 10px; cursor: default; }
+  .hjem-finance-row:last-child { margin-bottom: 0; }
+  .hjem-finance-row .hf-label { font-size: 12px; color: var(--hj-muted); display: flex; justify-content: space-between; }
+  .hjem-finance-row .hf-val { font-size: 15px; font-weight: 700; margin-top: 2px; }
+  .hjem-finance-bar { background: var(--hj-line); border-radius: 8px; height: 8px; overflow: hidden; margin-top: 6px; }
+  .hjem-finance-bar > div { background: var(--hj-accent); height: 100%; }
+  .hjem-finance-bar > div.over { background: #e37878; }
+  .hjem-invest-change { font-size: 12px; font-weight: 700; margin-left: 6px; }
+  .hjem-invest-change.pos { color: #7bd88f; }
+  .hjem-invest-change.neg { color: #e37878; }
   .hjem-reminder-banner {
     display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
     background: rgba(246, 198, 103, 0.14); border: 1px solid var(--hj-accent); color: var(--hj-ink);
@@ -537,8 +555,7 @@
   .quicklog-drawer .btn { width: 100%; }
 
   @media (max-width: 480px) {
-    .hjem-briefing { grid-template-columns: 1fr 1fr; }
-    .hjem-dash { padding: 14px; }
+    .hjem-dash { padding: 14px; padding-bottom: 86px; }
   }
 
   /* ---- access gate ---- */
@@ -638,41 +655,30 @@
   <div class="hjem-dash" id="hjem-dash">
     <div class="hjem-topbar">
       <div class="hjem-greeting" id="hjem-greeting"></div>
-      <button class="hjem-badday-toggle" id="hjem-badday-toggle">🌧️ Dårlig dag</button>
+      <div class="hjem-topbar-btns">
+        <button class="hjem-refresh-btn" id="hjem-refresh-btn" title="Oppdater">⟳</button>
+        <button class="hjem-badday-toggle" id="hjem-badday-toggle">🌧️ Dårlig dag</button>
+      </div>
     </div>
     <div class="hjem-why" id="hjem-why"></div>
 
     <div id="hjem-reminder"></div>
-    <section class="hjem-zone hjem-briefing">
+
+    <section class="hjem-zone hjem-section-1">
+      <h3 class="hjem-zone-title">Dagens Plan &amp; Handling</h3>
       <div class="hjem-card hjem-session" id="hjem-session"></div>
-      <div class="hjem-card hjem-ring-card" id="hjem-kcal-ring"></div>
-      <div class="hjem-card hjem-ring-card" id="hjem-savings-ring"></div>
-      <div class="hjem-card hjem-weather" id="hjem-weather"></div>
+      <div class="hjem-card hjem-nutri-quick" id="hjem-kcal-ring"></div>
+      <div class="hjem-card" id="hjem-tx-today"></div>
     </section>
 
-    <section class="hjem-zone hjem-body">
-      <h3 class="hjem-zone-title">Kropp &amp; Form</h3>
-      <div class="hjem-body-grid">
-        <div class="hjem-stat-chip" id="hjem-stat-hrv"></div>
-        <div class="hjem-stat-chip" id="hjem-stat-sleep"></div>
-        <div class="hjem-stat-chip" id="hjem-stat-steps"></div>
-        <div class="hjem-stat-chip" id="hjem-stat-rhr"></div>
-      </div>
-      <div class="hjem-card">
-        <div class="hjem-card-title">Vekttrend</div>
-        <div class="chart-wrap"><svg id="chart-weight-mini"></svg><div class="tooltip" id="tt-weight-mini"></div></div>
-      </div>
-      <div class="hjem-card" id="hjem-autoreg"></div>
+    <section class="hjem-zone hjem-section-2">
+      <h3 class="hjem-zone-title">Dagens Kropp</h3>
+      <div id="hjem-body-today"></div>
     </section>
 
-    <section class="hjem-zone hjem-progress">
-      <h3 class="hjem-zone-title">Fremdrift</h3>
-      <div class="hjem-progress-grid">
-        <div class="hjem-card" id="hjem-streak"></div>
-        <div class="hjem-card" id="hjem-latest-pr"></div>
-        <div class="hjem-card" id="hjem-savings-goal"></div>
-        <div class="hjem-card" id="hjem-week-summary"></div>
-      </div>
+    <section class="hjem-zone hjem-section-3">
+      <h3 class="hjem-zone-title">Månedens Økonomi</h3>
+      <div class="hjem-card" id="hjem-finance"></div>
     </section>
 
     <div class="quicklog-drawer" id="quicklog-drawer">
@@ -684,7 +690,7 @@
     </div>
     <nav class="quicklog-bar" id="quicklog-bar">
       <button data-ql="vann"><span class="ql-icon">💧</span><span class="ql-label">Vann</span><span class="ql-badge" id="ql-water-badge"></span></button>
-      <button data-ql="mat"><span class="ql-icon">🍫</span><span class="ql-label">Mat</span></button>
+      <button data-ql="mat"><span class="ql-icon">🍫</span><span class="ql-label">Måltid</span></button>
       <button data-ql="utgift"><span class="ql-icon">💸</span><span class="ql-label">Utgift</span></button>
       <button data-ql="okt"><span class="ql-icon">🏋️</span><span class="ql-label">Økt</span></button>
     </nav>
@@ -924,7 +930,7 @@
 </div>
 
 <script>
-const DATA = {"meta": {"generated": "2026-11-12T19:54:44", "dateRange": ["2018-11-13", "2026-11-12"], "units": "km", "totalActivities": 736}, "topStats": {"hrv": {"value": 40, "weeklyAvg": 44, "status": "BALANCED", "date": "2026-11-12", "trend": [43, 42, 42, 43, 42, 45, 39, 42, 42, 41, 44, 41, 38, 41, 40, 40, 40, 45, 40, 43, 46, 42, 38, 43, 48, 41, 48, 49, 38, 40]}, "sleep": {"hours": 8.2, "score": 87, "date": "2026-11-12", "trend": [9.6, 9.2, 8.8, 9.4, 7.8, 9.2, 7.2, 9.1, 8.4, 9.0, 10.0, 8.7, 8.4, 8.8, 8.0, 8.3, 7.7, 9.4, 9.9, 8.3, 8.5, 8.0, 7.2, 10.1, 9.4, 10.0, 8.0, 9.2, 7.0, 8.2]}, "calories": {"value": 656, "date": "2026-11-12", "trend": [2131, 2505, 2311, 2321, 1999, 2747, 2405, 2513, 2127, 2180, 2212, 2505, 2443, 2639, 2218, 2516, 2293, 2588, 2307, 2247, 2422, 2409, 2389, 2232, 2496, 1875, 2370, 2561, 2288, 656]}, "steps": {"value": 1849, "date": "2026-11-12", "trend": [6090, 11156, 8337, 8633, 2897, 13855, 13299, 11211, 5426, 6181, 8211, 8191, 9806, 13494, 9709, 17244, 10904, 16006, 9987, 8260, 10794, 12007, 10107, 9072, 8677, 970, 10360, 12713, 8303, 1849]}, "restingHR": {"value": 54, "date": "2026-11-12", "trend": [54, 54, 53, 55, 56, 53, 57, 55, 53, 55, 53, 55, 54, 53, 47, 53, 56, 53, 54, 54, 51, 55, 56, 54, 51, 52, 51, 52, 57, 54]}}, "reportMetrics": {"sleepHours": {"today": 8.22, "avg7": 8.7, "avg30": 8.7}, "deepSleepMin": {"today": 56, "avg7": 85.9, "avg30": 80.6}, "remSleepMin": {"today": 139, "avg7": 117.4, "avg30": 116.7}, "lightSleepMin": {"today": 298, "avg7": 320.1, "avg30": 324.0}, "sleepScore": {"today": 87, "avg7": 86.6, "avg30": 87.0}, "bodyBatteryCharged": {"today": 38, "avg7": 55.6, "avg30": 57.3}, "bodyBatteryLatest": {"today": 80, "avg7": 56.3, "avg30": 50.8}, "bodyBatteryMin": {"today": 51, "avg7": 36.4, "avg30": 34.9}, "restingHR": {"today": 54, "avg7": 53.3, "avg30": 53.7}, "hrv": {"today": 40, "avg7": 43.6, "avg30": 42.3}, "steps": {"today": 1849, "avg7": 8600.3, "avg30": 9554.9}, "stress": {"today": 19, "avg7": 23.6, "avg30": 23.7}, "calories": {"today": 656, "avg7": 2315.9, "avg30": 2346.0}}, "dailyHistory": [{"date": "2026-10-09", "weekday": 4, "sleepHours": 8.97, "deepSleepMin": 62, "sleepScore": 86, "bodyBatteryCharged": 62, "bodyBatteryLatest": 51, "restingHR": 54, "hrv": 41, "steps": 5534, "stress": 24, "calories": 2057}, {"date": "2026-10-10", "weekday": 5, "sleepHours": 8.27, "deepSleepMin": 58, "sleepScore": 85, "bodyBatteryCharged": 59, "bodyBatteryLatest": 51, "restingHR": 54, "hrv": 40, "steps": 1279, "stress": 19, "calories": 1879}, {"date": "2026-10-11", "weekday": 6, "sleepHours": 8.75, "deepSleepMin": 92, "sleepScore": 92, "bodyBatteryCharged": 66, "bodyBatteryLatest": 65, "restingHR": 53, "hrv": 44, "steps": 2679, "stress": 18, "calories": 1922}, {"date": "2026-10-12", "weekday": 0, "sleepHours": 9.42, "deepSleepMin": 47, "sleepScore": 85, "bodyBatteryCharged": 63, "bodyBatteryLatest": 76, "restingHR": 52, "hrv": 41, "steps": 3024, "stress": 24, "calories": 2116}, {"date": "2026-10-13", "weekday": 1, "sleepHours": 7.78, "deepSleepMin": 48, "sleepScore": 80, "bodyBatteryCharged": 44, "bodyBatteryLatest": 59, "restingHR": 56, "hrv": 42, "steps": 4747, "stress": 26, "calories": 2132}, {"date": "2026-10-14", "weekday": 2, "sleepHours": 9.58, "deepSleepMin": 58, "sleepScore": 85, "bodyBatteryCharged": 57, "bodyBatteryLatest": 59, "restingHR": 54, "hrv": 43, "steps": 6090, "stress": 23, "calories": 2131}, {"date": "2026-10-15", "weekday": 3, "sleepHours": 9.18, "deepSleepMin": 92, "sleepScore": 84, "bodyBatteryCharged": 56, "bodyBatteryLatest": 51, "restingHR": 54, "hrv": 42, "steps": 11156, "stress": 21, "calories": 2505}, {"date": "2026-10-16", "weekday": 4, "sleepHours": 8.82, "deepSleepMin": 69, "sleepScore": 88, "bodyBatteryCharged": 67, "bodyBatteryLatest": 57, "restingHR": 53, "hrv": 42, "steps": 8337, "stress": 22, "calories": 2311}, {"date": "2026-10-17", "weekday": 5, "sleepHours": 9.38, "deepSleepMin": 79, "sleepScore": 88, "bodyBatteryCharged": 56, "bodyBatteryLatest": 51, "restingHR": 55, "hrv": 43, "steps": 8633, "stress": 23, "calories": 2321}, {"date": "2026-10-18", "weekday": 6, "sleepHours": 7.84, "deepSleepMin": 56, "sleepScore": 86, "bodyBatteryCharged": 63, "bodyBatteryLatest": 70, "restingHR": 56, "hrv": 42, "steps": 2897, "stress": 21, "calories": 1999}, {"date": "2026-10-19", "weekday": 0, "sleepHours": 9.16, "deepSleepMin": 98, "sleepScore": 91, "bodyBatteryCharged": 38, "bodyBatteryLatest": 33, "restingHR": 53, "hrv": 45, "steps": 13855, "stress": 26, "calories": 2747}, {"date": "2026-10-20", "weekday": 1, "sleepHours": 7.25, "deepSleepMin": 87, "sleepScore": 83, "bodyBatteryCharged": 62, "bodyBatteryLatest": 47, "restingHR": 57, "hrv": 39, "steps": 13299, "stress": 25, "calories": 2405}, {"date": "2026-10-21", "weekday": 2, "sleepHours": 9.09, "deepSleepMin": 89, "sleepScore": 90, "bodyBatteryCharged": 66, "bodyBatteryLatest": 46, "restingHR": 55, "hrv": 42, "steps": 11211, "stress": 25, "calories": 2513}, {"date": "2026-10-22", "weekday": 3, "sleepHours": 8.42, "deepSleepMin": 99, "sleepScore": 87, "bodyBatteryCharged": 59, "bodyBatteryLatest": 51, "restingHR": 53, "hrv": 42, "steps": 5426, "stress": 24, "calories": 2127}, {"date": "2026-10-23", "weekday": 4, "sleepHours": 8.96, "deepSleepMin": 90, "sleepScore": 89, "bodyBatteryCharged": 66, "bodyBatteryLatest": 63, "restingHR": 55, "hrv": 41, "steps": 6181, "stress": 21, "calories": 2180}, {"date": "2026-10-24", "weekday": 5, "sleepHours": 10.0, "deepSleepMin": 103, "sleepScore": 90, "bodyBatteryCharged": 47, "bodyBatteryLatest": 49, "restingHR": 53, "hrv": 44, "steps": 8211, "stress": 22, "calories": 2212}, {"date": "2026-10-25", "weekday": 6, "sleepHours": 8.65, "deepSleepMin": 24, "sleepScore": 79, "bodyBatteryCharged": 54, "bodyBatteryLatest": 45, "restingHR": 55, "hrv": 41, "steps": 8191, "stress": 25, "calories": 2505}, {"date": "2026-10-26", "weekday": 0, "sleepHours": 8.37, "deepSleepMin": 88, "sleepScore": 86, "bodyBatteryCharged": 56, "bodyBatteryLatest": 55, "restingHR": 54, "hrv": 38, "steps": 9806, "stress": 26, "calories": 2443}, {"date": "2026-10-27", "weekday": 1, "sleepHours": 8.82, "deepSleepMin": 48, "sleepScore": 87, "bodyBatteryCharged": 59, "bodyBatteryLatest": 45, "restingHR": 53, "hrv": 41, "steps": 13494, "stress": 24, "calories": 2639}, {"date": "2026-10-28", "weekday": 2, "sleepHours": 8.02, "deepSleepMin": 82, "sleepScore": 88, "bodyBatteryCharged": 61, "bodyBatteryLatest": 54, "restingHR": 47, "hrv": 40, "steps": 9709, "stress": 23, "calories": 2218}, {"date": "2026-10-29", "weekday": 3, "sleepHours": 8.35, "deepSleepMin": 75, "sleepScore": 90, "bodyBatteryCharged": 55, "bodyBatteryLatest": 44, "restingHR": 53, "hrv": 40, "steps": 17244, "stress": 24, "calories": 2516}, {"date": "2026-10-30", "weekday": 4, "sleepHours": 7.68, "deepSleepMin": 106, "sleepScore": 86, "bodyBatteryCharged": 64, "bodyBatteryLatest": 54, "restingHR": 56, "hrv": 40, "steps": 10904, "stress": 26, "calories": 2293}, {"date": "2026-10-31", "weekday": 5, "sleepHours": 9.44, "deepSleepMin": 93, "sleepScore": 90, "bodyBatteryCharged": 50, "bodyBatteryLatest": 6, "restingHR": 53, "hrv": 45, "steps": 16006, "stress": 25, "calories": 2588}, {"date": "2026-11-01", "weekday": 6, "sleepHours": 9.95, "deepSleepMin": 77, "sleepScore": 86, "bodyBatteryCharged": 97, "bodyBatteryLatest": 60, "restingHR": 54, "hrv": 40, "steps": 9987, "stress": 20, "calories": 2307}, {"date": "2026-11-02", "weekday": 0, "sleepHours": 8.27, "deepSleepMin": 106, "sleepScore": 94, "bodyBatteryCharged": 56, "bodyBatteryLatest": 59, "restingHR": 54, "hrv": 43, "steps": 8260, "stress": 20, "calories": 2247}, {"date": "2026-11-03", "weekday": 1, "sleepHours": 8.51, "deepSleepMin": 56, "sleepScore": 90, "bodyBatteryCharged": 56, "bodyBatteryLatest": 49, "restingHR": 51, "hrv": 46, "steps": 10794, "stress": 22, "calories": 2422}, {"date": "2026-11-04", "weekday": 2, "sleepHours": 8.02, "deepSleepMin": 94, "sleepScore": 86, "bodyBatteryCharged": 40, "bodyBatteryLatest": 22, "restingHR": 55, "hrv": 42, "steps": 12007, "stress": 31, "calories": 2409}, {"date": "2026-11-05", "weekday": 3, "sleepHours": 7.17, "deepSleepMin": 96, "sleepScore": 79, "bodyBatteryCharged": 76, "bodyBatteryLatest": 64, "restingHR": 56, "hrv": 38, "steps": 10107, "stress": 25, "calories": 2389}, {"date": "2026-11-06", "weekday": 4, "sleepHours": 10.11, "deepSleepMin": 112, "sleepScore": 94, "bodyBatteryCharged": 59, "bodyBatteryLatest": 70, "restingHR": 54, "hrv": 43, "steps": 9072, "stress": 21, "calories": 2232}, {"date": "2026-11-07", "weekday": 5, "sleepHours": 9.42, "deepSleepMin": 97, "sleepScore": 91, "bodyBatteryCharged": 45, "bodyBatteryLatest": 49, "restingHR": 51, "hrv": 48, "steps": 8677, "stress": 23, "calories": 2496}, {"date": "2026-11-08", "weekday": 6, "sleepHours": 10.05, "deepSleepMin": 72, "sleepScore": 79, "bodyBatteryCharged": 60, "bodyBatteryLatest": 73, "restingHR": 52, "hrv": 41, "steps": 970, "stress": 20, "calories": 1875}, {"date": "2026-11-09", "weekday": 0, "sleepHours": 8.03, "deepSleepMin": 82, "sleepScore": 93, "bodyBatteryCharged": 45, "bodyBatteryLatest": 57, "restingHR": 51, "hrv": 48, "steps": 10360, "stress": 22, "calories": 2370}, {"date": "2026-11-10", "weekday": 1, "sleepHours": 9.23, "deepSleepMin": 77, "sleepScore": 92, "bodyBatteryCharged": 49, "bodyBatteryLatest": 30, "restingHR": 52, "hrv": 49, "steps": 12713, "stress": 27, "calories": 2561}, {"date": "2026-11-11", "weekday": 2, "sleepHours": 7.03, "deepSleepMin": 65, "sleepScore": 78, "bodyBatteryCharged": 55, "bodyBatteryLatest": 51, "restingHR": 57, "hrv": 38, "steps": 8303, "stress": 27, "calories": 2288}, {"date": "2026-11-12", "weekday": 3, "sleepHours": 8.22, "deepSleepMin": 56, "sleepScore": 87, "bodyBatteryCharged": 38, "bodyBatteryLatest": 80, "restingHR": 54, "hrv": 40, "steps": 1849, "stress": 19, "calories": 656}], "goal": {"type": "leaner", "recentActiveCaloriesPerWeek": 815, "priorActiveCaloriesPerWeek": 643, "caloriesPctChange": 27, "recentSessionsPerWeek": 4.4, "priorSessionsPerWeek": 2.6, "recentStepsPerDay": 7375, "priorStepsPerDay": 6824, "stepsPctChange": 8}, "program": {"currentWeek": 1, "weekFocus": "L\u00e6r \u00f8velsene, lett/moderat vekt, god teknikk og kontroll", "weekSetsNote": "2\u20133 sett", "weekCycleNote": "20\u201325 min", "weekIsDeload": false, "today": {"date": "2026-11-12", "readiness": "go", "reasons": ["HRV er balansert i natt (40 ms)"]}, "week": [{"date": "2026-11-09", "weekday": "Man", "defaultKey": "gsA", "sessionLabel": "Styrke A: helkropp og kjerne", "sessionType": "strength", "isToday": false, "loggedActivities": [{"type": "strength", "name": "Styrke", "minutes": 29}]}, {"date": "2026-11-10", "weekday": "Tir", "defaultKey": "cyc", "sessionLabel": "Rolig sykling (20\u201325 min)", "sessionType": "cycling", "isToday": false, "loggedActivities": [{"type": "cycling", "name": "Innend\u00f8rssykling", "minutes": 26}]}, {"date": "2026-11-11", "weekday": "Ons", "defaultKey": "gsB", "sessionLabel": "Styrke B: helkropp og kjerne", "sessionType": "strength", "isToday": false, "loggedActivities": []}, {"date": "2026-11-12", "weekday": "Tor", "defaultKey": "restW", "sessionLabel": "Hvile eller rolig g\u00e5tur", "sessionType": "rest", "isToday": true, "loggedActivities": []}, {"date": "2026-11-13", "weekday": "Fre", "defaultKey": "gsC", "sessionLabel": "Styrke C: helkropp og kjerne", "sessionType": "strength", "isToday": false, "loggedActivities": []}, {"date": "2026-11-14", "weekday": "L\u00f8r", "defaultKey": "cyc", "sessionLabel": "Rolig sykling (20\u201325 min)", "sessionType": "cycling", "isToday": false, "loggedActivities": []}, {"date": "2026-11-15", "weekday": "S\u00f8n", "defaultKey": "rest", "sessionLabel": "Hvile eller lett aktivitet", "sessionType": "rest", "isToday": false, "loggedActivities": []}]}, "sessionCatalog": {"gsA": {"label": "Styrke A: helkropp og kjerne", "type": "strength", "exercises": ["Glute bridge (aktivering - kjenn at rumpa jobber, ikke korsryggen) 2\u00d712", "Beinpress, kontrollert dybde 3\u00d710\u201312", "Benkpress i maskin 3\u00d78\u201310", "Sittende roing (kabel) 3\u00d710\u201312", "Hip thrust (stang/manualer) - pause og klem rumpa i toppen 3\u00d710\u201312", "Pallof press (kabel) 3\u00d78\u201310/side"]}, "gsB": {"label": "Styrke B: helkropp og kjerne", "type": "strength", "exercises": ["Supersett aktivering: Glute bridge 2\u00d712 + Fire hydrants 2\u00d710\u201312/side + Donkey kicks (spark bak p\u00e5 4 bein) 2\u00d710\u201312/side", "Rumensk markl\u00f8ft (manualer) - skyv hoftene bak, n\u00f8ytral rygg, kjenn baksiden av l\u00e5r/rumpe 3\u00d78\u201310", "Nedtrekk, bredt grep (kabel) 3\u00d78\u201310", "Skulderpress (manualer) 3\u00d78\u201310", "Sideplanke med hoftehev 3\u00d78\u201310/side"]}, "gsC": {"label": "Styrke C: helkropp og kjerne", "type": "strength", "exercises": ["Armhevinger mot benk/vegg (jobb mot gulvet over tid) 3\u00d78\u201312", "Goblet squat, moderat dybde innenfor smertefri rekkevidde 3\u00d710\u201312", "St\u00e5ende kabelrad 3\u00d710\u201312", "Step-up p\u00e5 lav kasse, kontrollert - skyv gjennom h\u00e6len, kjenn rumpa 3\u00d78/side", "Dead bug med vekt 3\u00d78/side", "Planke med skulderber\u00f8ring 3\u00d720\u201330 s"]}, "cyc": {"label": "Rolig sykling", "type": "cycling", "note": "Lett motstand, prat i hele setninger"}, "walk": {"label": "G\u00e5tur", "type": "walk"}, "rest": {"label": "Hvile", "type": "rest"}}, "nutritionPlan": {"dailyKcal": 1750, "proteinMin": 140, "note": "Tallene er grove anslag basert p\u00e5 vanlige produktverdier (\u00b110%) - sjekk egne etiketter (proteinpulver, YT-produkter) for mer n\u00f8yaktige tall.", "breakfast": {"label": "Frokost (fast)", "items": ["40 g havregryn", "20 g proteinpulver", "1 dl proteinmelk", "10 g chiafr\u00f8", "100 g gresk yoghurt"], "kcal": 450, "protein": 32}, "lunch": {"label": "Lunsj - velg \u00e9n, rull\u00e9r gjennom uken", "options": [{"name": "Kyllingfilet-wrap", "items": ["130 g kyllingfilet", "1 grovt pitabr\u00f8d", "agurk og paprika", "1 ss lett r\u00f8mme/yoghurtdressing"], "kcal": 400, "protein": 35}, {"name": "Karbonadedeig med ris", "items": ["120 g karbonadedeig", "60 g ris (t\u00f8rrvekt)", "agurk og paprika"], "kcal": 430, "protein": 28}, {"name": "Kyllingkj\u00f8ttdeig-taco", "items": ["130 g kyllingkj\u00f8ttdeig", "2 extra thin tacolefser", "agurk og paprika", "litt mager kesam"], "kcal": 400, "protein": 32}, {"name": "Proteinrundstykke med kyllingfilet", "items": ["1 proteinrundstykke", "80 g kyllingfilet-p\u00e5legg", "salat og tomat", "litt lett dressing"], "kcal": 350, "protein": 30}, {"name": "Wrap med ferdigstekt kylling", "items": ["1 grov tortillalefse", "100 g ferdigstekt kyllingfilet (butikk)", "agurk og paprika", "litt lett dressing"], "kcal": 380, "protein": 30}]}, "snack": {"label": "Mellomm\u00e5ltid - velg \u00e9n", "options": [{"name": "Yoghurt med bringeb\u00e6r og granola", "items": ["150 g h\u00f8yprotein yoghurt/skyr", "20 g kakaogranola", "bringeb\u00e6r", "1 ts Biscoff"], "kcal": 230, "protein": 18}, {"name": "YT proteinprodukt", "items": ["1 stk (sjekk etiketten for n\u00f8yaktige tall)"], "kcal": 180, "protein": 20}, {"name": "Mager kesam med bringeb\u00e6r", "items": ["150 g mager kesam", "bringeb\u00e6r"], "kcal": 110, "protein": 18}]}, "dinner": {"label": "Middag - velg \u00e9n, rull\u00e9r gjennom uken", "options": [{"name": "Kyllingkj\u00f8ttdeig-stekt ris", "items": ["150 g kyllingkj\u00f8ttdeig", "70 g ris (t\u00f8rrvekt)", "amerikansk gr\u00f8nnsaksblanding (frossen)", "litt soyasaus"], "kcal": 520, "protein": 42}, {"name": "Pasta med kj\u00f8ttsaus", "items": ["80 g pasta (t\u00f8rrvekt)", "130 g karbonadedeig", "litt tomatsaus", "paprika"], "kcal": 560, "protein": 33}, {"name": "Kylling med ris", "items": ["150 g kyllingfilet", "70 g ris (t\u00f8rrvekt)", "agurk og paprika"], "kcal": 480, "protein": 44}, {"name": "Laks med poteter", "items": ["150 g laksefilet", "200 g poteter", "brokkoli"], "kcal": 490, "protein": 38}, {"name": "Taco-gryte", "items": ["150 g kyllingkj\u00f8ttdeig", "100 g mais og b\u00f8nner", "1 dl lettr\u00f8mme", "liten porsjon tortillachips"], "kcal": 540, "protein": 36}]}}, "weeklyBySport": [{"week": "2026-08-03", "sports": {"Running": {"sessions": 1, "minutes": 33, "distanceKm": 4.3, "calories": 334}}}, {"week": "2026-09-14", "sports": {"Strength": {"sessions": 4, "minutes": 142, "distanceKm": 0.0, "calories": 644}, "Running": {"sessions": 3, "minutes": 74, "distanceKm": 8.2, "calories": 658}}}, {"week": "2026-09-21", "sports": {"Strength": {"sessions": 1, "minutes": 37, "distanceKm": 0.0, "calories": 110}}}, {"week": "2026-09-28", "sports": {"Running": {"sessions": 1, "minutes": 21, "distanceKm": 2.7, "calories": 215}}}, {"week": "2026-10-05", "sports": {"Strength": {"sessions": 2, "minutes": 57, "distanceKm": 0.0, "calories": 191}, "Running": {"sessions": 2, "minutes": 59, "distanceKm": 7.0, "calories": 530}}}, {"week": "2026-10-12", "sports": {"Strength": {"sessions": 3, "minutes": 131, "distanceKm": 0.0, "calories": 367}, "Running": {"sessions": 1, "minutes": 30, "distanceKm": 3.5, "calories": 280}, "Walking": {"sessions": 1, "minutes": 28, "distanceKm": 2.6, "calories": 193}}}, {"week": "2026-10-19", "sports": {"Strength": {"sessions": 4, "minutes": 150, "distanceKm": 0.0, "calories": 614}, "Running": {"sessions": 3, "minutes": 90, "distanceKm": 11.0, "calories": 883}}}, {"week": "2026-10-26", "sports": {"Strength": {"sessions": 3, "minutes": 126, "distanceKm": 0.0, "calories": 455}, "Running": {"sessions": 3, "minutes": 97, "distanceKm": 12.0, "calories": 845}, "Walking": {"sessions": 1, "minutes": 52, "distanceKm": 4.6, "calories": 304}}}, {"week": "2026-11-02", "sports": {"Strength": {"sessions": 3, "minutes": 126, "distanceKm": 0.0, "calories": 430}, "Cycling": {"sessions": 2, "minutes": 56, "distanceKm": 0.0, "calories": 377}, "Running": {"sessions": 2, "minutes": 48, "distanceKm": 4.9, "calories": 294}}}, {"week": "2026-11-09", "sports": {"Strength": {"sessions": 1, "minutes": 29, "distanceKm": 0.0, "calories": 95}, "Cycling": {"sessions": 1, "minutes": 26, "distanceKm": 0.0, "calories": 144}, "Running": {"sessions": 1, "minutes": 31, "distanceKm": 2.2, "calories": 194}}}], "trends": {"trainingLoad": {"weeks": ["2025-04-14", "2025-04-21", "2025-04-28", "2025-05-05", "2025-05-12", "2025-05-19", "2025-05-26", "2025-06-02", "2025-06-09", "2025-06-16", "2025-06-23", "2025-06-30", "2025-07-07", "2025-07-14", "2025-07-21", "2025-07-28", "2025-08-04", "2025-08-11", "2025-08-18", "2025-08-25", "2025-09-01", "2025-09-08", "2025-09-15", "2025-09-22", "2025-09-29", "2025-10-06", "2025-10-13", "2025-11-03", "2025-11-10", "2025-11-17", "2025-11-24", "2025-12-01", "2025-12-08", "2025-12-22", "2026-01-05", "2026-01-12", "2026-01-19", "2026-01-26", "2026-02-02", "2026-02-16", "2026-02-23", "2026-03-02", "2026-03-09", "2026-04-06", "2026-05-18", "2026-05-25", "2026-06-15", "2026-06-29", "2026-07-20", "2026-07-27", "2026-08-03", "2026-09-14", "2026-09-21", "2026-09-28", "2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-02", "2026-11-09"], "values": [241, 57, 485, 547, 3, 586, 435, 264, 262, 21, 180, 282, 21, 35, 283, 383, 111, 14, 177, 107, 59, 58, 53, 83, 31, 221, 268, 214, 167, 164, 291, 277, 12, 585, 506, 123, 271, 346, 10, 69, 293, 258, 106, 57, 97, 123, 140, 94, 5, 83, 66, 209, 3, 58, 143, 96, 283, 218, 97, 25]}, "restingHR": {"weeks": ["2024-10-14", "2024-10-21", "2024-10-28", "2024-11-04", "2024-11-11", "2024-11-18", "2024-11-25", "2024-12-02", "2024-12-09", "2024-12-16", "2024-12-23", "2024-12-30", "2025-01-06", "2025-01-13", "2025-01-20", "2025-01-27", "2025-02-03", "2025-02-10", "2025-02-17", "2025-02-24", "2025-03-03", "2025-03-10", "2025-03-17", "2025-03-24", "2025-03-31", "2025-04-07", "2025-04-14", "2025-04-21", "2025-04-28", "2025-05-05", "2025-05-12", "2025-05-19", "2025-05-26", "2025-06-02", "2025-06-09", "2025-06-16", "2025-06-23", "2025-06-30", "2025-07-07", "2025-07-14", "2025-07-21", "2025-07-28", "2025-08-04", "2025-08-11", "2025-08-18", "2025-08-25", "2025-09-01", "2025-09-08", "2025-09-15", "2025-09-22", "2025-09-29", "2025-10-06", "2025-10-13", "2025-10-20", "2025-10-27", "2025-11-03", "2025-11-10", "2025-11-17", "2025-11-24", "2025-12-01", "2025-12-08", "2025-12-15", "2025-12-22", "2025-12-29", "2026-01-05", "2026-01-12", "2026-01-19", "2026-01-26", "2026-02-02", "2026-02-09", "2026-02-16", "2026-02-23", "2026-03-02", "2026-03-09", "2026-03-16", "2026-03-23", "2026-04-06", "2026-04-13", "2026-05-18", "2026-05-25", "2026-06-01", "2026-06-08", "2026-06-15", "2026-06-22", "2026-06-29", "2026-07-06", "2026-07-13", "2026-07-20", "2026-07-27", "2026-08-03", "2026-08-10", "2026-08-17", "2026-08-24", "2026-08-31", "2026-09-07", "2026-09-14", "2026-09-21", "2026-09-28", "2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-02", "2026-11-09"], "values": [53.8, 55, 53.5, 56.2, 60.3, 55, 57, 57.6, 55.3, 55.4, 54.8, 56.1, 53.1, 51.9, 52.3, 52.1, 51.4, 51.3, 50.1, 49.6, 48.9, 49.1, 48.6, 49.6, 47.6, 49, 54.4, 52.7, 52, 52.7, 52.1, 52.6, 53.9, 53.3, 55, 57.3, 55.9, 55.4, 57.4, 57.6, 55.3, 54, 56.7, 55.9, 56, 54.7, 54.6, 55.7, 55, 56.6, 58.3, 55, 56.4, 59.1, 57.9, 56, 54.7, 55.9, 55.7, 54.7, 54.7, 56.5, 59, 55, 56.4, 55.3, 56.1, 55.7, 54.6, 57.6, 54.7, 53.9, 54.5, 53.3, 56, 57.3, 58.2, 57, 57, 57.6, 60, 56.5, 56.7, 58.4, 55.9, 59, 58.3, 54.3, 54.3, 59.1, 57.7, 54.3, 54.4, 55.7, 55.6, 55.7, 54.9, 55.1, 54, 54.3, 54.4, 52.9, 53.3, 53.5]}, "hrv": {"weeks": ["2024-09-23", "2024-09-30", "2024-10-07", "2024-10-14", "2024-10-21", "2024-10-28", "2024-11-04", "2024-11-11", "2024-11-18", "2024-11-25", "2024-12-02", "2024-12-09", "2024-12-16", "2024-12-23", "2024-12-30", "2025-01-06", "2025-01-13", "2025-01-20", "2025-01-27", "2025-02-03", "2025-02-10", "2025-02-17", "2025-02-24", "2025-03-03", "2025-03-10", "2025-03-17", "2025-03-24", "2025-03-31", "2025-04-07", "2025-04-14", "2025-04-21", "2025-04-28", "2025-05-05", "2025-05-12", "2025-05-19", "2025-05-26", "2025-06-02", "2025-06-09", "2025-06-16", "2025-06-23", "2025-06-30", "2025-07-07", "2025-07-14", "2025-07-21", "2025-07-28", "2025-08-04", "2025-08-11", "2025-08-18", "2025-08-25", "2025-09-01", "2025-09-08", "2025-09-15", "2025-09-22", "2025-09-29", "2025-10-06", "2025-10-13", "2025-10-20", "2025-10-27", "2025-11-03", "2025-11-10", "2025-11-17", "2025-11-24", "2025-12-01", "2025-12-08", "2025-12-15", "2025-12-22", "2025-12-29", "2026-01-05", "2026-01-12", "2026-01-19", "2026-01-26", "2026-02-02", "2026-02-09", "2026-02-16", "2026-02-23", "2026-03-02", "2026-03-09", "2026-03-16", "2026-03-23", "2026-04-06", "2026-05-18", "2026-05-25", "2026-06-01", "2026-06-15", "2026-06-22", "2026-06-29", "2026-07-13", "2026-07-20", "2026-07-27", "2026-08-03", "2026-08-10", "2026-08-17", "2026-08-24", "2026-08-31", "2026-09-07", "2026-09-14", "2026-09-21", "2026-09-28", "2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-02", "2026-11-09"], "values": [48.3, 46.5, 51.8, 48.2, 46.8, 53.5, 46, 50, 51.3, 44.5, 56, 47.2, 50, 46.8, 47, 48.6, 53.3, 48.3, 48.1, 53.3, 55.1, 60.3, 51.9, 55.3, 59, 62.6, 59.9, 61, 57.9, 46.7, 50, 54.7, 55.3, 49.3, 51.4, 47.4, 50.9, 43.3, 43.5, 48.1, 46.7, 40.4, 46.1, 52.1, 52.3, 44.2, 46.6, 45, 51.4, 45.1, 46.6, 48.8, 48, 40.8, 44.4, 42.4, 47.6, 45.5, 48.9, 50.7, 46.7, 47, 49.5, 51.6, 46.8, 45.2, 49.3, 43.4, 43.9, 43.8, 46.6, 45.8, 39, 47.8, 47.1, 46.4, 44.6, 41.3, 42.5, 38.3, 40, 39.4, 33, 36.5, 37.3, 41.2, 38, 45.6, 44, 38.2, 36.5, 42.6, 43.6, 40.3, 40.7, 38.7, 38.3, 39.6, 40.9, 42.1, 42, 40.6, 43, 43.8]}, "sleepHours": {"weeks": ["2024-10-07", "2024-10-14", "2024-10-21", "2024-10-28", "2024-11-04", "2024-11-11", "2024-11-18", "2024-11-25", "2024-12-02", "2024-12-09", "2024-12-16", "2024-12-23", "2024-12-30", "2025-01-06", "2025-01-13", "2025-01-20", "2025-01-27", "2025-02-03", "2025-02-10", "2025-02-17", "2025-02-24", "2025-03-03", "2025-03-10", "2025-03-17", "2025-03-24", "2025-03-31", "2025-04-07", "2025-04-14", "2025-04-21", "2025-04-28", "2025-05-05", "2025-05-12", "2025-05-19", "2025-05-26", "2025-06-02", "2025-06-09", "2025-06-16", "2025-06-23", "2025-06-30", "2025-07-07", "2025-07-14", "2025-07-21", "2025-07-28", "2025-08-04", "2025-08-11", "2025-08-18", "2025-08-25", "2025-09-01", "2025-09-08", "2025-09-15", "2025-09-22", "2025-09-29", "2025-10-06", "2025-10-13", "2025-10-20", "2025-10-27", "2025-11-03", "2025-11-10", "2025-11-17", "2025-11-24", "2025-12-01", "2025-12-08", "2025-12-15", "2025-12-22", "2025-12-29", "2026-01-05", "2026-01-12", "2026-01-19", "2026-01-26", "2026-02-02", "2026-02-09", "2026-02-16", "2026-02-23", "2026-03-02", "2026-03-09", "2026-03-16", "2026-03-23", "2026-04-06", "2026-05-18", "2026-05-25", "2026-06-01", "2026-06-08", "2026-06-15", "2026-06-22", "2026-06-29", "2026-07-06", "2026-07-13", "2026-07-20", "2026-07-27", "2026-08-03", "2026-08-10", "2026-08-17", "2026-08-24", "2026-08-31", "2026-09-07", "2026-09-14", "2026-09-21", "2026-09-28", "2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-02", "2026-11-09"], "values": [8.8, 8.8, 9.4, 9.9, 8.4, 8.9, 9.0, 9.1, 9.6, 9.1, 8.6, 8.4, 8.4, 8.0, 8.4, 7.1, 8.8, 8.1, 8.4, 8.0, 8.6, 8.1, 7.8, 8.0, 8.5, 8.0, 8.2, 7.7, 9.1, 8.7, 7.6, 8.7, 8.4, 8.0, 7.8, 7.5, 9.5, 8.0, 7.7, 6.8, 8.2, 7.9, 8.4, 7.8, 7.4, 7.7, 9.1, 8.0, 8.7, 8.2, 8.0, 10.2, 9.2, 8.1, 7.9, 6.5, 7.9, 8.0, 8.2, 8.1, 8.1, 8.4, 7.5, 8.8, 8.5, 8.5, 9.6, 7.7, 7.9, 7.8, 7.7, 8.4, 8.7, 8.3, 8.4, 8.2, 9.8, 9.7, 7.6, 7.0, 8.3, 8.0, 8.0, 8.3, 8.1, 7.4, 8.8, 8.5, 8.0, 7.7, 10.1, 8.4, 9.0, 9.6, 9.3, 8.6, 8.5, 9.2, 8.8, 8.9, 8.8, 8.7, 8.8, 8.1]}, "sleepScore": {"weeks": ["2024-10-07", "2024-10-14", "2024-10-21", "2024-10-28", "2024-11-04", "2024-11-11", "2024-11-18", "2024-11-25", "2024-12-02", "2024-12-09", "2024-12-16", "2024-12-23", "2024-12-30", "2025-01-06", "2025-01-13", "2025-01-20", "2025-01-27", "2025-02-03", "2025-02-10", "2025-02-17", "2025-02-24", "2025-03-03", "2025-03-10", "2025-03-17", "2025-03-24", "2025-03-31", "2025-04-07", "2025-04-14", "2025-04-21", "2025-04-28", "2025-05-05", "2025-05-12", "2025-05-19", "2025-05-26", "2025-06-02", "2025-06-09", "2025-06-16", "2025-06-23", "2025-06-30", "2025-07-07", "2025-07-14", "2025-07-21", "2025-07-28", "2025-08-04", "2025-08-11", "2025-08-18", "2025-08-25", "2025-09-01", "2025-09-08", "2025-09-15", "2025-09-22", "2025-09-29", "2025-10-06", "2025-10-13", "2025-10-20", "2025-10-27", "2025-11-03", "2025-11-10", "2025-11-17", "2025-11-24", "2025-12-01", "2025-12-08", "2025-12-15", "2025-12-22", "2025-12-29", "2026-01-05", "2026-01-12", "2026-01-19", "2026-01-26", "2026-02-02", "2026-02-09", "2026-02-16", "2026-02-23", "2026-03-02", "2026-03-09", "2026-03-16", "2026-03-23", "2026-04-06", "2026-05-18", "2026-05-25", "2026-06-01", "2026-06-08", "2026-06-15", "2026-06-22", "2026-06-29", "2026-07-06", "2026-07-13", "2026-07-20", "2026-07-27", "2026-08-03", "2026-08-10", "2026-08-17", "2026-08-24", "2026-08-31", "2026-09-07", "2026-09-14", "2026-09-21", "2026-09-28", "2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-02", "2026-11-09"], "values": [83.7, 83.6, 79.5, 88.5, 79.6, 81.5, 88, 75.2, 91, 83, 85.8, 81.2, 84.4, 88.1, 88.4, 82.9, 89.6, 84.6, 83.9, 88.1, 90.6, 88.6, 85.6, 88.4, 92.7, 90.9, 90.7, 81.3, 85.2, 81, 83.3, 76.6, 84.1, 79.7, 85.3, 69.4, 77.2, 82, 82, 70.1, 78.4, 85.4, 90, 83, 82.9, 79.4, 86.3, 81.4, 83.1, 85.8, 83.2, 63.4, 77.6, 83.6, 83, 71.2, 81, 86.4, 85, 82.6, 84.3, 90.4, 80.2, 78.8, 82.6, 85.3, 76.3, 75.3, 79.3, 83.4, 75.7, 85.8, 84.6, 86.6, 82.6, 78.9, 84.5, 82.3, 84.2, 73.3, 75.6, 87.3, 76.7, 79.8, 72.7, 76.8, 73.8, 86.1, 84.1, 79.8, 81, 87.1, 81, 81.9, 84, 82.6, 86.1, 79.4, 84.4, 85.1, 87, 87.6, 87.6, 87.5]}}, "records": {"longestRide": {"value": 62, "unit": "min", "date": "2020-04-02", "name": "Innend\u00f8rssykling"}, "longestRun": {"value": 12.0, "unit": "km", "date": "2025-03-29", "name": "Oslo L\u00f8ping"}, "longestStrength": {"value": 139, "unit": "min", "date": "2020-03-12", "name": "Styrke"}, "highestTrainingLoad": {"value": 232, "unit": "load", "date": "2025-05-25", "name": "Oslo - Lett l\u00f8petur"}, "mostSteps": {"value": 28897, "date": "2025-10-26"}, "mostCalories": {"value": 4495, "date": "2020-06-13"}, "longestSleep": {"value": 21.0, "date": "2025-09-29"}, "bestHRV": {"value": 70, "date": "2025-03-22"}}, "sportColors": {"Strength": "#7a1f3d", "Cycling": "#9b3456", "Running": "#a46cc0", "Walking": "#e8a3b6", "Other": "#d9a441"}, "sportOrder": ["Strength", "Cycling", "Running", "Walking", "Other"], "budgetDefaults": {"income": 32000, "categories": [{"key": "bolig", "label": "Bolig/faste utgifter", "cap": 15000}, {"key": "mat", "label": "Dagligvarer", "cap": 3800}, {"key": "restaurant", "label": "Restaurant/take-away", "cap": 600}, {"key": "transport", "label": "Transport", "cap": 900}, {"key": "abonnement", "label": "Abonnementer", "cap": 500}, {"key": "klaer", "label": "Kl\u00e6r/shopping", "cap": 700}, {"key": "trening", "label": "Trening/helse", "cap": 600}, {"key": "hundefond", "label": "Hundefond (sparing)", "cap": 2500}, {"key": "annet", "label": "Annet", "cap": 1000}]}, "dogFund": {"target": 30000, "startSaved": 5000, "category": "hundefond"}, "pointsConfig": {"levelThreshold": 600, "perCompletedSession": 15, "perStepGoalDay": 5, "perWeightWeek": 10, "perMeasurementMonth": 15, "perNewRecord": 20, "perFundMilestone": 50, "levelNames": ["Fr\u00f8", "Spire", "Knopp", "Blomst", "Bukett", "Hage", "Rosekongen"], "levelRewards": ["Start! \ud83c\udf31", "Nye treningssokker eller fin h\u00e5rklype", "Et lite s\u00f8lvsmykke, f.eks. \u00f8redobber eller et armb\u00e5nd", "Ny spilleliste og fin vannflaske til treningsbagen", "Manikyr eller en bukett blomster til deg selv", "Noe fint til leiligheten, f.eks. en plante eller pute", "En hel dag fri fra alt, akkurat som du vil \ud83d\udc51"]}, "trainingHistory": [{"date": "2026-11-09", "sessionType": "strength", "loggedTypes": ["strength"], "stepGoalMet": true}, {"date": "2026-11-10", "sessionType": "cycling", "loggedTypes": ["cycling"], "stepGoalMet": true}, {"date": "2026-11-11", "sessionType": "strength", "loggedTypes": [], "stepGoalMet": true}, {"date": "2026-11-12", "sessionType": "rest", "loggedTypes": [], "stepGoalMet": false}], "programStart": "2026-11-09", "gateHash": "6a1d64c93a668e950986b03470882a7f80eb97fdbb9b3c0556d781e6e15abd84"};
+const DATA = {"meta": {"generated": "2026-11-12T20:26:44", "dateRange": ["2018-11-13", "2026-11-12"], "units": "km", "totalActivities": 736}, "topStats": {"hrv": {"value": 40, "weeklyAvg": 44, "status": "BALANCED", "date": "2026-11-12", "trend": [43, 42, 42, 43, 42, 45, 39, 42, 42, 41, 44, 41, 38, 41, 40, 40, 40, 45, 40, 43, 46, 42, 38, 43, 48, 41, 48, 49, 38, 40]}, "sleep": {"hours": 8.2, "score": 87, "date": "2026-11-12", "trend": [9.6, 9.2, 8.8, 9.4, 7.8, 9.2, 7.2, 9.1, 8.4, 9.0, 10.0, 8.7, 8.4, 8.8, 8.0, 8.3, 7.7, 9.4, 9.9, 8.3, 8.5, 8.0, 7.2, 10.1, 9.4, 10.0, 8.0, 9.2, 7.0, 8.2]}, "calories": {"value": 656, "date": "2026-11-12", "trend": [2131, 2505, 2311, 2321, 1999, 2747, 2405, 2513, 2127, 2180, 2212, 2505, 2443, 2639, 2218, 2516, 2293, 2588, 2307, 2247, 2422, 2409, 2389, 2232, 2496, 1875, 2370, 2561, 2288, 656]}, "steps": {"value": 1849, "goal": 8000, "date": "2026-11-12", "trend": [6090, 11156, 8337, 8633, 2897, 13855, 13299, 11211, 5426, 6181, 8211, 8191, 9806, 13494, 9709, 17244, 10904, 16006, 9987, 8260, 10794, 12007, 10107, 9072, 8677, 970, 10360, 12713, 8303, 1849]}, "restingHR": {"value": 54, "date": "2026-11-12", "trend": [54, 54, 53, 55, 56, 53, 57, 55, 53, 55, 53, 55, 54, 53, 47, 53, 56, 53, 54, 54, 51, 55, 56, 54, 51, 52, 51, 52, 57, 54]}}, "reportMetrics": {"sleepHours": {"today": 8.22, "avg7": 8.7, "avg30": 8.7}, "deepSleepMin": {"today": 56, "avg7": 85.9, "avg30": 80.6}, "remSleepMin": {"today": 139, "avg7": 117.4, "avg30": 116.7}, "lightSleepMin": {"today": 298, "avg7": 320.1, "avg30": 324.0}, "sleepScore": {"today": 87, "avg7": 86.6, "avg30": 87.0}, "bodyBatteryCharged": {"today": 38, "avg7": 55.6, "avg30": 57.3}, "bodyBatteryLatest": {"today": 80, "avg7": 56.3, "avg30": 50.8}, "bodyBatteryMin": {"today": 51, "avg7": 36.4, "avg30": 34.9}, "restingHR": {"today": 54, "avg7": 53.3, "avg30": 53.7}, "hrv": {"today": 40, "avg7": 43.6, "avg30": 42.3}, "steps": {"today": 1849, "avg7": 8600.3, "avg30": 9554.9}, "stress": {"today": 19, "avg7": 23.6, "avg30": 23.7}, "calories": {"today": 656, "avg7": 2315.9, "avg30": 2346.0}, "activeCalories": {"today": 79, "avg7": 463.1, "avg30": 488.0}}, "dailyHistory": [{"date": "2026-10-09", "weekday": 4, "sleepHours": 8.97, "deepSleepMin": 62, "sleepScore": 86, "bodyBatteryCharged": 62, "bodyBatteryLatest": 51, "restingHR": 54, "hrv": 41, "steps": 5534, "stress": 24, "calories": 2057}, {"date": "2026-10-10", "weekday": 5, "sleepHours": 8.27, "deepSleepMin": 58, "sleepScore": 85, "bodyBatteryCharged": 59, "bodyBatteryLatest": 51, "restingHR": 54, "hrv": 40, "steps": 1279, "stress": 19, "calories": 1879}, {"date": "2026-10-11", "weekday": 6, "sleepHours": 8.75, "deepSleepMin": 92, "sleepScore": 92, "bodyBatteryCharged": 66, "bodyBatteryLatest": 65, "restingHR": 53, "hrv": 44, "steps": 2679, "stress": 18, "calories": 1922}, {"date": "2026-10-12", "weekday": 0, "sleepHours": 9.42, "deepSleepMin": 47, "sleepScore": 85, "bodyBatteryCharged": 63, "bodyBatteryLatest": 76, "restingHR": 52, "hrv": 41, "steps": 3024, "stress": 24, "calories": 2116}, {"date": "2026-10-13", "weekday": 1, "sleepHours": 7.78, "deepSleepMin": 48, "sleepScore": 80, "bodyBatteryCharged": 44, "bodyBatteryLatest": 59, "restingHR": 56, "hrv": 42, "steps": 4747, "stress": 26, "calories": 2132}, {"date": "2026-10-14", "weekday": 2, "sleepHours": 9.58, "deepSleepMin": 58, "sleepScore": 85, "bodyBatteryCharged": 57, "bodyBatteryLatest": 59, "restingHR": 54, "hrv": 43, "steps": 6090, "stress": 23, "calories": 2131}, {"date": "2026-10-15", "weekday": 3, "sleepHours": 9.18, "deepSleepMin": 92, "sleepScore": 84, "bodyBatteryCharged": 56, "bodyBatteryLatest": 51, "restingHR": 54, "hrv": 42, "steps": 11156, "stress": 21, "calories": 2505}, {"date": "2026-10-16", "weekday": 4, "sleepHours": 8.82, "deepSleepMin": 69, "sleepScore": 88, "bodyBatteryCharged": 67, "bodyBatteryLatest": 57, "restingHR": 53, "hrv": 42, "steps": 8337, "stress": 22, "calories": 2311}, {"date": "2026-10-17", "weekday": 5, "sleepHours": 9.38, "deepSleepMin": 79, "sleepScore": 88, "bodyBatteryCharged": 56, "bodyBatteryLatest": 51, "restingHR": 55, "hrv": 43, "steps": 8633, "stress": 23, "calories": 2321}, {"date": "2026-10-18", "weekday": 6, "sleepHours": 7.84, "deepSleepMin": 56, "sleepScore": 86, "bodyBatteryCharged": 63, "bodyBatteryLatest": 70, "restingHR": 56, "hrv": 42, "steps": 2897, "stress": 21, "calories": 1999}, {"date": "2026-10-19", "weekday": 0, "sleepHours": 9.16, "deepSleepMin": 98, "sleepScore": 91, "bodyBatteryCharged": 38, "bodyBatteryLatest": 33, "restingHR": 53, "hrv": 45, "steps": 13855, "stress": 26, "calories": 2747}, {"date": "2026-10-20", "weekday": 1, "sleepHours": 7.25, "deepSleepMin": 87, "sleepScore": 83, "bodyBatteryCharged": 62, "bodyBatteryLatest": 47, "restingHR": 57, "hrv": 39, "steps": 13299, "stress": 25, "calories": 2405}, {"date": "2026-10-21", "weekday": 2, "sleepHours": 9.09, "deepSleepMin": 89, "sleepScore": 90, "bodyBatteryCharged": 66, "bodyBatteryLatest": 46, "restingHR": 55, "hrv": 42, "steps": 11211, "stress": 25, "calories": 2513}, {"date": "2026-10-22", "weekday": 3, "sleepHours": 8.42, "deepSleepMin": 99, "sleepScore": 87, "bodyBatteryCharged": 59, "bodyBatteryLatest": 51, "restingHR": 53, "hrv": 42, "steps": 5426, "stress": 24, "calories": 2127}, {"date": "2026-10-23", "weekday": 4, "sleepHours": 8.96, "deepSleepMin": 90, "sleepScore": 89, "bodyBatteryCharged": 66, "bodyBatteryLatest": 63, "restingHR": 55, "hrv": 41, "steps": 6181, "stress": 21, "calories": 2180}, {"date": "2026-10-24", "weekday": 5, "sleepHours": 10.0, "deepSleepMin": 103, "sleepScore": 90, "bodyBatteryCharged": 47, "bodyBatteryLatest": 49, "restingHR": 53, "hrv": 44, "steps": 8211, "stress": 22, "calories": 2212}, {"date": "2026-10-25", "weekday": 6, "sleepHours": 8.65, "deepSleepMin": 24, "sleepScore": 79, "bodyBatteryCharged": 54, "bodyBatteryLatest": 45, "restingHR": 55, "hrv": 41, "steps": 8191, "stress": 25, "calories": 2505}, {"date": "2026-10-26", "weekday": 0, "sleepHours": 8.37, "deepSleepMin": 88, "sleepScore": 86, "bodyBatteryCharged": 56, "bodyBatteryLatest": 55, "restingHR": 54, "hrv": 38, "steps": 9806, "stress": 26, "calories": 2443}, {"date": "2026-10-27", "weekday": 1, "sleepHours": 8.82, "deepSleepMin": 48, "sleepScore": 87, "bodyBatteryCharged": 59, "bodyBatteryLatest": 45, "restingHR": 53, "hrv": 41, "steps": 13494, "stress": 24, "calories": 2639}, {"date": "2026-10-28", "weekday": 2, "sleepHours": 8.02, "deepSleepMin": 82, "sleepScore": 88, "bodyBatteryCharged": 61, "bodyBatteryLatest": 54, "restingHR": 47, "hrv": 40, "steps": 9709, "stress": 23, "calories": 2218}, {"date": "2026-10-29", "weekday": 3, "sleepHours": 8.35, "deepSleepMin": 75, "sleepScore": 90, "bodyBatteryCharged": 55, "bodyBatteryLatest": 44, "restingHR": 53, "hrv": 40, "steps": 17244, "stress": 24, "calories": 2516}, {"date": "2026-10-30", "weekday": 4, "sleepHours": 7.68, "deepSleepMin": 106, "sleepScore": 86, "bodyBatteryCharged": 64, "bodyBatteryLatest": 54, "restingHR": 56, "hrv": 40, "steps": 10904, "stress": 26, "calories": 2293}, {"date": "2026-10-31", "weekday": 5, "sleepHours": 9.44, "deepSleepMin": 93, "sleepScore": 90, "bodyBatteryCharged": 50, "bodyBatteryLatest": 6, "restingHR": 53, "hrv": 45, "steps": 16006, "stress": 25, "calories": 2588}, {"date": "2026-11-01", "weekday": 6, "sleepHours": 9.95, "deepSleepMin": 77, "sleepScore": 86, "bodyBatteryCharged": 97, "bodyBatteryLatest": 60, "restingHR": 54, "hrv": 40, "steps": 9987, "stress": 20, "calories": 2307}, {"date": "2026-11-02", "weekday": 0, "sleepHours": 8.27, "deepSleepMin": 106, "sleepScore": 94, "bodyBatteryCharged": 56, "bodyBatteryLatest": 59, "restingHR": 54, "hrv": 43, "steps": 8260, "stress": 20, "calories": 2247}, {"date": "2026-11-03", "weekday": 1, "sleepHours": 8.51, "deepSleepMin": 56, "sleepScore": 90, "bodyBatteryCharged": 56, "bodyBatteryLatest": 49, "restingHR": 51, "hrv": 46, "steps": 10794, "stress": 22, "calories": 2422}, {"date": "2026-11-04", "weekday": 2, "sleepHours": 8.02, "deepSleepMin": 94, "sleepScore": 86, "bodyBatteryCharged": 40, "bodyBatteryLatest": 22, "restingHR": 55, "hrv": 42, "steps": 12007, "stress": 31, "calories": 2409}, {"date": "2026-11-05", "weekday": 3, "sleepHours": 7.17, "deepSleepMin": 96, "sleepScore": 79, "bodyBatteryCharged": 76, "bodyBatteryLatest": 64, "restingHR": 56, "hrv": 38, "steps": 10107, "stress": 25, "calories": 2389}, {"date": "2026-11-06", "weekday": 4, "sleepHours": 10.11, "deepSleepMin": 112, "sleepScore": 94, "bodyBatteryCharged": 59, "bodyBatteryLatest": 70, "restingHR": 54, "hrv": 43, "steps": 9072, "stress": 21, "calories": 2232}, {"date": "2026-11-07", "weekday": 5, "sleepHours": 9.42, "deepSleepMin": 97, "sleepScore": 91, "bodyBatteryCharged": 45, "bodyBatteryLatest": 49, "restingHR": 51, "hrv": 48, "steps": 8677, "stress": 23, "calories": 2496}, {"date": "2026-11-08", "weekday": 6, "sleepHours": 10.05, "deepSleepMin": 72, "sleepScore": 79, "bodyBatteryCharged": 60, "bodyBatteryLatest": 73, "restingHR": 52, "hrv": 41, "steps": 970, "stress": 20, "calories": 1875}, {"date": "2026-11-09", "weekday": 0, "sleepHours": 8.03, "deepSleepMin": 82, "sleepScore": 93, "bodyBatteryCharged": 45, "bodyBatteryLatest": 57, "restingHR": 51, "hrv": 48, "steps": 10360, "stress": 22, "calories": 2370}, {"date": "2026-11-10", "weekday": 1, "sleepHours": 9.23, "deepSleepMin": 77, "sleepScore": 92, "bodyBatteryCharged": 49, "bodyBatteryLatest": 30, "restingHR": 52, "hrv": 49, "steps": 12713, "stress": 27, "calories": 2561}, {"date": "2026-11-11", "weekday": 2, "sleepHours": 7.03, "deepSleepMin": 65, "sleepScore": 78, "bodyBatteryCharged": 55, "bodyBatteryLatest": 51, "restingHR": 57, "hrv": 38, "steps": 8303, "stress": 27, "calories": 2288}, {"date": "2026-11-12", "weekday": 3, "sleepHours": 8.22, "deepSleepMin": 56, "sleepScore": 87, "bodyBatteryCharged": 38, "bodyBatteryLatest": 80, "restingHR": 54, "hrv": 40, "steps": 1849, "stress": 19, "calories": 656}], "goal": {"type": "leaner", "recentActiveCaloriesPerWeek": 815, "priorActiveCaloriesPerWeek": 643, "caloriesPctChange": 27, "recentSessionsPerWeek": 4.4, "priorSessionsPerWeek": 2.6, "recentStepsPerDay": 7375, "priorStepsPerDay": 6824, "stepsPctChange": 8}, "program": {"currentWeek": 1, "weekFocus": "L\u00e6r \u00f8velsene, lett/moderat vekt, god teknikk og kontroll", "weekSetsNote": "2\u20133 sett", "weekCycleNote": "20\u201325 min", "weekIsDeload": false, "today": {"date": "2026-11-12", "readiness": "go", "reasons": ["HRV er balansert i natt (40 ms)"]}, "week": [{"date": "2026-11-09", "weekday": "Man", "defaultKey": "gsA", "sessionLabel": "Styrke A: helkropp og kjerne", "sessionType": "strength", "isToday": false, "loggedActivities": [{"type": "strength", "name": "Styrke", "minutes": 29}]}, {"date": "2026-11-10", "weekday": "Tir", "defaultKey": "cyc", "sessionLabel": "Rolig sykling (20\u201325 min)", "sessionType": "cycling", "isToday": false, "loggedActivities": [{"type": "cycling", "name": "Innend\u00f8rssykling", "minutes": 26}]}, {"date": "2026-11-11", "weekday": "Ons", "defaultKey": "gsB", "sessionLabel": "Styrke B: helkropp og kjerne", "sessionType": "strength", "isToday": false, "loggedActivities": []}, {"date": "2026-11-12", "weekday": "Tor", "defaultKey": "restW", "sessionLabel": "Hvile eller rolig g\u00e5tur", "sessionType": "rest", "isToday": true, "loggedActivities": []}, {"date": "2026-11-13", "weekday": "Fre", "defaultKey": "gsC", "sessionLabel": "Styrke C: helkropp og kjerne", "sessionType": "strength", "isToday": false, "loggedActivities": []}, {"date": "2026-11-14", "weekday": "L\u00f8r", "defaultKey": "cyc", "sessionLabel": "Rolig sykling (20\u201325 min)", "sessionType": "cycling", "isToday": false, "loggedActivities": []}, {"date": "2026-11-15", "weekday": "S\u00f8n", "defaultKey": "rest", "sessionLabel": "Hvile eller lett aktivitet", "sessionType": "rest", "isToday": false, "loggedActivities": []}]}, "sessionCatalog": {"gsA": {"label": "Styrke A: helkropp og kjerne", "type": "strength", "exercises": ["Glute bridge (aktivering - kjenn at rumpa jobber, ikke korsryggen) 2\u00d712", "Beinpress, kontrollert dybde 3\u00d710\u201312", "Benkpress i maskin 3\u00d78\u201310", "Sittende roing (kabel) 3\u00d710\u201312", "Hip thrust (stang/manualer) - pause og klem rumpa i toppen 3\u00d710\u201312", "Pallof press (kabel) 3\u00d78\u201310/side"]}, "gsB": {"label": "Styrke B: helkropp og kjerne", "type": "strength", "exercises": ["Supersett aktivering: Glute bridge 2\u00d712 + Fire hydrants 2\u00d710\u201312/side + Donkey kicks (spark bak p\u00e5 4 bein) 2\u00d710\u201312/side", "Rumensk markl\u00f8ft (manualer) - skyv hoftene bak, n\u00f8ytral rygg, kjenn baksiden av l\u00e5r/rumpe 3\u00d78\u201310", "Nedtrekk, bredt grep (kabel) 3\u00d78\u201310", "Skulderpress (manualer) 3\u00d78\u201310", "Sideplanke med hoftehev 3\u00d78\u201310/side"]}, "gsC": {"label": "Styrke C: helkropp og kjerne", "type": "strength", "exercises": ["Armhevinger mot benk/vegg (jobb mot gulvet over tid) 3\u00d78\u201312", "Goblet squat, moderat dybde innenfor smertefri rekkevidde 3\u00d710\u201312", "St\u00e5ende kabelrad 3\u00d710\u201312", "Step-up p\u00e5 lav kasse, kontrollert - skyv gjennom h\u00e6len, kjenn rumpa 3\u00d78/side", "Dead bug med vekt 3\u00d78/side", "Planke med skulderber\u00f8ring 3\u00d720\u201330 s"]}, "cyc": {"label": "Rolig sykling", "type": "cycling", "note": "Lett motstand, prat i hele setninger"}, "walk": {"label": "G\u00e5tur", "type": "walk"}, "rest": {"label": "Hvile", "type": "rest"}}, "nutritionPlan": {"dailyKcal": 1750, "proteinMin": 140, "note": "Tallene er grove anslag basert p\u00e5 vanlige produktverdier (\u00b110%) - sjekk egne etiketter (proteinpulver, YT-produkter) for mer n\u00f8yaktige tall.", "breakfast": {"label": "Frokost (fast)", "items": ["40 g havregryn", "20 g proteinpulver", "1 dl proteinmelk", "10 g chiafr\u00f8", "100 g gresk yoghurt"], "kcal": 450, "protein": 32}, "lunch": {"label": "Lunsj - velg \u00e9n, rull\u00e9r gjennom uken", "options": [{"name": "Kyllingfilet-wrap", "items": ["130 g kyllingfilet", "1 grovt pitabr\u00f8d", "agurk og paprika", "1 ss lett r\u00f8mme/yoghurtdressing"], "kcal": 400, "protein": 35}, {"name": "Karbonadedeig med ris", "items": ["120 g karbonadedeig", "60 g ris (t\u00f8rrvekt)", "agurk og paprika"], "kcal": 430, "protein": 28}, {"name": "Kyllingkj\u00f8ttdeig-taco", "items": ["130 g kyllingkj\u00f8ttdeig", "2 extra thin tacolefser", "agurk og paprika", "litt mager kesam"], "kcal": 400, "protein": 32}, {"name": "Proteinrundstykke med kyllingfilet", "items": ["1 proteinrundstykke", "80 g kyllingfilet-p\u00e5legg", "salat og tomat", "litt lett dressing"], "kcal": 350, "protein": 30}, {"name": "Wrap med ferdigstekt kylling", "items": ["1 grov tortillalefse", "100 g ferdigstekt kyllingfilet (butikk)", "agurk og paprika", "litt lett dressing"], "kcal": 380, "protein": 30}]}, "snack": {"label": "Mellomm\u00e5ltid - velg \u00e9n", "options": [{"name": "Yoghurt med bringeb\u00e6r og granola", "items": ["150 g h\u00f8yprotein yoghurt/skyr", "20 g kakaogranola", "bringeb\u00e6r", "1 ts Biscoff"], "kcal": 230, "protein": 18}, {"name": "YT proteinprodukt", "items": ["1 stk (sjekk etiketten for n\u00f8yaktige tall)"], "kcal": 180, "protein": 20}, {"name": "Mager kesam med bringeb\u00e6r", "items": ["150 g mager kesam", "bringeb\u00e6r"], "kcal": 110, "protein": 18}]}, "dinner": {"label": "Middag - velg \u00e9n, rull\u00e9r gjennom uken", "options": [{"name": "Kyllingkj\u00f8ttdeig-stekt ris", "items": ["150 g kyllingkj\u00f8ttdeig", "70 g ris (t\u00f8rrvekt)", "amerikansk gr\u00f8nnsaksblanding (frossen)", "litt soyasaus"], "kcal": 520, "protein": 42}, {"name": "Pasta med kj\u00f8ttsaus", "items": ["80 g pasta (t\u00f8rrvekt)", "130 g karbonadedeig", "litt tomatsaus", "paprika"], "kcal": 560, "protein": 33}, {"name": "Kylling med ris", "items": ["150 g kyllingfilet", "70 g ris (t\u00f8rrvekt)", "agurk og paprika"], "kcal": 480, "protein": 44}, {"name": "Laks med poteter", "items": ["150 g laksefilet", "200 g poteter", "brokkoli"], "kcal": 490, "protein": 38}, {"name": "Taco-gryte", "items": ["150 g kyllingkj\u00f8ttdeig", "100 g mais og b\u00f8nner", "1 dl lettr\u00f8mme", "liten porsjon tortillachips"], "kcal": 540, "protein": 36}]}}, "weeklyBySport": [{"week": "2026-08-03", "sports": {"Running": {"sessions": 1, "minutes": 33, "distanceKm": 4.3, "calories": 334}}}, {"week": "2026-09-14", "sports": {"Strength": {"sessions": 4, "minutes": 142, "distanceKm": 0.0, "calories": 644}, "Running": {"sessions": 3, "minutes": 74, "distanceKm": 8.2, "calories": 658}}}, {"week": "2026-09-21", "sports": {"Strength": {"sessions": 1, "minutes": 37, "distanceKm": 0.0, "calories": 110}}}, {"week": "2026-09-28", "sports": {"Running": {"sessions": 1, "minutes": 21, "distanceKm": 2.7, "calories": 215}}}, {"week": "2026-10-05", "sports": {"Strength": {"sessions": 2, "minutes": 57, "distanceKm": 0.0, "calories": 191}, "Running": {"sessions": 2, "minutes": 59, "distanceKm": 7.0, "calories": 530}}}, {"week": "2026-10-12", "sports": {"Strength": {"sessions": 3, "minutes": 131, "distanceKm": 0.0, "calories": 367}, "Running": {"sessions": 1, "minutes": 30, "distanceKm": 3.5, "calories": 280}, "Walking": {"sessions": 1, "minutes": 28, "distanceKm": 2.6, "calories": 193}}}, {"week": "2026-10-19", "sports": {"Strength": {"sessions": 4, "minutes": 150, "distanceKm": 0.0, "calories": 614}, "Running": {"sessions": 3, "minutes": 90, "distanceKm": 11.0, "calories": 883}}}, {"week": "2026-10-26", "sports": {"Strength": {"sessions": 3, "minutes": 126, "distanceKm": 0.0, "calories": 455}, "Running": {"sessions": 3, "minutes": 97, "distanceKm": 12.0, "calories": 845}, "Walking": {"sessions": 1, "minutes": 52, "distanceKm": 4.6, "calories": 304}}}, {"week": "2026-11-02", "sports": {"Strength": {"sessions": 3, "minutes": 126, "distanceKm": 0.0, "calories": 430}, "Cycling": {"sessions": 2, "minutes": 56, "distanceKm": 0.0, "calories": 377}, "Running": {"sessions": 2, "minutes": 48, "distanceKm": 4.9, "calories": 294}}}, {"week": "2026-11-09", "sports": {"Strength": {"sessions": 1, "minutes": 29, "distanceKm": 0.0, "calories": 95}, "Cycling": {"sessions": 1, "minutes": 26, "distanceKm": 0.0, "calories": 144}, "Running": {"sessions": 1, "minutes": 31, "distanceKm": 2.2, "calories": 194}}}], "trends": {"trainingLoad": {"weeks": ["2025-04-14", "2025-04-21", "2025-04-28", "2025-05-05", "2025-05-12", "2025-05-19", "2025-05-26", "2025-06-02", "2025-06-09", "2025-06-16", "2025-06-23", "2025-06-30", "2025-07-07", "2025-07-14", "2025-07-21", "2025-07-28", "2025-08-04", "2025-08-11", "2025-08-18", "2025-08-25", "2025-09-01", "2025-09-08", "2025-09-15", "2025-09-22", "2025-09-29", "2025-10-06", "2025-10-13", "2025-11-03", "2025-11-10", "2025-11-17", "2025-11-24", "2025-12-01", "2025-12-08", "2025-12-22", "2026-01-05", "2026-01-12", "2026-01-19", "2026-01-26", "2026-02-02", "2026-02-16", "2026-02-23", "2026-03-02", "2026-03-09", "2026-04-06", "2026-05-18", "2026-05-25", "2026-06-15", "2026-06-29", "2026-07-20", "2026-07-27", "2026-08-03", "2026-09-14", "2026-09-21", "2026-09-28", "2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-02", "2026-11-09"], "values": [241, 57, 485, 547, 3, 586, 435, 264, 262, 21, 180, 282, 21, 35, 283, 383, 111, 14, 177, 107, 59, 58, 53, 83, 31, 221, 268, 214, 167, 164, 291, 277, 12, 585, 506, 123, 271, 346, 10, 69, 293, 258, 106, 57, 97, 123, 140, 94, 5, 83, 66, 209, 3, 58, 143, 96, 283, 218, 97, 25]}, "restingHR": {"weeks": ["2024-10-14", "2024-10-21", "2024-10-28", "2024-11-04", "2024-11-11", "2024-11-18", "2024-11-25", "2024-12-02", "2024-12-09", "2024-12-16", "2024-12-23", "2024-12-30", "2025-01-06", "2025-01-13", "2025-01-20", "2025-01-27", "2025-02-03", "2025-02-10", "2025-02-17", "2025-02-24", "2025-03-03", "2025-03-10", "2025-03-17", "2025-03-24", "2025-03-31", "2025-04-07", "2025-04-14", "2025-04-21", "2025-04-28", "2025-05-05", "2025-05-12", "2025-05-19", "2025-05-26", "2025-06-02", "2025-06-09", "2025-06-16", "2025-06-23", "2025-06-30", "2025-07-07", "2025-07-14", "2025-07-21", "2025-07-28", "2025-08-04", "2025-08-11", "2025-08-18", "2025-08-25", "2025-09-01", "2025-09-08", "2025-09-15", "2025-09-22", "2025-09-29", "2025-10-06", "2025-10-13", "2025-10-20", "2025-10-27", "2025-11-03", "2025-11-10", "2025-11-17", "2025-11-24", "2025-12-01", "2025-12-08", "2025-12-15", "2025-12-22", "2025-12-29", "2026-01-05", "2026-01-12", "2026-01-19", "2026-01-26", "2026-02-02", "2026-02-09", "2026-02-16", "2026-02-23", "2026-03-02", "2026-03-09", "2026-03-16", "2026-03-23", "2026-04-06", "2026-04-13", "2026-05-18", "2026-05-25", "2026-06-01", "2026-06-08", "2026-06-15", "2026-06-22", "2026-06-29", "2026-07-06", "2026-07-13", "2026-07-20", "2026-07-27", "2026-08-03", "2026-08-10", "2026-08-17", "2026-08-24", "2026-08-31", "2026-09-07", "2026-09-14", "2026-09-21", "2026-09-28", "2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-02", "2026-11-09"], "values": [53.8, 55, 53.5, 56.2, 60.3, 55, 57, 57.6, 55.3, 55.4, 54.8, 56.1, 53.1, 51.9, 52.3, 52.1, 51.4, 51.3, 50.1, 49.6, 48.9, 49.1, 48.6, 49.6, 47.6, 49, 54.4, 52.7, 52, 52.7, 52.1, 52.6, 53.9, 53.3, 55, 57.3, 55.9, 55.4, 57.4, 57.6, 55.3, 54, 56.7, 55.9, 56, 54.7, 54.6, 55.7, 55, 56.6, 58.3, 55, 56.4, 59.1, 57.9, 56, 54.7, 55.9, 55.7, 54.7, 54.7, 56.5, 59, 55, 56.4, 55.3, 56.1, 55.7, 54.6, 57.6, 54.7, 53.9, 54.5, 53.3, 56, 57.3, 58.2, 57, 57, 57.6, 60, 56.5, 56.7, 58.4, 55.9, 59, 58.3, 54.3, 54.3, 59.1, 57.7, 54.3, 54.4, 55.7, 55.6, 55.7, 54.9, 55.1, 54, 54.3, 54.4, 52.9, 53.3, 53.5]}, "hrv": {"weeks": ["2024-09-23", "2024-09-30", "2024-10-07", "2024-10-14", "2024-10-21", "2024-10-28", "2024-11-04", "2024-11-11", "2024-11-18", "2024-11-25", "2024-12-02", "2024-12-09", "2024-12-16", "2024-12-23", "2024-12-30", "2025-01-06", "2025-01-13", "2025-01-20", "2025-01-27", "2025-02-03", "2025-02-10", "2025-02-17", "2025-02-24", "2025-03-03", "2025-03-10", "2025-03-17", "2025-03-24", "2025-03-31", "2025-04-07", "2025-04-14", "2025-04-21", "2025-04-28", "2025-05-05", "2025-05-12", "2025-05-19", "2025-05-26", "2025-06-02", "2025-06-09", "2025-06-16", "2025-06-23", "2025-06-30", "2025-07-07", "2025-07-14", "2025-07-21", "2025-07-28", "2025-08-04", "2025-08-11", "2025-08-18", "2025-08-25", "2025-09-01", "2025-09-08", "2025-09-15", "2025-09-22", "2025-09-29", "2025-10-06", "2025-10-13", "2025-10-20", "2025-10-27", "2025-11-03", "2025-11-10", "2025-11-17", "2025-11-24", "2025-12-01", "2025-12-08", "2025-12-15", "2025-12-22", "2025-12-29", "2026-01-05", "2026-01-12", "2026-01-19", "2026-01-26", "2026-02-02", "2026-02-09", "2026-02-16", "2026-02-23", "2026-03-02", "2026-03-09", "2026-03-16", "2026-03-23", "2026-04-06", "2026-05-18", "2026-05-25", "2026-06-01", "2026-06-15", "2026-06-22", "2026-06-29", "2026-07-13", "2026-07-20", "2026-07-27", "2026-08-03", "2026-08-10", "2026-08-17", "2026-08-24", "2026-08-31", "2026-09-07", "2026-09-14", "2026-09-21", "2026-09-28", "2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-02", "2026-11-09"], "values": [48.3, 46.5, 51.8, 48.2, 46.8, 53.5, 46, 50, 51.3, 44.5, 56, 47.2, 50, 46.8, 47, 48.6, 53.3, 48.3, 48.1, 53.3, 55.1, 60.3, 51.9, 55.3, 59, 62.6, 59.9, 61, 57.9, 46.7, 50, 54.7, 55.3, 49.3, 51.4, 47.4, 50.9, 43.3, 43.5, 48.1, 46.7, 40.4, 46.1, 52.1, 52.3, 44.2, 46.6, 45, 51.4, 45.1, 46.6, 48.8, 48, 40.8, 44.4, 42.4, 47.6, 45.5, 48.9, 50.7, 46.7, 47, 49.5, 51.6, 46.8, 45.2, 49.3, 43.4, 43.9, 43.8, 46.6, 45.8, 39, 47.8, 47.1, 46.4, 44.6, 41.3, 42.5, 38.3, 40, 39.4, 33, 36.5, 37.3, 41.2, 38, 45.6, 44, 38.2, 36.5, 42.6, 43.6, 40.3, 40.7, 38.7, 38.3, 39.6, 40.9, 42.1, 42, 40.6, 43, 43.8]}, "sleepHours": {"weeks": ["2024-10-07", "2024-10-14", "2024-10-21", "2024-10-28", "2024-11-04", "2024-11-11", "2024-11-18", "2024-11-25", "2024-12-02", "2024-12-09", "2024-12-16", "2024-12-23", "2024-12-30", "2025-01-06", "2025-01-13", "2025-01-20", "2025-01-27", "2025-02-03", "2025-02-10", "2025-02-17", "2025-02-24", "2025-03-03", "2025-03-10", "2025-03-17", "2025-03-24", "2025-03-31", "2025-04-07", "2025-04-14", "2025-04-21", "2025-04-28", "2025-05-05", "2025-05-12", "2025-05-19", "2025-05-26", "2025-06-02", "2025-06-09", "2025-06-16", "2025-06-23", "2025-06-30", "2025-07-07", "2025-07-14", "2025-07-21", "2025-07-28", "2025-08-04", "2025-08-11", "2025-08-18", "2025-08-25", "2025-09-01", "2025-09-08", "2025-09-15", "2025-09-22", "2025-09-29", "2025-10-06", "2025-10-13", "2025-10-20", "2025-10-27", "2025-11-03", "2025-11-10", "2025-11-17", "2025-11-24", "2025-12-01", "2025-12-08", "2025-12-15", "2025-12-22", "2025-12-29", "2026-01-05", "2026-01-12", "2026-01-19", "2026-01-26", "2026-02-02", "2026-02-09", "2026-02-16", "2026-02-23", "2026-03-02", "2026-03-09", "2026-03-16", "2026-03-23", "2026-04-06", "2026-05-18", "2026-05-25", "2026-06-01", "2026-06-08", "2026-06-15", "2026-06-22", "2026-06-29", "2026-07-06", "2026-07-13", "2026-07-20", "2026-07-27", "2026-08-03", "2026-08-10", "2026-08-17", "2026-08-24", "2026-08-31", "2026-09-07", "2026-09-14", "2026-09-21", "2026-09-28", "2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-02", "2026-11-09"], "values": [8.8, 8.8, 9.4, 9.9, 8.4, 8.9, 9.0, 9.1, 9.6, 9.1, 8.6, 8.4, 8.4, 8.0, 8.4, 7.1, 8.8, 8.1, 8.4, 8.0, 8.6, 8.1, 7.8, 8.0, 8.5, 8.0, 8.2, 7.7, 9.1, 8.7, 7.6, 8.7, 8.4, 8.0, 7.8, 7.5, 9.5, 8.0, 7.7, 6.8, 8.2, 7.9, 8.4, 7.8, 7.4, 7.7, 9.1, 8.0, 8.7, 8.2, 8.0, 10.2, 9.2, 8.1, 7.9, 6.5, 7.9, 8.0, 8.2, 8.1, 8.1, 8.4, 7.5, 8.8, 8.5, 8.5, 9.6, 7.7, 7.9, 7.8, 7.7, 8.4, 8.7, 8.3, 8.4, 8.2, 9.8, 9.7, 7.6, 7.0, 8.3, 8.0, 8.0, 8.3, 8.1, 7.4, 8.8, 8.5, 8.0, 7.7, 10.1, 8.4, 9.0, 9.6, 9.3, 8.6, 8.5, 9.2, 8.8, 8.9, 8.8, 8.7, 8.8, 8.1]}, "sleepScore": {"weeks": ["2024-10-07", "2024-10-14", "2024-10-21", "2024-10-28", "2024-11-04", "2024-11-11", "2024-11-18", "2024-11-25", "2024-12-02", "2024-12-09", "2024-12-16", "2024-12-23", "2024-12-30", "2025-01-06", "2025-01-13", "2025-01-20", "2025-01-27", "2025-02-03", "2025-02-10", "2025-02-17", "2025-02-24", "2025-03-03", "2025-03-10", "2025-03-17", "2025-03-24", "2025-03-31", "2025-04-07", "2025-04-14", "2025-04-21", "2025-04-28", "2025-05-05", "2025-05-12", "2025-05-19", "2025-05-26", "2025-06-02", "2025-06-09", "2025-06-16", "2025-06-23", "2025-06-30", "2025-07-07", "2025-07-14", "2025-07-21", "2025-07-28", "2025-08-04", "2025-08-11", "2025-08-18", "2025-08-25", "2025-09-01", "2025-09-08", "2025-09-15", "2025-09-22", "2025-09-29", "2025-10-06", "2025-10-13", "2025-10-20", "2025-10-27", "2025-11-03", "2025-11-10", "2025-11-17", "2025-11-24", "2025-12-01", "2025-12-08", "2025-12-15", "2025-12-22", "2025-12-29", "2026-01-05", "2026-01-12", "2026-01-19", "2026-01-26", "2026-02-02", "2026-02-09", "2026-02-16", "2026-02-23", "2026-03-02", "2026-03-09", "2026-03-16", "2026-03-23", "2026-04-06", "2026-05-18", "2026-05-25", "2026-06-01", "2026-06-08", "2026-06-15", "2026-06-22", "2026-06-29", "2026-07-06", "2026-07-13", "2026-07-20", "2026-07-27", "2026-08-03", "2026-08-10", "2026-08-17", "2026-08-24", "2026-08-31", "2026-09-07", "2026-09-14", "2026-09-21", "2026-09-28", "2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-02", "2026-11-09"], "values": [83.7, 83.6, 79.5, 88.5, 79.6, 81.5, 88, 75.2, 91, 83, 85.8, 81.2, 84.4, 88.1, 88.4, 82.9, 89.6, 84.6, 83.9, 88.1, 90.6, 88.6, 85.6, 88.4, 92.7, 90.9, 90.7, 81.3, 85.2, 81, 83.3, 76.6, 84.1, 79.7, 85.3, 69.4, 77.2, 82, 82, 70.1, 78.4, 85.4, 90, 83, 82.9, 79.4, 86.3, 81.4, 83.1, 85.8, 83.2, 63.4, 77.6, 83.6, 83, 71.2, 81, 86.4, 85, 82.6, 84.3, 90.4, 80.2, 78.8, 82.6, 85.3, 76.3, 75.3, 79.3, 83.4, 75.7, 85.8, 84.6, 86.6, 82.6, 78.9, 84.5, 82.3, 84.2, 73.3, 75.6, 87.3, 76.7, 79.8, 72.7, 76.8, 73.8, 86.1, 84.1, 79.8, 81, 87.1, 81, 81.9, 84, 82.6, 86.1, 79.4, 84.4, 85.1, 87, 87.6, 87.6, 87.5]}}, "records": {"longestRide": {"value": 62, "unit": "min", "date": "2020-04-02", "name": "Innend\u00f8rssykling"}, "longestRun": {"value": 12.0, "unit": "km", "date": "2025-03-29", "name": "Oslo L\u00f8ping"}, "longestStrength": {"value": 139, "unit": "min", "date": "2020-03-12", "name": "Styrke"}, "highestTrainingLoad": {"value": 232, "unit": "load", "date": "2025-05-25", "name": "Oslo - Lett l\u00f8petur"}, "mostSteps": {"value": 28897, "date": "2025-10-26"}, "mostCalories": {"value": 4495, "date": "2020-06-13"}, "longestSleep": {"value": 21.0, "date": "2025-09-29"}, "bestHRV": {"value": 70, "date": "2025-03-22"}}, "sportColors": {"Strength": "#7a1f3d", "Cycling": "#9b3456", "Running": "#a46cc0", "Walking": "#e8a3b6", "Other": "#d9a441"}, "sportOrder": ["Strength", "Cycling", "Running", "Walking", "Other"], "budgetDefaults": {"income": 32000, "categories": [{"key": "bolig", "label": "Bolig/faste utgifter", "cap": 15000}, {"key": "mat", "label": "Dagligvarer", "cap": 3800}, {"key": "restaurant", "label": "Restaurant/take-away", "cap": 600}, {"key": "transport", "label": "Transport", "cap": 900}, {"key": "abonnement", "label": "Abonnementer", "cap": 500}, {"key": "klaer", "label": "Kl\u00e6r/shopping", "cap": 700}, {"key": "trening", "label": "Trening/helse", "cap": 600}, {"key": "hundefond", "label": "Hundefond (sparing)", "cap": 2500}, {"key": "annet", "label": "Annet", "cap": 1000}]}, "dogFund": {"target": 30000, "startSaved": 5000, "category": "hundefond"}, "activeCalGoalDefault": 400, "pointsConfig": {"levelThreshold": 600, "perCompletedSession": 15, "perStepGoalDay": 5, "perWeightWeek": 10, "perMeasurementMonth": 15, "perNewRecord": 20, "perFundMilestone": 50, "levelNames": ["Fr\u00f8", "Spire", "Knopp", "Blomst", "Bukett", "Hage", "Rosekongen"], "levelRewards": ["Start! \ud83c\udf31", "Nye treningssokker eller fin h\u00e5rklype", "Et lite s\u00f8lvsmykke, f.eks. \u00f8redobber eller et armb\u00e5nd", "Ny spilleliste og fin vannflaske til treningsbagen", "Manikyr eller en bukett blomster til deg selv", "Noe fint til leiligheten, f.eks. en plante eller pute", "En hel dag fri fra alt, akkurat som du vil \ud83d\udc51"]}, "trainingHistory": [{"date": "2026-11-09", "sessionType": "strength", "loggedTypes": ["strength"], "stepGoalMet": true}, {"date": "2026-11-10", "sessionType": "cycling", "loggedTypes": ["cycling"], "stepGoalMet": true}, {"date": "2026-11-11", "sessionType": "strength", "loggedTypes": [], "stepGoalMet": true}, {"date": "2026-11-12", "sessionType": "rest", "loggedTypes": [], "stepGoalMet": false}], "programStart": "2026-11-09", "gateHash": "6a1d64c93a668e950986b03470882a7f80eb97fdbb9b3c0556d781e6e15abd84"};
 
 // ---------------------------------------------------------------- settings
 const SETTINGS_KEY = "garminDashboardSettings_v1";
@@ -1350,6 +1356,7 @@ function renderPlan() {
       startRestTimer(restDurationFor(exKey), label);
       renderPlan();
       renderPrBoard();
+      renderHjemSession();
     });
   });
 
@@ -1490,6 +1497,7 @@ function renderNutrition() {
       if (isMealEatenToday(type, opt.name)) unlogMeal(type); else logMealEaten(type, opt);
       renderNutrition();
       renderNutritionCoach();
+      renderHjemKcalRing();
     });
   });
 
@@ -1534,6 +1542,7 @@ function addExtra(name, kcal) {
   saveExtras(list);
   renderExtras();
   renderNutritionCoach();
+  renderHjemKcalRing();
 }
 
 function renderExtras() {
@@ -1553,6 +1562,7 @@ function renderExtras() {
       softDeleteExtra(btn.dataset.extraRemove);
       renderExtras();
       renderNutritionCoach();
+      renderHjemKcalRing();
     });
   });
 }
@@ -1611,6 +1621,7 @@ const SEEN_KEY = "garminDashboardSeen_v1";
 const WAGE_KEY = "garminDashboardWage_v1";
 const RATE_KEY = "garminDashboardInvestRate_v1";
 const FORGOTTEN_SAVINGS_KEY = "garminDashboardForgottenSavings_v1";
+const INVEST_FUND_KEY = "garminDashboardInvestFund_v1";
 const BADDAY_LOG_KEY = "garminDashboardBadDayLog_v1";
 const BADDAY_MODE_KEY = "garminDashboardBadDayActive_v1";
 const WATER_KEY = "garminDashboardWater_v1";
@@ -1916,7 +1927,6 @@ document.getElementById("weight-add").addEventListener("click", () => {
   renderWeightLog();
   renderWeightTrend();
   renderWeightChart();
-  renderWeightChart("chart-weight-mini", "tt-weight-mini");
   renderLevel();
   renderWeeklySnapshot();
   renderPlateau();
@@ -2188,8 +2198,6 @@ function renderFund() {
     saveSettings(s);
     DATA.dogFund.target = val;
     renderBudget();
-    renderHjemProgress();
-    renderHjemSavingsRing();
   });
 }
 
@@ -2227,6 +2235,8 @@ function renderBudget() {
   renderForgottenSavings();
   renderLevel();
   renderWeeklySnapshot();
+  renderHjemTodayTx();
+  renderHjemFinance();
 }
 
 document.getElementById("month-label").textContent = monthLabel(currentMonth);
@@ -2334,7 +2344,6 @@ document.querySelectorAll(".save-presets button[data-preset]").forEach(btn => {
 renderWeightLog();
 renderWeightTrend();
 renderWeightChart();
-renderWeightChart("chart-weight-mini", "tt-weight-mini");
 renderMeasureLog();
 renderPlateau();
 renderShopList();
@@ -2585,7 +2594,7 @@ document.getElementById("hjem-why").addEventListener("click", () => {
 function renderHjemSession() {
   const p = DATA.program;
   const el = document.getElementById("hjem-session");
-  if (!p) { el.innerHTML = ""; return; }
+  if (!p || !el) return;
   if (isVacationActive()) {
     el.innerHTML = `
       <div>
@@ -2599,14 +2608,26 @@ function renderHjemSession() {
   const todayDay = p.week.find(d => d.isToday);
   const resolved = resolvePlanDay(todayDay, overrides);
   const readinessLabel = { go: "Klar for økta", caution: "Vurder lettere", light: "Prioriter hvile" }[p.today.readiness];
-  const doneBadge = resolved.done ? " · ✓ Gjort" : "";
+
+  let statusKey = "notstarted", statusLabel = "Ikke startet";
+  if (resolved.type === "rest") {
+    statusKey = "done"; statusLabel = "Hviledag";
+  } else if (resolved.done) {
+    statusKey = "done"; statusLabel = "Fullført";
+  } else if (loadSetLog().some(s => s.date === todayISO() && s.exercise.startsWith(resolved.key + "::"))) {
+    statusKey = "inprogress"; statusLabel = "Pågår";
+  }
+
   el.innerHTML = `
     <div>
-      <div class="hs-label">${resolved.type === "rest" ? "Hviledag" : resolved.label}${doneBadge}</div>
+      <div class="hs-label">${resolved.type === "rest" ? "Hviledag" : resolved.label}</div>
       <div class="hs-sub">Uke ${p.currentWeek}${p.weekIsDeload ? " · Deload" : " av 4"} · ${p.weekFocus}</div>
     </div>
-    <span class="hs-readiness ${p.today.readiness}">${readinessLabel}</span>
-    <button class="hs-link" id="hjem-session-link">Til plan →</button>
+    <div class="hs-badges">
+      ${resolved.type !== "rest" ? `<span class="hs-readiness ${p.today.readiness}">${readinessLabel}</span>` : ""}
+      <span class="hs-status ${statusKey}">${statusLabel}</span>
+    </div>
+    <button class="hs-link" id="hjem-session-link">${resolved.type === "rest" ? "Til plan →" : "Til økta →"}</button>
   `;
   document.getElementById("hjem-session-link").addEventListener("click", () => {
     showTab("trening");
@@ -2620,27 +2641,35 @@ function renderHjemSession() {
 function renderHjemKcalRing() {
   const n = DATA.nutritionPlan;
   const el = document.getElementById("hjem-kcal-ring");
-  if (!n) { el.innerHTML = ""; return; }
-  const extrasTotal = loadExtras().filter(e => e.date === todayISO()).reduce((s, e) => s + (e.kcal || 0), 0);
-  const total = n.dailyKcal + extrasTotal;
-  const pct = Math.round(100 * total / n.dailyKcal);
-  const over = total > n.dailyKcal;
+  if (!n || !el) return;
+  const totals = dayNutritionTotals(todayISO());
+  const over = totals.kcal > n.dailyKcal;
   el.innerHTML = `
-    <div class="hjem-ring" style="background: conic-gradient(${over ? "var(--hj-accent2)" : "var(--hj-accent)"} ${Math.min(100, pct)}%, rgba(255,255,255,.12) 0);">
-      <div class="hjem-ring-inner">${pct}%</div>
+    <div>
+      <div class="hnq-label">Spist / Budsjett</div>
+      <div class="hnq-val${over ? " over" : ""}">${totals.kcal} / ${n.dailyKcal} kcal</div>
+      <div class="hnq-macro">${totals.protein} / ${n.proteinMin} g protein</div>
     </div>
-    <div class="hjem-ring-label">Kalorier<br>${total} / ${n.dailyKcal} kcal</div>
+    <button id="hjem-logg-maltid-btn">+ Logg måltid</button>
   `;
+  document.getElementById("hjem-logg-maltid-btn").addEventListener("click", openMatDrawer);
 }
 
-function renderHjemSavingsRing() {
-  const { pct, remaining } = fundProgress();
-  const el = document.getElementById("hjem-savings-ring");
+function renderHjemTodayTx() {
+  const el = document.getElementById("hjem-tx-today");
+  if (!el) return;
+  const cfg = loadBudgetConfig();
+  const catLabel = key => (cfg.categories.find(c => c.key === key) || {}).label || key;
+  const tx = loadTransactions().filter(t => t.date === todayISO());
+  const total = tx.reduce((s, t) => s + t.amount, 0);
   el.innerHTML = `
-    <div class="hjem-ring" style="background: conic-gradient(var(--hj-accent2) ${Math.min(100, Math.round(pct))}%, rgba(255,255,255,.12) 0);">
-      <div class="hjem-ring-inner">${Math.round(pct)}%</div>
-    </div>
-    <div class="hjem-ring-label">Hundefond<br>${Math.max(0, Math.round(remaining)).toLocaleString()} kr igjen</div>
+    <div class="hjem-card-title">Dagens transaksjoner</div>
+    <ul class="hjem-tx-list">
+      ${tx.length
+        ? tx.map(t => `<li><span class="tx-name">${t.name || catLabel(t.category)}</span><b>${t.amount.toLocaleString()} kr</b></li>`).join("")
+        : `<li class="hjem-tx-empty">Ingen transaksjoner i dag</li>`}
+    </ul>
+    <div class="hjem-tx-total"><span>Totalt i dag</span><span>${total.toLocaleString()} kr</span></div>
   `;
 }
 
@@ -2661,104 +2690,112 @@ async function fetchWeather() {
   }
 }
 
-function renderHjemWeather() {
-  const el = document.getElementById("hjem-weather");
-  el.innerHTML = `<div class="hw-desc">Henter vær…</div>`;
-  fetchWeather().then(data => {
-    if (!data) { el.innerHTML = ""; return; }
-    el.innerHTML = `<div class="hw-temp">${data.tempC}°</div><div class="hw-desc">${data.desc}</div>`;
-  });
-}
+function renderHjemBodyToday() {
+  const el = document.getElementById("hjem-body-today");
+  if (!el) return;
+  const ts = DATA.topStats || {};
+  const steps = ts.steps || {};
+  const stepsGoal = steps.goal || 8000;
+  const stepsPct = stepsGoal ? Math.min(100, Math.round(100 * (steps.value || 0) / stepsGoal)) : 0;
 
-function renderHjemBody() {
-  const ts = DATA.topStats;
-  function chip(id, label, val, unit) {
-    const e = document.getElementById(id);
-    if (!e) return;
-    e.innerHTML = `<div class="label">${label}</div><div class="value">${val !== null && val !== undefined ? val : "–"}${val !== null && val !== undefined && unit ? " " + unit : ""}</div>`;
-  }
-  if (ts.hrv) chip("hjem-stat-hrv", "HRV", ts.hrv.value, "ms");
-  if (ts.sleep) chip("hjem-stat-sleep", "Søvn", ts.sleep.hours, "t");
-  if (ts.steps) chip("hjem-stat-steps", "Steg", ts.steps.value != null ? ts.steps.value.toLocaleString() : null, "");
-  if (ts.restingHR) chip("hjem-stat-rhr", "Hvilepuls", ts.restingHR.value, "bpm");
+  const activeCal = reportMetric("activeCalories").today;
+  const calGoal = DATA.activeCalGoalDefault || 400;
+  const calPct = calGoal ? Math.min(100, Math.round(100 * (activeCal || 0) / calGoal)) : 0;
 
-  const autoregEl = document.getElementById("hjem-autoreg");
-  const reasons = (DATA.program && DATA.program.today && DATA.program.today.reasons) || [];
-  let html = `<div class="hjem-card-title">Autoregulering</div><ul>${reasons.map(r => `<li>${r}</li>`).join("")}</ul>`;
-
-  const pr = latestPR();
-  const recentSets = loadSetLog().filter(s => s.date >= isoAddDays(todayISO(), -14));
-  if (pr && recentSets.length && (new Date(todayISO()) - new Date(pr.date)) / 86400000 >= 21) {
-    html += `<div style="margin-top:8px;font-size:12px;color:var(--hj-muted);">💪 Ingen ny PR siste 3 ukene - vurder å øke vekten litt eller bytte øvelse.</div>`;
-  }
-  autoregEl.innerHTML = html;
-}
-
-function renderHjemProgress() {
-  const streak = computeStreak();
-  const best = loadLS(STREAK_BEST_KEY, 0);
-  const isNewBest = streak > 0 && streak > best;
-  if (isNewBest) saveLS(STREAK_BEST_KEY, streak);
-  const bestShown = Math.max(best, streak);
-  document.getElementById("hjem-streak").innerHTML = `
-    <div class="hjem-card-title">Streak</div>
-    <div class="hjem-streak-num">${streak} ${streak === 1 ? "dag" : "dager"}</div>
-    ${isNewBest ? `<div class="hjem-streak-record">🔥 Ny personlig rekord!</div>` : `<div class="hjem-pr-ex">Rekord: ${bestShown} ${bestShown === 1 ? "dag" : "dager"}</div>`}
-  `;
-
-  const pr = latestPR();
-  document.getElementById("hjem-latest-pr").innerHTML = pr ? `
-    <div class="hjem-card-title">Siste PR</div>
-    <div class="hjem-pr-ex">${pr.label}</div>
-    <div class="hjem-pr-val">${pr.weight != null ? pr.weight + " kg × " : ""}${pr.reps} reps</div>
-    <div class="hjem-pr-ex">${fmtShort(pr.date)}</div>
-  ` : `<div class="hjem-card-title">Siste PR</div><div class="hjem-pr-ex">Ingen sett logget ennå</div>`;
-
-  const { balance, pct, etaText } = fundProgress();
-  document.getElementById("hjem-savings-goal").innerHTML = `
-    <div class="hjem-card-title">Sparemål</div>
-    <div class="hjem-pr-val">${balance.toLocaleString()} / ${DATA.dogFund.target.toLocaleString()} kr</div>
-    <div class="hjem-goal-bar"><div style="width:${Math.min(100, pct)}%"></div></div>
-    <div class="hjem-pr-ex" style="margin-top:6px;">${etaText}</div>
-  `;
-
-  renderHjemWeekSummary();
-}
-
-function renderHjemWeekSummary() {
-  const p = DATA.program;
-  const el = document.getElementById("hjem-week-summary");
-  if (!p || !el) return;
-  const overrides = loadPlanOverrides();
-  const todayStr = p.today.date;
-  const thByDate = {};
-  (DATA.trainingHistory || []).forEach(d => { thByDate[d.date] = d; });
-
-  let doneCount = 0, plannedCount = 0, stepDays = 0;
-  p.week.forEach(day => {
-    if (day.date > todayStr) return;
-    const resolved = resolvePlanDay(day, overrides);
-    if (resolved.type !== "rest") {
-      plannedCount++;
-      if (resolved.done) doneCount++;
-    }
-    const th = thByDate[day.date];
-    if (th && th.stepGoalMet) stepDays++;
-  });
-
-  const weekStart = p.week[0].date;
-  const savedThisWeek = loadTransactions()
-    .filter(t => t.category === DATA.dogFund.category && t.date >= weekStart && t.date <= todayStr)
-    .reduce((s, t) => s + t.amount, 0);
+  const sleep = ts.sleep || {};
+  const stress = reportMetric("stress").today;
+  const stressColor = stress == null ? null : stress <= 50 ? "green" : stress <= 75 ? "yellow" : "red";
+  const bodyBattery = reportMetric("bodyBatteryLatest").today;
 
   el.innerHTML = `
-    <div class="hjem-card-title">Denne uken</div>
-    <div class="hjem-week-grid">
-      <div><b>${doneCount}/${plannedCount}</b><span>økter</span></div>
-      <div><b>${stepDays}</b><span>stegmål</span></div>
-      <div><b>${Math.round(savedThisWeek)} kr</b><span>spart</span></div>
+    <div class="hjem-body-grid">
+      <div class="hjem-card hjem-bigstat">
+        <div class="hbs-label">Skritt</div>
+        <div class="hbs-num">${steps.value != null ? steps.value.toLocaleString() : "–"}</div>
+        <div class="hbs-bar"><div class="${stepsPct >= 100 ? "goalmet" : ""}" style="width:${stepsPct}%"></div></div>
+      </div>
+      <div class="hjem-card hjem-bigstat">
+        <div class="hbs-label">Aktive kalorier</div>
+        <div class="hbs-num">${activeCal != null ? Math.round(activeCal) : "–"}</div>
+        <div class="hbs-bar"><div class="${calPct >= 100 ? "goalmet" : ""}" style="width:${calPct}%"></div></div>
+      </div>
+      <div class="hjem-minirow">
+        <div class="hjem-card hjem-minicard">
+          <div class="label">Søvn</div>
+          <div class="value">${sleep.score != null ? sleep.score : "–"}</div>
+          <div class="sub">${sleep.hours != null ? sleep.hours + " t" : ""}</div>
+        </div>
+        <div class="hjem-card hjem-minicard">
+          <div class="label">Stress</div>
+          <div class="value">${stressColor ? `<span class="stress-dot ${stressColor}"></span>` : ""}${stress != null ? Math.round(stress) : "–"}</div>
+          <div class="sub"></div>
+        </div>
+        <div class="hjem-card hjem-minicard">
+          <div class="label">Body Battery</div>
+          <div class="value">${bodyBattery != null ? Math.round(bodyBattery) : "–"}</div>
+          <div class="sub"></div>
+        </div>
+      </div>
     </div>
   `;
+}
+
+function loadInvestFundLog() { return loadLS(INVEST_FUND_KEY, []); }
+function saveInvestFundLog(l) { saveLS(INVEST_FUND_KEY, l); }
+function setInvestFundValue(date, value) {
+  const log = loadInvestFundLog().filter(e => e.date !== date);
+  log.push({ date, value });
+  log.sort((a, b) => a.date.localeCompare(b.date));
+  saveInvestFundLog(log);
+}
+function investFundStatus() {
+  const log = loadInvestFundLog();
+  if (!log.length) return { value: null, date: null, changeKr: null, changePct: null };
+  const latest = log[log.length - 1];
+  const prev = log.length > 1 ? log[log.length - 2] : null;
+  const changeKr = prev ? latest.value - prev.value : null;
+  const changePct = prev && prev.value ? (100 * changeKr / prev.value) : null;
+  return { value: latest.value, date: latest.date, changeKr, changePct };
+}
+
+function renderHjemFinance() {
+  const el = document.getElementById("hjem-finance");
+  if (!el) return;
+  const cfg = loadBudgetConfig();
+  const totalBudget = cfg.categories.reduce((s, c) => s + (c.cap || 0), 0);
+  const today = todayISO();
+  const monthStart = monthOf(today) + "-01";
+  const spent = loadTransactions()
+    .filter(t => t.date >= monthStart && t.date <= today)
+    .reduce((s, t) => s + t.amount, 0);
+  const pct = totalBudget ? Math.min(100, Math.round(100 * spent / totalBudget)) : 0;
+  const over = spent > totalBudget;
+
+  const inv = investFundStatus();
+  const changeClass = inv.changeKr == null ? "" : inv.changeKr >= 0 ? "pos" : "neg";
+  const changeSign = inv.changeKr == null ? "" : inv.changeKr >= 0 ? "+" : "";
+  const changeHtml = inv.changeKr != null
+    ? `<span class="hjem-invest-change ${changeClass}">${changeSign}${Math.round(inv.changeKr).toLocaleString()} kr / ${changeSign}${inv.changePct.toFixed(1)}%</span>`
+    : "";
+
+  el.innerHTML = `
+    <div class="hjem-finance-row">
+      <div class="hf-label"><span>Brukt denne måneden</span><span>${spent.toLocaleString()} / ${totalBudget.toLocaleString()} kr</span></div>
+      <div class="hjem-finance-bar"><div class="${over ? "over" : ""}" style="width:${pct}%"></div></div>
+    </div>
+    <div class="hjem-finance-row" id="hjem-invest-row" style="cursor:pointer;">
+      <div class="hf-label"><span>Fond</span><span>${inv.date ? "Oppdatert " + fmtShort(inv.date) : "Ikke satt"}</span></div>
+      <div class="hf-val">${inv.value != null ? inv.value.toLocaleString() + " kr" : "– kr"} ${changeHtml}</div>
+    </div>
+  `;
+  document.getElementById("hjem-invest-row").addEventListener("click", () => {
+    const next = prompt("Fondsverdi i dag (kr):", inv.value != null ? inv.value : "");
+    if (next === null) return;
+    const val = parseFloat(next.replace(",", "."));
+    if (Number.isNaN(val)) return;
+    setInvestFundValue(todayISO(), val);
+    renderHjemFinance();
+  });
 }
 
 function renderHjemReminder() {
@@ -2795,10 +2832,9 @@ function renderHjem() {
   renderHjemReminder();
   renderHjemSession();
   renderHjemKcalRing();
-  renderHjemSavingsRing();
-  renderHjemWeather();
-  renderHjemBody();
-  renderHjemProgress();
+  renderHjemTodayTx();
+  renderHjemBodyToday();
+  renderHjemFinance();
 }
 
 // ---- quick-log bottom bar & drawer ----
@@ -2838,7 +2874,6 @@ function openMatDrawer() {
   document.querySelectorAll("#quicklog-drawer-body [data-extra-preset]").forEach(btn => {
     btn.addEventListener("click", () => {
       addExtra(btn.dataset.extraPreset, parseInt(btn.dataset.extraKcal, 10));
-      renderHjemKcalRing();
       closeQuicklogDrawer();
     });
   });
@@ -2847,7 +2882,6 @@ function openMatDrawer() {
     if (!name) return;
     const kcal = parseInt(document.getElementById("ql-mat-kcal").value, 10) || null;
     addExtra(name, kcal);
-    renderHjemKcalRing();
     closeQuicklogDrawer();
   });
 }
@@ -2868,8 +2902,6 @@ function openUtgiftDrawer() {
     const name = document.getElementById("ql-tx-name").value.trim();
     addTransactionWithRoundUp(todayISO(), amount, category, name);
     renderBudget();
-    renderHjemSavingsRing();
-    renderHjemProgress();
     closeQuicklogDrawer();
   });
 }
@@ -2893,6 +2925,48 @@ document.querySelectorAll("#quicklog-bar button[data-ql]").forEach(btn => {
 renderWaterBadge();
 renderHjem();
 renderNutritionCoach();
+
+// ---- Hjem live refresh: re-fetch own published page for fresh Garmin data ----
+async function refreshGarminData() {
+  try {
+    const res = await fetch(location.href, { cache: "no-store" });
+    if (!res.ok) return false;
+    const html = await res.text();
+    const startTag = "const DATA = ";
+    const marker = "// ---------------------------------------------------------------- settings";
+    const startIdx = html.indexOf(startTag);
+    const endIdx = html.indexOf(marker, startIdx);
+    if (startIdx === -1 || endIdx === -1) return false;
+    let jsonText = html.slice(startIdx + startTag.length, endIdx).trim();
+    if (jsonText.endsWith(";")) jsonText = jsonText.slice(0, -1);
+    const fresh = JSON.parse(jsonText);
+    DATA.topStats = fresh.topStats;
+    DATA.reportMetrics = fresh.reportMetrics;
+    DATA.program = fresh.program;
+    DATA.trainingHistory = fresh.trainingHistory;
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function refreshHjemGarminSections() {
+  renderHjemSession();
+  renderHjemBodyToday();
+  renderHjemReminder();
+}
+
+document.getElementById("hjem-refresh-btn").addEventListener("click", async (e) => {
+  const btn = e.currentTarget;
+  btn.classList.add("spinning");
+  await refreshGarminData();
+  renderHjem();
+  setTimeout(() => btn.classList.remove("spinning"), 650);
+});
+
+setInterval(() => {
+  refreshGarminData().then(ok => { if (ok) refreshHjemGarminSections(); });
+}, 20 * 60 * 1000);
 
 // ---------------------------------------------------------------- rapport (personlig coach)
 function reportMetric(key) {
@@ -3290,7 +3364,7 @@ const BACKUP_KEYS = [
   WEIGHT_LOG_KEY, MEASURE_LOG_KEY, SHOP_LIST_KEY, TX_KEY,
   BUDGET_CONFIG_KEY, PLAN_OVERRIDES_KEY, SET_LOG_KEY, SEEN_KEY, REST_PREFS_KEY,
   FORGOTTEN_SAVINGS_KEY, BADDAY_LOG_KEY, EXTRAS_KEY, WATER_KEY, STREAK_BEST_KEY,
-  SETTINGS_KEY, WHY_KEY, VACATION_KEY, CUSTOM_MEALS_KEY, MEAL_LOG_KEY,
+  SETTINGS_KEY, WHY_KEY, VACATION_KEY, CUSTOM_MEALS_KEY, MEAL_LOG_KEY, INVEST_FUND_KEY,
 ];
 
 document.getElementById("backup-export").addEventListener("click", () => {
