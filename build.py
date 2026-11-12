@@ -94,6 +94,8 @@ NUTRITION_PLAN = {
             {"name": "Kyllingfilet-wrap", "items": ["130 g kyllingfilet", "1 grovt pitabrød", "agurk og paprika", "1 ss lett rømme/yoghurtdressing"], "kcal": 400, "protein": 35},
             {"name": "Karbonadedeig med ris", "items": ["120 g karbonadedeig", "60 g ris (tørrvekt)", "agurk og paprika"], "kcal": 430, "protein": 28},
             {"name": "Kyllingkjøttdeig-taco", "items": ["130 g kyllingkjøttdeig", "2 extra thin tacolefser", "agurk og paprika", "litt mager kesam"], "kcal": 400, "protein": 32},
+            {"name": "Proteinrundstykke med kyllingfilet", "items": ["1 proteinrundstykke", "80 g kyllingfilet-pålegg", "salat og tomat", "litt lett dressing"], "kcal": 350, "protein": 30},
+            {"name": "Wrap med ferdigstekt kylling", "items": ["1 grov tortillalefse", "100 g ferdigstekt kyllingfilet (butikk)", "agurk og paprika", "litt lett dressing"], "kcal": 380, "protein": 30},
         ],
     },
     "snack": {
@@ -110,6 +112,8 @@ NUTRITION_PLAN = {
             {"name": "Kyllingkjøttdeig-stekt ris", "items": ["150 g kyllingkjøttdeig", "70 g ris (tørrvekt)", "amerikansk grønnsaksblanding (frossen)", "litt soyasaus"], "kcal": 520, "protein": 42},
             {"name": "Pasta med kjøttsaus", "items": ["80 g pasta (tørrvekt)", "130 g karbonadedeig", "litt tomatsaus", "paprika"], "kcal": 560, "protein": 33},
             {"name": "Kylling med ris", "items": ["150 g kyllingfilet", "70 g ris (tørrvekt)", "agurk og paprika"], "kcal": 480, "protein": 44},
+            {"name": "Laks med poteter", "items": ["150 g laksefilet", "200 g poteter", "brokkoli"], "kcal": 490, "protein": 38},
+            {"name": "Taco-gryte", "items": ["150 g kyllingkjøttdeig", "100 g mais og bønner", "1 dl lettrømme", "liten porsjon tortillachips"], "kcal": 540, "protein": 36},
         ],
     },
 }
@@ -476,6 +480,64 @@ def main():
             "date": best_hrv_day,
         }
 
+    # -------------------------------------------------------------- report metrics (morning/evening/weekly coach)
+    def window_avg(d, keys_sorted, extractor, days, exclude_last=True):
+        keys = keys_sorted[:-1] if (exclude_last and keys_sorted) else keys_sorted
+        keys = keys[-days:]
+        vals = [v for v in (extractor(d[k]) for k in keys) if v is not None]
+        return safe_round(statistics.mean(vals), 1) if vals else None
+
+    def latest_of(d, keys_sorted, extractor):
+        return extractor(d[keys_sorted[-1]]) if keys_sorted else None
+
+    REPORT_METRIC_DEFS = {
+        "sleepHours": (sleep, sleep_keys, lambda v: safe_round((v.get("sleepTimeSeconds") or 0) / 3600, 2)),
+        "deepSleepMin": (sleep, sleep_keys, lambda v: safe_round((v.get("deepSleepSeconds") or 0) / 60)),
+        "remSleepMin": (sleep, sleep_keys, lambda v: safe_round((v.get("remSleepSeconds") or 0) / 60)),
+        "lightSleepMin": (sleep, sleep_keys, lambda v: safe_round((v.get("lightSleepSeconds") or 0) / 60)),
+        "sleepScore": (sleep, sleep_keys, lambda v: ((v.get("sleepScores") or {}).get("overall") or {}).get("value")),
+        "bodyBatteryCharged": (daily, daily_keys, lambda v: (v.get("bodyBattery") or {}).get("chargedValue")),
+        "bodyBatteryLatest": (daily, daily_keys, lambda v: (v.get("bodyBattery") or {}).get("latestValue")),
+        "bodyBatteryMin": (daily, daily_keys, lambda v: (v.get("bodyBattery") or {}).get("minValue")),
+        "restingHR": (daily, daily_keys, lambda v: (v.get("heartRate") or {}).get("restingValue")),
+        "hrv": (hrv, hrv_keys, lambda v: v.get("lastNightAvg")),
+        "steps": (daily, daily_keys, lambda v: (v.get("movement") or {}).get("steps", {}).get("value")),
+        "stress": (daily, daily_keys, lambda v: (v.get("stress") or {}).get("avgLevel")),
+        "calories": (daily, daily_keys, lambda v: (v.get("calories") or {}).get("burnedTotal")),
+    }
+    report_metrics = {}
+    for rm_key, (rm_src, rm_keys, rm_extractor) in REPORT_METRIC_DEFS.items():
+        report_metrics[rm_key] = {
+            "today": latest_of(rm_src, rm_keys, rm_extractor),
+            "avg7": window_avg(rm_src, rm_keys, rm_extractor, 7),
+            "avg30": window_avg(rm_src, rm_keys, rm_extractor, 30),
+        }
+
+    # last ~5 weeks of per-day Garmin metrics, so the client can join them against
+    # locally-logged training/food/budget data (which only lives in localStorage) to
+    # find patterns for the weekly report.
+    daily_history = []
+    history_dates = sorted((set(daily_keys[-35:]) | set(sleep_keys[-35:]) | set(hrv_keys[-35:])))[-35:]
+    for hk in history_dates:
+        d_day = daily.get(hk, {})
+        s_day = sleep.get(hk, {})
+        h_day = hrv.get(hk, {})
+        bb = d_day.get("bodyBattery") or {}
+        daily_history.append({
+            "date": hk,
+            "weekday": datetime.strptime(hk, "%Y-%m-%d").date().weekday(),
+            "sleepHours": safe_round((s_day.get("sleepTimeSeconds") or 0) / 3600, 2) if s_day else None,
+            "deepSleepMin": safe_round((s_day.get("deepSleepSeconds") or 0) / 60) if s_day else None,
+            "sleepScore": ((s_day.get("sleepScores") or {}).get("overall") or {}).get("value") if s_day else None,
+            "bodyBatteryCharged": bb.get("chargedValue"),
+            "bodyBatteryLatest": bb.get("latestValue"),
+            "restingHR": (d_day.get("heartRate") or {}).get("restingValue") if d_day else None,
+            "hrv": h_day.get("lastNightAvg") if h_day else None,
+            "steps": (d_day.get("movement") or {}).get("steps", {}).get("value") if d_day else None,
+            "stress": (d_day.get("stress") or {}).get("avgLevel") if d_day else None,
+            "calories": (d_day.get("calories") or {}).get("burnedTotal") if d_day else None,
+        })
+
     # -------------------------------------------------------------- training plan
     def trailing_baseline(d, keys_sorted, extractor, window=14):
         if not keys_sorted:
@@ -597,6 +659,8 @@ def main():
             "totalActivities": len(activities),
         },
         "topStats": top_stats,
+        "reportMetrics": report_metrics,
+        "dailyHistory": daily_history,
         "goal": goal,
         "program": program,
         "sessionCatalog": SESSION_CATALOG,
@@ -631,7 +695,7 @@ TEMPLATE = r"""<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow, noarchive">
-<title>Training Dashboard</title>
+<title>Katrine 2027</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -798,7 +862,26 @@ TEMPLATE = r"""<!DOCTYPE html>
   .meal-option .meal-head b { font-size: 14px; }
   .meal-option .meal-macro { font-size: 12px; color: var(--muted); white-space: nowrap; }
   .meal-option .meal-items { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .meal-option-remove { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 11px; padding: 0; margin-left: 6px; }
+  .meal-add-form { margin-top: 2px; }
   .nutrition-note { font-size: 11px; color: var(--muted); margin-top: 14px; font-style: italic; }
+  .meal-eaten-btn { margin-top: 8px; }
+  .meal-option-eaten { border-left: 3px solid var(--accent); }
+
+  .report-tabs { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .report-tab-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .report-card { line-height: 1.6; }
+  .report-card:empty { display: none; }
+  .report-card h3 { margin: 20px 0 8px; font-size: 17px; }
+  .report-card .report-section:first-child h3 { margin-top: 0; }
+  .report-card .report-section { margin-bottom: 20px; }
+  .report-card .report-section:last-child { margin-bottom: 0; }
+  .report-card p { font-size: 13.5px; margin: 0 0 10px; }
+  .report-card ul { margin: 0 0 6px; padding-left: 20px; }
+  .report-card li { margin-bottom: 7px; font-size: 13.5px; }
+  .report-card .report-highlight { background: var(--bg); border-radius: 10px; padding: 10px 14px; font-size: 13px; margin: 10px 0; }
+  .report-card .report-empty { font-size: 13px; color: var(--muted); }
+  .report-card .report-title { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 2px; }
 
   .stat-grid {
     position: relative;
@@ -1011,6 +1094,7 @@ TEMPLATE = r"""<!DOCTYPE html>
     padding: 16px; margin-top: 10px; line-height: 1.6; font-size: 14px;
   }
   #plateau-card:empty { display: none; }
+  #nutrition-coach-card:empty { display: none; }
 
   .badday-panel { display: none; max-width: 420px; margin: 24px auto; text-align: center; }
   body.badday-active header,
@@ -1197,7 +1281,7 @@ TEMPLATE = r"""<!DOCTYPE html>
 <header class="hero">
   <div class="wrap">
     <div class="eyebrow" id="goal-eyebrow">Training goal</div>
-    <h1 id="goal-headline">Getting leaner</h1>
+    <h1 id="goal-headline">Katrine 2027</h1>
     <div class="sub" id="date-range-sub"></div>
     <div class="goal-row" id="goal-chips"></div>
   </div>
@@ -1208,6 +1292,7 @@ TEMPLATE = r"""<!DOCTYPE html>
 
   <nav class="tab-nav" id="tab-nav">
     <button data-tab="hjem">Hjem</button>
+    <button data-tab="rapport">Rapport</button>
     <button data-tab="trening">Treningsplan</button>
     <button data-tab="rekorder">Rekorder</button>
     <button data-tab="kosthold">Kosthold</button>
@@ -1297,6 +1382,19 @@ TEMPLATE = r"""<!DOCTYPE html>
   </div>
   </div>
 
+  <div class="tab-panel" data-tab="rapport">
+  <section>
+    <h2>Rapport</h2>
+    <div class="section-sub">Din personlige coach - en grundig gjennomgang av dataene dine, ikke bare tall og grafer.</div>
+    <div class="report-tabs" id="report-tabs">
+      <button class="btn secondary small report-tab-btn" data-report="morning">☀️ Morgenrapport</button>
+      <button class="btn secondary small report-tab-btn" data-report="evening">🌙 Kveldsrapport</button>
+      <button class="btn secondary small report-tab-btn" data-report="weekly">📊 Ukens innsikt</button>
+    </div>
+    <div class="card report-card" id="report-output"></div>
+  </section>
+  </div>
+
   <div class="tab-panel" data-tab="trening">
   <section>
     <h2>Treningsplan</h2>
@@ -1323,7 +1421,7 @@ TEMPLATE = r"""<!DOCTYPE html>
     <div id="meal-plan"></div>
     <div class="card" id="extras-card" style="margin-top:14px;">
       <h3 style="margin:0 0 4px;font-size:15px;">Utenom planen</h3>
-      <div class="section-sub" style="margin-bottom:10px;">Spiste eller drakk du noe ekstra? Logg det raskt her - ingen fullstendig matdagbok nødvendig.</div>
+      <div class="section-sub" style="margin-bottom:10px;">Spiste eller drakk du noe ekstra - eller en hel lunsj/middag ute? Logg et anslag her, ingen fullstendig matdagbok nødvendig.</div>
       <div class="extras-presets">
         <button class="btn secondary small" data-extra-preset="Sjokolade" data-extra-kcal="250">+ Sjokolade</button>
         <button class="btn secondary small" data-extra-preset="Glass vin" data-extra-kcal="120">+ Glass vin</button>
@@ -1337,6 +1435,7 @@ TEMPLATE = r"""<!DOCTYPE html>
       <div id="extras-today-total"></div>
       <ul class="log-list" id="extras-list"></ul>
     </div>
+    <div class="card" id="nutrition-coach-card" style="margin-top:14px;"></div>
   </section>
   </div>
 
@@ -1984,11 +2083,47 @@ renderRestTimer();
 
 // ---------------------------------------------------------------- nutrition
 const EXTRAS_KEY = "garminDashboardExtras_v1";
+const CUSTOM_MEALS_KEY = "garminDashboardCustomMeals_v1";
+const MEAL_LOG_KEY = "garminDashboardMealLog_v1";
+function loadCustomMeals() { return Object.assign({ lunch: [], snack: [], dinner: [] }, loadLS(CUSTOM_MEALS_KEY, {})); }
+function saveCustomMeals(m) { saveLS(CUSTOM_MEALS_KEY, m); }
 
-function mealOptionHtml(opt) {
-  return `<div class="meal-option">
-    <div class="meal-head"><b>${opt.name}</b><span class="meal-macro">${opt.kcal} kcal · ${opt.protein} g protein</span></div>
-    <div class="meal-items">${opt.items.join(" · ")}</div>
+function loadMealLog() { return loadLS(MEAL_LOG_KEY, []); }
+function saveMealLog(l) { saveLS(MEAL_LOG_KEY, l); }
+function mealLoggedFor(date, type) { return loadMealLog().find(m => m.date === date && m.type === type) || null; }
+function logMealEaten(type, opt) {
+  const log = loadMealLog().filter(m => !(m.date === todayISO() && m.type === type));
+  log.push({ date: todayISO(), type, name: opt.name, kcal: opt.kcal, protein: opt.protein });
+  saveMealLog(log);
+}
+function unlogMeal(type) {
+  saveMealLog(loadMealLog().filter(m => !(m.date === todayISO() && m.type === type)));
+}
+function isMealEatenToday(type, name) {
+  const m = mealLoggedFor(todayISO(), type);
+  return !!m && m.name === name;
+}
+// totals actually eaten on a given date: fixed breakfast + whichever lunch/snack/dinner
+// options were marked eaten that day + anything logged as an "extra"
+function dayNutritionTotals(date) {
+  const n = DATA.nutritionPlan;
+  const meals = loadMealLog().filter(m => m.date === date);
+  const extrasForDay = loadExtras().filter(e => e.date === date);
+  const extrasTotal = extrasForDay.reduce((s, e) => s + (e.kcal || 0), 0);
+  return {
+    kcal: n.breakfast.kcal + meals.reduce((s, m) => s + (m.kcal || 0), 0) + extrasTotal,
+    protein: n.breakfast.protein + meals.reduce((s, m) => s + (m.protein || 0), 0),
+    mealsLogged: meals,
+    extras: extrasForDay,
+  };
+}
+
+function mealOptionHtml(opt, removeId, toggle) {
+  const eaten = !!(toggle && toggle.eaten);
+  return `<div class="meal-option${eaten ? " meal-option-eaten" : ""}">
+    <div class="meal-head"><b>${opt.name}</b><span class="meal-macro">${opt.kcal} kcal · ${opt.protein} g protein${removeId ? `<button class="meal-option-remove" data-meal-remove="${removeId}">✕</button>` : ""}</span></div>
+    ${opt.items && opt.items.length ? `<div class="meal-items">${opt.items.join(" · ")}</div>` : ""}
+    ${toggle ? `<button class="btn ghost small meal-eaten-btn" data-meal-type="${toggle.type}" data-meal-idx="${toggle.idx}">${eaten ? "✓ Spist i dag" : "Merk som spist i dag"}</button>` : ""}
   </div>`;
 }
 
@@ -2018,12 +2153,59 @@ function renderNutrition() {
 
   const b = n.breakfast;
   let html = `<div class="meal-group"><h4>${b.label}</h4>${mealOptionHtml({ name: b.label, items: b.items, kcal: b.kcal, protein: b.protein })}</div>`;
+  const custom = loadCustomMeals();
   ["lunch", "snack", "dinner"].forEach(key => {
     const group = n[key];
-    html += `<div class="meal-group"><h4>${group.label}</h4>${group.options.map(mealOptionHtml).join("")}</div>`;
+    const customOpts = custom[key] || [];
+    html += `<div class="meal-group"><h4>${group.label}</h4>
+      ${group.options.map((o, idx) => mealOptionHtml(o, null, { type: key, idx, eaten: isMealEatenToday(key, o.name) })).join("")}
+      ${customOpts.map((o, i) => mealOptionHtml(o, o.id, { type: key, idx: group.options.length + i, eaten: isMealEatenToday(key, o.name) })).join("")}
+      <div class="log-form meal-add-form">
+        <input type="text" id="meal-add-name-${key}" placeholder="Eget forslag - navn">
+        <input type="number" step="10" id="meal-add-kcal-${key}" placeholder="kcal">
+        <input type="number" step="1" id="meal-add-protein-${key}" placeholder="protein g">
+        <button class="btn ghost small" data-meal-add="${key}">Legg til</button>
+      </div>
+    </div>`;
   });
   html += `<div class="nutrition-note">${n.note}</div>`;
   document.getElementById("meal-plan").innerHTML = html;
+
+  document.querySelectorAll(".meal-eaten-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const type = btn.dataset.mealType;
+      const idx = parseInt(btn.dataset.mealIdx, 10);
+      const combined = n[type].options.concat((loadCustomMeals()[type] || []));
+      const opt = combined[idx];
+      if (!opt) return;
+      if (isMealEatenToday(type, opt.name)) unlogMeal(type); else logMealEaten(type, opt);
+      renderNutrition();
+      renderNutritionCoach();
+    });
+  });
+
+  document.querySelectorAll("[data-meal-add]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const key = btn.dataset.mealAdd;
+      const name = document.getElementById(`meal-add-name-${key}`).value.trim();
+      const kcal = parseInt(document.getElementById(`meal-add-kcal-${key}`).value, 10);
+      const protein = parseInt(document.getElementById(`meal-add-protein-${key}`).value, 10) || 0;
+      if (!name || !kcal) return;
+      const m = loadCustomMeals();
+      m[key].push({ id: "meal-" + Date.now() + Math.random(), name, kcal, protein, items: [] });
+      saveCustomMeals(m);
+      renderNutrition();
+    });
+  });
+  document.querySelectorAll("[data-meal-remove]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.dataset.mealRemove;
+      const m = loadCustomMeals();
+      ["lunch", "snack", "dinner"].forEach(key => { m[key] = m[key].filter(o => o.id !== id); });
+      saveCustomMeals(m);
+      renderNutrition();
+    });
+  });
 }
 renderNutrition();
 
@@ -2042,6 +2224,7 @@ function addExtra(name, kcal) {
   list.push({ id: "extra-" + Date.now() + Math.random(), date: todayISO(), name, kcal: kcal || null });
   saveExtras(list);
   renderExtras();
+  renderNutritionCoach();
 }
 
 function renderExtras() {
@@ -2060,8 +2243,38 @@ function renderExtras() {
     btn.addEventListener("click", () => {
       softDeleteExtra(btn.dataset.extraRemove);
       renderExtras();
+      renderNutritionCoach();
     });
   });
+}
+
+function renderNutritionCoach() {
+  const card = document.getElementById("nutrition-coach-card");
+  if (!card) return;
+  const tips = [];
+
+  const cfg = loadBudgetConfig();
+  const restaurantCat = cfg.categories.find(c => c.key === "restaurant");
+  if (restaurantCat && restaurantCat.cap) {
+    const spent = loadTransactions()
+      .filter(t => t.category === "restaurant" && monthOf(t.date) === currentMonth)
+      .reduce((s, t) => s + t.amount, 0);
+    if (spent >= restaurantCat.cap * 0.7) {
+      tips.push("Du har brukt en del på restaurant/take-away denne måneden. Legg gjerne inn et par faste spise-ute-forslag under lunsj/middag (bruk \"Eget forslag\"), så er det lettere å planlegge neste gang.");
+    }
+  }
+
+  const since = new Date();
+  since.setDate(since.getDate() - 6);
+  const sinceStr = since.toISOString().slice(0, 10);
+  const extrasThisWeek = loadExtras().filter(e => e.date >= sinceStr);
+  if (extrasThisWeek.length >= 4) {
+    tips.push("Du har logget ekstra mat/drikke flere ganger denne uken - helt greit! Husk bare å legge det inn så kaloriringen stemmer.");
+  }
+
+  if (!tips.length) { card.innerHTML = ""; return; }
+  card.innerHTML = `<h3 style="margin:0 0 8px;font-size:15px;">💡 Tips</h3>` +
+    tips.map(t => `<div class="section-sub" style="margin:0 0 8px;">${t}</div>`).join("");
 }
 
 document.getElementById("extra-add").addEventListener("click", () => {
@@ -2734,6 +2947,7 @@ function addTransactionWithRoundUp(date, amount, category, name) {
       roundedUp = true;
     }
   }
+  renderNutritionCoach();
   return roundedUp;
 }
 
@@ -3369,6 +3583,381 @@ document.querySelectorAll("#quicklog-bar button[data-ql]").forEach(btn => {
 
 renderWaterBadge();
 renderHjem();
+renderNutritionCoach();
+
+// ---------------------------------------------------------------- rapport (personlig coach)
+function reportMetric(key) {
+  return (DATA.reportMetrics && DATA.reportMetrics[key]) || { today: null, avg7: null, avg30: null };
+}
+function minToHM(min) {
+  if (min == null) return null;
+  const h = Math.floor(min / 60), m = Math.round(min % 60);
+  return h > 0 ? `${h}t ${m}min` : `${m}min`;
+}
+function diffPhrase(latest, baseline, unit) {
+  if (latest == null || baseline == null) return "";
+  const diff = Math.round((latest - baseline) * 10) / 10;
+  if (Math.abs(diff) < 0.3) return "på linje med snittet ditt";
+  const word = diff > 0 ? "mer enn" : "mindre enn";
+  return `${Math.abs(diff)}${unit} ${word} snittet ditt`;
+}
+function prsToday() {
+  const log = loadSetLog();
+  const todays = log.filter(s => s.date === todayISO()).sort((a, b) => a.id.localeCompare(b.id));
+  const prior = log.filter(s => s.date !== todayISO());
+  const priorBest = {};
+  prior.forEach(s => { if (isBetterSet(s, priorBest[s.exercise])) priorBest[s.exercise] = s; });
+  const prs = [];
+  const seenBest = {};
+  todays.forEach(s => {
+    const cur = seenBest[s.exercise] || priorBest[s.exercise];
+    if (isBetterSet(s, cur)) { prs.push(s); seenBest[s.exercise] = s; }
+  });
+  return prs;
+}
+
+function renderMorningReport() {
+  const out = document.getElementById("report-output");
+  const sleepM = reportMetric("sleepHours");
+  const deepM = reportMetric("deepSleepMin");
+  const remM = reportMetric("remSleepMin");
+  const bbCharged = reportMetric("bodyBatteryCharged");
+  const bbLatest = reportMetric("bodyBatteryLatest");
+  const rhrM = reportMetric("restingHR");
+  const hrvM = reportMetric("hrv");
+
+  const today = DATA.program.today;
+  const todayPlanDay = (DATA.program.week || []).find(d => d.isToday);
+  const vacation = isVacationActive();
+
+  let sleepP;
+  if (sleepM.today != null) {
+    const parts = [];
+    if (deepM.today != null) parts.push(`${minToHM(deepM.today)} dyp søvn`);
+    if (remM.today != null) parts.push(`${minToHM(remM.today)} REM`);
+    sleepP = `Du sov <b>${sleepM.today} t</b> i natt${parts.length ? ` (${parts.join(", ")})` : ""} - det er ${diffPhrase(sleepM.today, sleepM.avg7, "t")} siste 7 dager`;
+    if (sleepM.avg30 != null) sleepP += ` og ${diffPhrase(sleepM.today, sleepM.avg30, "t")} siste 30 dager`;
+    sleepP += ".";
+  } else {
+    sleepP = "Ingen søvndata for i natt ennå - sjekk at klokken har synkronisert.";
+  }
+
+  let bbP = "";
+  if (bbLatest.today != null) {
+    bbP = `Body Battery startet dagen på <b>${bbLatest.today}/100</b>`;
+    if (bbCharged.today != null) bbP += `, etter å ha ladet ${bbCharged.today} poeng i natt`;
+    bbP += ".";
+  }
+
+  const vitalsBits = [];
+  if (hrvM.today != null) vitalsBits.push(`HRV i natt var ${hrvM.today} ms${hrvM.avg7 != null ? ` (snitt 7d: ${hrvM.avg7} ms)` : ""}`);
+  if (rhrM.today != null) vitalsBits.push(`hvilepuls ${rhrM.today} bpm${rhrM.avg7 != null ? ` (snitt 7d: ${rhrM.avg7})` : ""}`);
+  const vitalsP = vitalsBits.length ? vitalsBits.join(", ") + "." : "";
+
+  let verdict;
+  if (today.readiness === "go") verdict = "Alt i alt ser kroppen klar ut for en god økt i dag. 💪";
+  else if (today.readiness === "caution") verdict = "Kroppen ber om litt ekstra oppmerksomhet i dag - ikke stress, bare justér.";
+  else verdict = "Kroppen signaliserer at den trenger mer restitusjon i dag.";
+
+  const sovnHtml = `
+    <div class="report-section">
+      <h3>😴 Søvn &amp; restitusjon</h3>
+      <p>${sleepP}</p>
+      ${bbP ? `<p>${bbP}</p>` : ""}
+      ${vitalsP ? `<p>${vitalsP}</p>` : ""}
+      <div class="report-highlight">${verdict}</div>
+    </div>`;
+
+  let trainingHtml;
+  if (vacation) {
+    trainingHtml = `
+    <div class="report-section">
+      <h3>🏋️ Dagens trening</h3>
+      <p>Du er i pause-modus akkurat nå - ingen treningskrav i dag. Nyt pausen, kroppen tar den igjen senere. 🌴</p>
+    </div>`;
+  } else {
+    const sessionLabel = todayPlanDay ? todayPlanDay.sessionLabel : null;
+    const reasons = today.reasons || [];
+    let advice;
+    if (today.readiness === "go") {
+      advice = `Kjør planen som normalt${sessionLabel ? `: <b>${sessionLabel}</b>` : ""}. Denne uken er fokuset «${DATA.program.weekFocus}» (${DATA.program.weekSetsNote}).`;
+    } else if (today.readiness === "caution") {
+      advice = `Gjør økten${sessionLabel ? ` (<b>${sessionLabel}</b>)` : ""}, men kutt gjerne siste sett på et par øvelser eller ta litt lavere vekt enn planlagt. Målet i dag er å bevege deg godt, ikke å sette rekord.`;
+    } else {
+      advice = `Vurder å bytte dagens ${sessionLabel ? `«${sessionLabel}»` : "økt"} til en rolig gåtur eller mobilitet, eller gjør bare aktiveringsdelen av økten. Kroppen trenger restitusjon mer enn volum i dag.`;
+    }
+    trainingHtml = `
+    <div class="report-section">
+      <h3>🏋️ Dagens trening</h3>
+      <p>${advice}</p>
+      ${reasons.length ? `<ul>${reasons.map(r => `<li>${r}</li>`).join("")}</ul>` : ""}
+    </div>`;
+  }
+
+  const yISO = isoAddDays(todayISO(), -1);
+  const yTotals = dayNutritionTotals(yISO);
+  const n = DATA.nutritionPlan;
+  const proteinGap = n.proteinMin - yTotals.protein;
+  let nutritionP1 = `I går fikk du i deg rundt <b>${yTotals.kcal} kcal</b> og <b>${yTotals.protein} g protein</b> (mål: ${n.proteinMin} g+).`;
+  if (!yTotals.mealsLogged.length && !yTotals.extras.length) {
+    nutritionP1 = `Du logget ikke måltider i går, så dette er et grovt anslag basert på planen.`;
+  }
+  let nutritionP2;
+  let suggestion = null;
+  if (proteinGap > 20) {
+    nutritionP2 = "Det er under proteinmålet - i dag bør du prioritere proteinrike valg.";
+    suggestion = n.lunch.options.concat(n.dinner.options).slice().sort((a, b) => b.protein - a.protein)[0];
+  } else {
+    nutritionP2 = "Bra jobbet med proteinet i går! 🙌";
+  }
+
+  const nutritionHtml = `
+    <div class="report-section">
+      <h3>🍽️ Ernæring</h3>
+      <p>${nutritionP1} ${nutritionP2}</p>
+      ${suggestion ? `<div class="report-highlight">Forslag til i dag: <b>${suggestion.name}</b> (${suggestion.kcal} kcal, ${suggestion.protein} g protein)</div>` : ""}
+      <p>Dagens kaloribudsjett er <b>${n.dailyKcal} kcal</b>.</p>
+    </div>`;
+
+  const why = loadWhy();
+  const practicalHtml = `
+    <div class="report-section">
+      <h3>📋 Praktisk info</h3>
+      <p id="report-weather-line">Henter vær…</p>
+      ${why ? `<div class="report-highlight">💛 Husk hvorfor: ${why}</div>` : ""}
+    </div>`;
+
+  out.innerHTML = `
+    <div class="report-title">Morgenrapport · ${fmtDate(todayISO())}</div>
+    ${sovnHtml}${trainingHtml}${nutritionHtml}${practicalHtml}
+  `;
+
+  fetchWeather().then(w => {
+    const el = document.getElementById("report-weather-line");
+    if (!el) return;
+    el.textContent = w ? `Ute er det ${w.tempC}° og ${w.desc.toLowerCase()} i dag.` : "Fant ikke værdata akkurat nå.";
+  });
+}
+
+function renderEveningReport() {
+  const out = document.getElementById("report-output");
+  const vacation = isVacationActive();
+  const todayStr = todayISO();
+  const todayPlanDay = (DATA.program.week || []).find(d => d.isToday);
+
+  const setsToday = loadSetLog().filter(s => s.date === todayStr);
+  const trained = setsToday.length > 0;
+  let trainingLine;
+  if (vacation) {
+    trainingLine = "Du er i pause-modus - ingen treningskrav i dag, og det er helt greit.";
+  } else if (!todayPlanDay) {
+    trainingLine = "Fant ikke dagens plan.";
+  } else if (todayPlanDay.sessionType === "rest") {
+    trainingLine = "I dag var en hviledag - nyt den.";
+  } else if (trained) {
+    trainingLine = `Du logget ${setsToday.length} sett på dagens økt (${todayPlanDay.sessionLabel}). Bra jobba!`;
+  } else {
+    trainingLine = `Dagens plan var «${todayPlanDay.sessionLabel}», men du har ikke logget noe ennå i dag - fortsatt tid til å få det inn, eller ta det igjen i morgen.`;
+  }
+
+  const totals = dayNutritionTotals(todayStr);
+  const n = DATA.nutritionPlan;
+  const overBudget = totals.kcal > n.dailyKcal;
+  let nutritionLine;
+  if (totals.extras.length) {
+    const names = totals.extras.map(e => e.name).join(", ");
+    nutritionLine = overBudget
+      ? `Du logget ${names} i dag utenom planen, og endte på ${totals.kcal} kcal (budsjett ${n.dailyKcal}). Litt over i dag - helt greit, juster i morgen og fortsett.`
+      : `Du logget ${names} i dag, men holdt deg likevel innenfor kaloribudsjettet (${totals.kcal} / ${n.dailyKcal} kcal). Bra kontroll! 👏`;
+  } else {
+    nutritionLine = overBudget
+      ? `Du endte på rundt ${totals.kcal} kcal i dag, litt over budsjettet på ${n.dailyKcal}. Ingen grunn til dårlig samvittighet - bare ta det med i morgen.`
+      : `Du holdt deg fint innenfor kaloribudsjettet i dag (${totals.kcal} / ${n.dailyKcal} kcal).`;
+  }
+
+  const logHtml = `
+    <div class="report-section">
+      <h3>📒 Dagens logg vs. plan</h3>
+      <p>${trainingLine}</p>
+      <p>${nutritionLine}</p>
+    </div>`;
+
+  const prs = prsToday();
+  const totalVolume = setsToday.reduce((s, x) => s + (x.weight || 0) * x.reps, 0);
+  const txToday = loadTransactions().filter(t => t.date === todayStr);
+  const savedToday = txToday.filter(t => t.category === DATA.dogFund.category).reduce((s, t) => s + t.amount, 0);
+  const spentToday = txToday.filter(t => t.category !== DATA.dogFund.category).reduce((s, t) => s + t.amount, 0);
+
+  const progressBits = [];
+  if (prs.length) progressBits.push(`🏆 Ny PR i dag: ${prs.map(p => `${p.label} (${p.weight != null ? p.weight + " kg × " + p.reps : p.reps + " reps"})`).join(", ")}!`);
+  if (totalVolume > 0) progressBits.push(`Treningsvolum i dag: ca. ${Math.round(totalVolume)} kg totalt (vekt × reps).`);
+  if (savedToday > 0) progressBits.push(`Du la ${Math.round(savedToday)} kr i hundefondet i dag. 🐶`);
+  if (spentToday > 0) progressBits.push(`Du brukte ${Math.round(spentToday)} kr i dag.`);
+  if (!progressBits.length) progressBits.push("Ingen ny aktivitet logget i dag - det er også helt ok.");
+
+  const progressHtml = `
+    <div class="report-section">
+      <h3>📈 Fremgang</h3>
+      <ul>${progressBits.map(b => `<li>${b}</li>`).join("")}</ul>
+    </div>`;
+
+  const tomorrowDate = isoAddDays(todayStr, 1);
+  const tomorrowPlanDay = (DATA.program.week || []).find(d => d.date === tomorrowDate);
+  const sleepM = reportMetric("sleepHours");
+  let tip;
+  if (sleepM.avg7 != null && sleepM.today != null && sleepM.today < sleepM.avg7 - 1) {
+    tip = "Du sov mindre enn vanlig de siste dagene - prøv å legge deg litt tidligere i kveld.";
+  } else if (tomorrowPlanDay && tomorrowPlanDay.sessionType === "strength" && todayPlanDay && todayPlanDay.sessionType === "strength" && !trained) {
+    tip = `I morgen er det «${tomorrowPlanDay.sessionLabel}» - sett av tid til den nå som du vet du har en treningsdag.`;
+  } else if (overBudget) {
+    tip = "Siden dagens kaloribudsjett ble sprengt litt, kan det være greit å planlegge et roligere måltid i morgen.";
+  } else if (totals.extras.length >= 2) {
+    tip = "Du logget flere ting utenom planen i dag - sjekk om «Eget forslag» under lunsj/middag kan dekke noen av favorittene dine faste, så blir det lettere å planlegge.";
+  } else {
+    tip = "Fortsett som nå - ingenting som trenger justering i morgen.";
+  }
+
+  const tomorrowHtml = `
+    <div class="report-section">
+      <h3>🌱 Forberedelse til i morgen</h3>
+      <p>${tip}</p>
+    </div>`;
+
+  out.innerHTML = `
+    <div class="report-title">Kveldsrapport · ${fmtDate(todayStr)}</div>
+    ${logHtml}${progressHtml}${tomorrowHtml}
+  `;
+}
+
+function renderWeeklyReport() {
+  const out = document.getElementById("report-output");
+  const todayStr = todayISO();
+  const weekStart = isoAddDays(todayStr, -6);
+
+  const history = (DATA.dailyHistory || []).filter(d => d.date >= weekStart && d.date <= todayStr);
+  const setLog = loadSetLog();
+  const tx = loadTransactions();
+  const extras = loadExtras();
+
+  function volumeOn(date) {
+    return setLog.filter(s => s.date === date).reduce((s, x) => s + (x.weight || 0) * x.reps, 0);
+  }
+
+  const patterns = [];
+  const lowSleepDays = history.filter(d => d.sleepHours != null && d.sleepHours < 7);
+  const okSleepDays = history.filter(d => d.sleepHours != null && d.sleepHours >= 7);
+  if (lowSleepDays.length >= 2 && okSleepDays.length >= 2) {
+    const avgLow = lowSleepDays.reduce((s, d) => s + volumeOn(d.date), 0) / lowSleepDays.length;
+    const avgOk = okSleepDays.reduce((s, d) => s + volumeOn(d.date), 0) / okSleepDays.length;
+    if (avgOk > 0) {
+      const pctDrop = Math.round(100 * (avgOk - avgLow) / avgOk);
+      if (Math.abs(pctDrop) >= 10) {
+        patterns.push(pctDrop > 0
+          ? `På dager med under 7 timer søvn trente du i snitt ${pctDrop}% mindre volum enn på dager med mer søvn.`
+          : "Du trente faktisk mer på dager med mindre søvn denne uken - gøy å se, men følg med at det ikke går på bekostning av restitusjonen over tid.");
+      }
+    }
+  }
+
+  const spendByWeekday = {};
+  tx.filter(t => t.date >= weekStart && t.category !== DATA.dogFund.category).forEach(t => {
+    const wd = new Date(t.date + "T00:00:00").getDay();
+    spendByWeekday[wd] = (spendByWeekday[wd] || 0) + t.amount;
+  });
+  const weekdayLabels = ["Søndag", "Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag"];
+  const spendEntries = Object.entries(spendByWeekday).sort((a, b) => b[1] - a[1]);
+  if (spendEntries.length && spendEntries[0][1] > 0) {
+    patterns.push(`Du brukte mest penger på ${weekdayLabels[spendEntries[0][0]]} denne uken (${Math.round(spendEntries[0][1])} kr).`);
+  }
+
+  const extrasThisWeek = extras.filter(e => e.date >= weekStart);
+  if (extrasThisWeek.length >= 5) {
+    patterns.push(`Du logget noe utenom planen ${extrasThisWeek.length} ganger denne uken.`);
+  }
+
+  if (!patterns.length) {
+    patterns.push("Ikke nok data til tydelige mønstre denne uken ennå - fortsett å logge, og du får dypere innsikt neste søndag.");
+  }
+
+  const patternsHtml = `
+    <div class="report-section">
+      <h3>🔍 Mønstre</h3>
+      <ul>${patterns.map(p => `<li>${p}</li>`).join("")}</ul>
+    </div>`;
+
+  const highlights = [];
+  const prsThisWeek = [];
+  const priorBest = {};
+  setLog.filter(s => s.date < weekStart).forEach(s => { if (isBetterSet(s, priorBest[s.exercise])) priorBest[s.exercise] = s; });
+  setLog.filter(s => s.date >= weekStart).sort((a, b) => a.date === b.date ? a.id.localeCompare(b.id) : a.date.localeCompare(b.date)).forEach(s => {
+    const cur = priorBest[s.exercise];
+    if (isBetterSet(s, cur)) { prsThisWeek.push(s); priorBest[s.exercise] = s; }
+  });
+  if (prsThisWeek.length) {
+    highlights.push(`🏆 ${prsThisWeek.length} ny${prsThisWeek.length > 1 ? "e" : ""} PR denne uken: ${prsThisWeek.map(p => p.label).join(", ")}.`);
+  }
+  const savedThisWeek = tx.filter(t => t.date >= weekStart && t.category === DATA.dogFund.category).reduce((s, t) => s + t.amount, 0);
+  if (savedThisWeek > 0) highlights.push(`🐶 Du la ${Math.round(savedThisWeek)} kr i hundefondet denne uken.`);
+  const bestSleepDay = history.filter(d => d.sleepScore != null).sort((a, b) => b.sleepScore - a.sleepScore)[0];
+  if (bestSleepDay) highlights.push(`😴 Beste natt denne uken: ${fmtShort(bestSleepDay.date)} med søvnscore ${bestSleepDay.sleepScore}.`);
+  const streak = computeStreak();
+  if (streak >= 3) highlights.push(`🔥 Du har en streak på ${streak} dager akkurat nå.`);
+  if (!highlights.length) highlights.push("En stille uke uten de store toppene - det er også en uke som teller.");
+
+  const highlightsHtml = `
+    <div class="report-section">
+      <h3>🏆 Høydepunkter</h3>
+      <ul>${highlights.map(h => `<li>${h}</li>`).join("")}</ul>
+    </div>`;
+
+  const learnings = [];
+  const restaurantCat = (loadBudgetConfig().categories || []).find(c => c.key === "restaurant");
+  if (restaurantCat && restaurantCat.cap) {
+    const restSpend = tx.filter(t => t.date >= weekStart && t.category === "restaurant").reduce((s, t) => s + t.amount, 0);
+    if (restSpend > restaurantCat.cap * 0.5) {
+      learnings.push("Restaurant/take-away tar en del av budsjettet denne uken - prøv å legge inn et par faste spise-ute-forslag under «Eget forslag», så blir det enklere å styre neste uke.");
+    }
+  }
+  const lowProteinDays = history.filter(d => dayNutritionTotals(d.date).protein < DATA.nutritionPlan.proteinMin * 0.8).length;
+  if (lowProteinDays >= 3) {
+    learnings.push(`Du lå under proteinmålet ${lowProteinDays} dager denne uken - sjekk ut proteinrundstykke-lunsjen eller en av kyllingmiddagene for et enkelt løft.`);
+  }
+  if (!learnings.length) learnings.push("Ingenting som trenger store endringer - hold kursen videre.");
+
+  const learningsHtml = `
+    <div class="report-section">
+      <h3>📘 Læringspunkt</h3>
+      <ul>${learnings.slice(0, 2).map(l => `<li>${l}</li>`).join("")}</ul>
+    </div>`;
+
+  const why = loadWhy();
+  const sessionsThisWeek = (DATA.trainingHistory || []).filter(d => d.date >= weekStart && d.date <= todayStr && d.sessionType !== "rest" && d.loggedTypes.includes(d.sessionType)).length;
+  let conclusion = `Denne uken fikk du gjennomført ${sessionsThisWeek} treningsøkt${sessionsThisWeek === 1 ? "" : "er"}`;
+  if (streak > 0) conclusion += ` og holder en streak på ${streak} dager`;
+  conclusion += `. ${why ? `Husk hvorfor du gjør dette: ${why}. ` : ""}Du bygger noe som varer - fortsett sånn inn i neste uke! 💪`;
+
+  const conclusionHtml = `
+    <div class="report-section">
+      <h3>💬 Konklusjon</h3>
+      <p>${conclusion}</p>
+    </div>`;
+
+  out.innerHTML = `
+    <div class="report-title">Ukens innsikt · ${fmtShort(weekStart)} - ${fmtShort(todayStr)}</div>
+    ${patternsHtml}${highlightsHtml}${learningsHtml}${conclusionHtml}
+  `;
+}
+
+function showReport(key) {
+  document.querySelectorAll(".report-tab-btn").forEach(b => b.classList.toggle("active", b.dataset.report === key));
+  if (key === "morning") renderMorningReport();
+  else if (key === "evening") renderEveningReport();
+  else renderWeeklyReport();
+}
+document.querySelectorAll(".report-tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => showReport(btn.dataset.report));
+});
+showReport("morning");
 
 // ---------------------------------------------------------------- settings toggles
 const personalityToggle = document.getElementById("settings-personality-toggle");
@@ -3392,7 +3981,7 @@ const BACKUP_KEYS = [
   WEIGHT_LOG_KEY, MEASURE_LOG_KEY, SHOP_LIST_KEY, TX_KEY,
   BUDGET_CONFIG_KEY, PLAN_OVERRIDES_KEY, SET_LOG_KEY, SEEN_KEY, REST_PREFS_KEY,
   FORGOTTEN_SAVINGS_KEY, BADDAY_LOG_KEY, EXTRAS_KEY, WATER_KEY, STREAK_BEST_KEY,
-  SETTINGS_KEY, WHY_KEY, VACATION_KEY,
+  SETTINGS_KEY, WHY_KEY, VACATION_KEY, CUSTOM_MEALS_KEY, MEAL_LOG_KEY,
 ];
 
 document.getElementById("backup-export").addEventListener("click", () => {
