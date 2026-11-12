@@ -1065,6 +1065,7 @@ TEMPLATE = r"""<!DOCTYPE html>
           <input type="date" id="measure-date">
           <input type="number" step="0.5" id="measure-waist" placeholder="Mage (cm)">
           <input type="number" step="0.5" id="measure-hips" placeholder="Hofte (cm)">
+          <input type="number" step="0.5" id="measure-arm" placeholder="Arm (cm)">
           <button class="btn" id="measure-add">Lagre</button>
         </div>
         <ul class="log-list" id="measure-list"></ul>
@@ -1575,19 +1576,21 @@ document.getElementById("weight-add").addEventListener("click", () => {
 function renderMeasureLog() {
   const log = loadMeasureLog().sort((a, b) => b.date.localeCompare(a.date));
   document.getElementById("measure-list").innerHTML = log.slice(0, 6).map(e =>
-    `<li><span>${fmtShort(e.date)}</span><b>${e.waist ?? "–"} / ${e.hips ?? "–"} cm</b></li>`
+    `<li><span>${fmtShort(e.date)}</span><b>${e.waist ?? "–"} / ${e.hips ?? "–"} / ${e.arm ?? "–"} cm</b></li>`
   ).join("") || `<li style="border-top:none;color:var(--muted);">Ingen mål ennå</li>`;
 }
 document.getElementById("measure-add").addEventListener("click", () => {
   const date = document.getElementById("measure-date").value || todayISO();
   const waist = parseFloat(document.getElementById("measure-waist").value) || null;
   const hips = parseFloat(document.getElementById("measure-hips").value) || null;
-  if (!waist && !hips) return;
+  const arm = parseFloat(document.getElementById("measure-arm").value) || null;
+  if (!waist && !hips && !arm) return;
   const log = loadMeasureLog().filter(e => e.date !== date);
-  log.push({ date, waist, hips });
+  log.push({ date, waist, hips, arm });
   saveMeasureLog(log);
   document.getElementById("measure-waist").value = "";
   document.getElementById("measure-hips").value = "";
+  document.getElementById("measure-arm").value = "";
   renderMeasureLog();
   renderLevel();
   renderPlateau();
