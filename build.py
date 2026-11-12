@@ -772,6 +772,7 @@ TEMPLATE = r"""<!DOCTYPE html>
   .week-day .wd { color: var(--muted); text-transform: uppercase; font-size: 11px; letter-spacing: .04em; }
   .week-day .sess { font-size: 12px; margin: 6px 0; min-height: 30px; color: var(--ink); }
   .week-day .mark { font-size: 15px; color: var(--accent); }
+  .week-day .mark.missed { color: var(--muted); font-size: 13px; }
 
   .kcal-row { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 14px; }
   .kcal-chip {
@@ -870,7 +871,9 @@ TEMPLATE = r"""<!DOCTYPE html>
   .trend-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 
   footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 40px; }
-  .backup-card { margin: 24px 0 0; }
+  .settings-card { margin: 24px 0 0; }
+  .settings-toggle-row { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-top: 10px; cursor: pointer; }
+  .backup-card { margin: 16px 0 0; }
   .backup-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
   /* ---- fremgang / points / logging ---- */
@@ -958,7 +961,8 @@ TEMPLATE = r"""<!DOCTYPE html>
   .cat-row .cat-head b { color: var(--ink); }
   .cat-bar { height: 8px; border-radius: 5px; background: var(--line); margin-top: 4px; overflow: hidden; }
   .cat-bar > div { height: 100%; border-radius: 5px; background: var(--accent2); }
-  .cat-bar > div.over { background: #c0392b; }
+  .cat-bar > div.over { background: var(--accent); }
+  .cat-grace { font-size: 11px; color: var(--muted); margin-top: 4px; }
   .cat-row input.cap-edit {
     width: 64px; font-size: 11px; border: 1px solid var(--line); border-radius: 6px;
     padding: 2px 4px; background: var(--bg); color: var(--muted); text-align: right;
@@ -1035,6 +1039,8 @@ TEMPLATE = r"""<!DOCTYPE html>
     background: var(--hj-card2); color: var(--hj-ink); border: 1px solid var(--hj-line);
     border-radius: 20px; padding: 6px 12px; font-size: 12px; cursor: pointer;
   }
+  .hjem-why { font-size: 12px; color: var(--hj-muted); margin: -4px 0 12px; cursor: pointer; }
+  .hjem-why.empty { font-style: italic; }
   .hjem-zone { margin-bottom: 18px; }
   .hjem-zone-title { font-size: 13px; color: var(--hj-muted); text-transform: uppercase; letter-spacing: .06em; margin: 0 0 8px; }
   .hjem-card {
@@ -1240,6 +1246,7 @@ TEMPLATE = r"""<!DOCTYPE html>
       <div class="hjem-greeting" id="hjem-greeting"></div>
       <button class="hjem-badday-toggle" id="hjem-badday-toggle">🌧️ Dårlig dag</button>
     </div>
+    <div class="hjem-why" id="hjem-why"></div>
 
     <div id="hjem-reminder"></div>
     <section class="hjem-zone hjem-briefing">
@@ -1482,6 +1489,18 @@ TEMPLATE = r"""<!DOCTYPE html>
   </section>
   </div>
 
+  <div class="card settings-card" id="settings-card">
+    <h3 style="margin:0 0 4px;font-size:15px;">Innstillinger</h3>
+    <label class="settings-toggle-row">
+      <input type="checkbox" id="settings-personality-toggle">
+      <span>Personlighet (konfetti og påminnelser)</span>
+    </label>
+    <label class="settings-toggle-row">
+      <input type="checkbox" id="settings-vacation-toggle">
+      <span>Ferie/pause-modus - ingen påminnelser, streaken fryses</span>
+    </label>
+  </div>
+
   <div class="card backup-card" id="backup-card">
     <h3 style="margin:0 0 4px;font-size:15px;">Sikkerhetskopi</h3>
     <div class="section-sub" style="margin-bottom:10px;">Vekt, mål, treningssett, handleliste og transaksjoner lagres kun i denne nettleseren. Last ned en kopi jevnlig, eller gjenopprett den på en annen enhet.</div>
@@ -1502,7 +1521,11 @@ const DATA = __DASHBOARD_DATA__;
 // ---------------------------------------------------------------- settings
 const SETTINGS_KEY = "garminDashboardSettings_v1";
 function loadSettings() {
-  return Object.assign({ dailyKcal: DATA.nutritionPlan.dailyKcal, savingsTarget: DATA.dogFund.target }, loadLS(SETTINGS_KEY, {}));
+  return Object.assign({
+    dailyKcal: DATA.nutritionPlan.dailyKcal,
+    savingsTarget: DATA.dogFund.target,
+    personalityEnabled: true,
+  }, loadLS(SETTINGS_KEY, {}));
 }
 function saveSettings(s) { saveLS(SETTINGS_KEY, s); }
 (function applySettings() {
@@ -1510,6 +1533,30 @@ function saveSettings(s) { saveLS(SETTINGS_KEY, s); }
   DATA.nutritionPlan.dailyKcal = s.dailyKcal;
   DATA.dogFund.target = s.savingsTarget;
 })();
+
+// ---------------------------------------------------------------- mitt hvorfor
+const WHY_KEY = "garminDashboardWhy_v1";
+function loadWhy() { return loadLS(WHY_KEY, ""); }
+function saveWhy(v) { saveLS(WHY_KEY, v); }
+
+// ---------------------------------------------------------------- ferie / pause-modus
+const VACATION_KEY = "garminDashboardVacation_v1";
+function loadVacationRanges() { return loadLS(VACATION_KEY, []); }
+function saveVacationRanges(r) { saveLS(VACATION_KEY, r); }
+function isVacationActive() {
+  const r = loadVacationRanges();
+  return r.length > 0 && !r[r.length - 1].end;
+}
+function setVacationActive(active) {
+  const r = loadVacationRanges();
+  const open = r.length && !r[r.length - 1].end;
+  if (active && !open) r.push({ start: todayISO(), end: null });
+  else if (!active && open) r[r.length - 1].end = todayISO();
+  saveVacationRanges(r);
+}
+function inVacationRange(date) {
+  return loadVacationRanges().some(r => date >= r.start && date <= (r.end || "9999-99-99"));
+}
 
 // ---------------------------------------------------------------- access gate
 (function () {
@@ -1891,7 +1938,7 @@ function renderPlan() {
       const label = row.querySelector(".exercise-name").textContent;
       const prevBest = bestSetFor(exKey);
       addSet(exKey, label, todayDay.date, weight, reps);
-      if (isBetterSet({ weight, reps }, prevBest)) triggerConfetti();
+      if (isBetterSet({ weight, reps }, prevBest) && loadSettings().personalityEnabled) triggerConfetti();
       startRestTimer(restDurationFor(exKey), label);
       renderPlan();
       renderPrBoard();
@@ -1901,15 +1948,16 @@ function renderPlan() {
   const weekEl = document.getElementById("plan-week");
   weekEl.innerHTML = p.week.map(d => {
     const r = resolvePlanDay(d, overrides);
+    const missed = r.type !== "rest" && !d.isToday && d.date < p.today.date && r.done !== true;
     const mark = r.done === true ? "✓"
       : d.isToday ? "●"
       : r.type === "rest" ? "–"
-      : d.date < p.today.date ? "✕"
+      : missed ? "○"
       : "";
     return `<div class="week-day${d.isToday ? " today" : ""}">
       <div class="wd">${d.weekday}</div>
       <div class="sess">${r.label}</div>
-      <div class="mark">${mark}</div>
+      <div class="mark${missed ? " missed" : ""}" ${missed ? `title="Ikke logget - helt greit, fortsett i dag."` : ""}>${mark}</div>
       ${swapSelectHtml(d.date, r.key)}
     </div>`;
   }).join("");
@@ -2152,11 +2200,12 @@ function computeStreak() {
   if (!th.length) return 0;
   let i = th.length - 1;
   const last = th[i];
-  const lastPending = last.sessionType !== "rest" && !last.loggedTypes.includes(last.sessionType);
+  const lastPending = last.sessionType !== "rest" && !last.loggedTypes.includes(last.sessionType) && !inVacationRange(last.date);
   if (lastPending) i--;
   let streak = 0;
   for (; i >= 0; i--) {
     const day = th[i];
+    if (inVacationRange(day.date)) continue;
     const kept = day.sessionType === "rest" || day.loggedTypes.includes(day.sessionType);
     if (!kept) break;
     streak++;
@@ -2533,6 +2582,7 @@ function renderCategoryBreakdown() {
     return `<div class="cat-row" data-key="${c.key}">
       <div class="cat-head"><span>${c.label}</span><b>${spent} / <input class="cap-edit" type="number" value="${c.cap}" data-cat="${c.key}"> kr</b></div>
       <div class="cat-bar"><div class="${over ? "over" : ""}" style="width:${pct}%"></div></div>
+      ${over ? `<div class="cat-grace">💛 Over budsjett denne måneden - det går bra, juster og fortsett.</div>` : ""}
     </div>`;
   }).join("");
 
@@ -2996,10 +3046,32 @@ function renderHjemGreeting() {
   document.getElementById("hjem-greeting").textContent = greet;
 }
 
+function renderHjemWhy() {
+  const why = loadWhy();
+  const el = document.getElementById("hjem-why");
+  el.textContent = why ? `💛 ${why}` : "+ Legg til ditt Hvorfor";
+  el.classList.toggle("empty", !why);
+}
+document.getElementById("hjem-why").addEventListener("click", () => {
+  const next = prompt("Hvorfor gjør du dette? Vises som en liten påminnelse på Hjem.", loadWhy());
+  if (next === null) return;
+  saveWhy(next.trim());
+  renderHjemWhy();
+});
+
 function renderHjemSession() {
   const p = DATA.program;
   const el = document.getElementById("hjem-session");
   if (!p) { el.innerHTML = ""; return; }
+  if (isVacationActive()) {
+    el.innerHTML = `
+      <div>
+        <div class="hs-label">🌴 Pause-modus</div>
+        <div class="hs-sub">Ingen press i dag - streaken venter til du er tilbake.</div>
+      </div>
+    `;
+    return;
+  }
   const overrides = loadPlanOverrides();
   const todayDay = p.week.find(d => d.isToday);
   const resolved = resolvePlanDay(todayDay, overrides);
@@ -3170,6 +3242,7 @@ function renderHjemReminder() {
   const el = document.getElementById("hjem-reminder");
   const p = DATA.program;
   if (!p || !el) { if (el) el.innerHTML = ""; return; }
+  if (!loadSettings().personalityEnabled || isVacationActive()) { el.innerHTML = ""; return; }
   const overrides = loadPlanOverrides();
   const todayDay = p.week.find(d => d.isToday);
   if (!todayDay) { el.innerHTML = ""; return; }
@@ -3195,6 +3268,7 @@ function renderHjemReminder() {
 
 function renderHjem() {
   renderHjemGreeting();
+  renderHjemWhy();
   renderHjemReminder();
   renderHjemSession();
   renderHjemKcalRing();
@@ -3296,12 +3370,29 @@ document.querySelectorAll("#quicklog-bar button[data-ql]").forEach(btn => {
 renderWaterBadge();
 renderHjem();
 
+// ---------------------------------------------------------------- settings toggles
+const personalityToggle = document.getElementById("settings-personality-toggle");
+personalityToggle.checked = loadSettings().personalityEnabled;
+personalityToggle.addEventListener("change", () => {
+  const s = loadSettings();
+  s.personalityEnabled = personalityToggle.checked;
+  saveSettings(s);
+  renderHjemReminder();
+});
+
+const vacationToggle = document.getElementById("settings-vacation-toggle");
+vacationToggle.checked = isVacationActive();
+vacationToggle.addEventListener("change", () => {
+  setVacationActive(vacationToggle.checked);
+  renderHjem();
+});
+
 // ---------------------------------------------------------------- backup / export / import
 const BACKUP_KEYS = [
   WEIGHT_LOG_KEY, MEASURE_LOG_KEY, SHOP_LIST_KEY, TX_KEY,
   BUDGET_CONFIG_KEY, PLAN_OVERRIDES_KEY, SET_LOG_KEY, SEEN_KEY, REST_PREFS_KEY,
   FORGOTTEN_SAVINGS_KEY, BADDAY_LOG_KEY, EXTRAS_KEY, WATER_KEY, STREAK_BEST_KEY,
-  SETTINGS_KEY,
+  SETTINGS_KEY, WHY_KEY, VACATION_KEY,
 ];
 
 document.getElementById("backup-export").addEventListener("click", () => {
