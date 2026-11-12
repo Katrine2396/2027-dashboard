@@ -117,19 +117,32 @@ NUTRITION_PLAN = {
         ],
     },
 }
-# ---- budget (starting points - fully editable in the app; income 32k/mnd, husleie 13.5k/mnd) ----
+# ---- budget (starting points - fully editable in the app; income 32k/mnd) ----
+# Økonomimåned: 16.-15. (lønn kommer den 16.). "cap" is the initial budget amount;
+# the app converts this to a capHistory (effective-dated) list on first load so that
+# later edits only affect the economic month they were made in, and onward.
 BUDGET_DEFAULTS = {
     "income": 32000,
     "categories": [
-        {"key": "bolig", "label": "Bolig/faste utgifter", "cap": 15000},
-        {"key": "mat", "label": "Dagligvarer", "cap": 3800},
-        {"key": "restaurant", "label": "Restaurant/take-away", "cap": 600},
-        {"key": "transport", "label": "Transport", "cap": 900},
-        {"key": "abonnement", "label": "Abonnementer", "cap": 500},
-        {"key": "klaer", "label": "Klær/shopping", "cap": 700},
-        {"key": "trening", "label": "Trening/helse", "cap": 600},
-        {"key": "hundefond", "label": "Hundefond (sparing)", "cap": 2500},
-        {"key": "annet", "label": "Annet", "cap": 1000},
+        # faste utgifter
+        {"key": "husleie", "label": "Husleie", "type": "fixed", "icon": "🏠", "cap": 13500},
+        {"key": "strom", "label": "Strøm", "type": "fixed", "icon": "⚡", "cap": 1200},
+        {"key": "forsikring", "label": "Forsikring", "type": "fixed", "icon": "🛡️", "cap": 400},
+        {"key": "mobil_internett", "label": "Mobil og internett", "type": "fixed", "icon": "📱", "cap": 500},
+        {"key": "abonnementer", "label": "Abonnementer", "type": "fixed", "icon": "🔁", "cap": 400},
+        {"key": "treningssenter", "label": "Treningssenter", "type": "fixed", "icon": "🏋️", "cap": 500},
+        {"key": "studielan", "label": "Studielån", "type": "fixed", "icon": "🎓", "cap": 2000},
+        {"key": "ruter", "label": "Ruter", "type": "fixed", "icon": "🚌", "cap": 800},
+        # variable utgifter
+        {"key": "mat", "label": "Mat og dagligvarer", "type": "variable", "icon": "🛒", "cap": 3800},
+        {"key": "transport", "label": "Transport", "type": "variable", "icon": "🚗", "cap": 900},
+        {"key": "klaer_velvare", "label": "Klær og velvære", "type": "variable", "icon": "👗", "cap": 700},
+        {"key": "fritid_sosialt", "label": "Fritid og sosialt", "type": "variable", "icon": "🎉", "cap": 800},
+        {"key": "annet", "label": "Annet", "type": "variable", "icon": "📦", "cap": 500},
+        # sparing (egne linjer, men regnes som variable utgifter)
+        {"key": "hundefond", "label": "Sparing: Hund", "type": "variable", "savings": True, "icon": "🐶", "cap": 1000},
+        {"key": "sparing_pensjon", "label": "Sparing: Pensjon", "type": "variable", "savings": True, "icon": "👵", "cap": 1000},
+        {"key": "sparing_hoyrente", "label": "Sparing: Høyrente", "type": "variable", "savings": True, "icon": "💰", "cap": 1000},
     ],
 }
 DOG_FUND = {"target": 30000, "startSaved": 5000, "category": "hundefond"}
@@ -1043,12 +1056,16 @@ TEMPLATE = r"""<!DOCTYPE html>
   .month-nav { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
   .month-nav .btn { padding: 4px 12px; }
   .month-nav .month-label { font-weight: 700; font-size: 15px; min-width: 140px; text-align: center; }
-  .cat-row { margin-top: 10px; }
+  .budget-section-title { margin: 0 0 12px; font-size: 14px; color: var(--accent); display: flex; align-items: center; gap: 6px; }
+  .budget-cat-list { display: flex; flex-direction: column; gap: 14px; }
+  .cat-row { margin-top: 0; }
   .cat-row .cat-head { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
   .cat-row .cat-head b { color: var(--ink); }
   .cat-bar { height: 8px; border-radius: 5px; background: var(--line); margin-top: 4px; overflow: hidden; }
   .cat-bar > div { height: 100%; border-radius: 5px; background: var(--accent2); }
-  .cat-bar > div.over { background: var(--accent); }
+  .cat-bar > div.good { background: #7bd88f; }
+  .cat-bar > div.warn { background: #f6c667; }
+  .cat-bar > div.over { background: #e37878; }
   .cat-grace { font-size: 11px; color: var(--muted); margin-top: 4px; }
   .cat-row input.cap-edit {
     width: 64px; font-size: 11px; border: 1px solid var(--line); border-radius: 6px;
@@ -1511,9 +1528,9 @@ TEMPLATE = r"""<!DOCTYPE html>
     <div class="section-sub">Alle transaksjoner logges manuelt, for full oversikt per kategori</div>
     <div class="card">
       <div class="month-nav">
-        <button class="btn ghost small" id="month-prev">‹</button>
-        <div class="month-label" id="month-label"></div>
-        <button class="btn ghost small" id="month-next">›</button>
+        <button class="btn ghost small" id="em-prev">‹</button>
+        <div class="month-label" id="em-label"></div>
+        <button class="btn ghost small" id="em-next">›</button>
       </div>
       <div class="log-form">
         <input type="date" id="tx-date">
@@ -1522,9 +1539,22 @@ TEMPLATE = r"""<!DOCTYPE html>
         <input type="text" id="tx-name" placeholder="Hva var det?">
         <button class="btn" id="tx-add">Legg til</button>
       </div>
-      <div id="cat-breakdown"></div>
-      <div class="budget-summary-grid" id="budget-summary"></div>
-      <h3 style="margin:20px 0 4px;font-size:15px;">Transaksjoner denne måneden</h3>
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <h3 class="budget-section-title">🏠 Faste utgifter</h3>
+      <div class="budget-cat-list" id="fixed-cat-list"></div>
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <h3 class="budget-section-title">🛍️ Variable utgifter</h3>
+      <div class="budget-cat-list" id="variable-cat-list"></div>
+    </div>
+
+    <div class="budget-summary-grid" id="budget-summary"></div>
+
+    <div class="card" style="margin-top:14px;">
+      <h3 style="margin:0 0 4px;font-size:15px;">Transaksjoner denne økonomimåneden</h3>
       <ul class="log-list" id="tx-list"></ul>
     </div>
 
@@ -2267,17 +2297,6 @@ function renderNutritionCoach() {
   if (!card) return;
   const tips = [];
 
-  const cfg = loadBudgetConfig();
-  const restaurantCat = cfg.categories.find(c => c.key === "restaurant");
-  if (restaurantCat && restaurantCat.cap) {
-    const spent = loadTransactions()
-      .filter(t => t.category === "restaurant" && monthOf(t.date) === currentMonth)
-      .reduce((s, t) => s + t.amount, 0);
-    if (spent >= restaurantCat.cap * 0.7) {
-      tips.push("Du har brukt en del på restaurant/take-away denne måneden. Legg gjerne inn et par faste spise-ute-forslag under lunsj/middag (bruk \"Eget forslag\"), så er det lettere å planlegge neste gang.");
-    }
-  }
-
   const since = new Date();
   since.setDate(since.getDate() - 6);
   const sinceStr = since.toISOString().slice(0, 10);
@@ -2339,6 +2358,29 @@ function isoWeekOf(dateStr) {
 }
 function monthOf(dateStr) { return dateStr.slice(0, 7); }
 
+// ---- økonomimåned: 16. i hver måned til 15. i neste (lønn kommer den 16.) ----
+const NO_MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Des"];
+function emKeyForDate(dateStr) {
+  const d = new Date(dateStr + "T00:00:00");
+  let y = d.getFullYear(), m = d.getMonth();
+  if (d.getDate() <= 15) { m -= 1; if (m < 0) { m = 11; y -= 1; } }
+  return `${y}-${String(m + 1).padStart(2, "0")}`;
+}
+function emAddMonths(emKey, delta) {
+  let [y, m] = emKey.split("-").map(Number);
+  m = m - 1 + delta;
+  y += Math.floor(m / 12);
+  m = ((m % 12) + 12) % 12;
+  return `${y}-${String(m + 1).padStart(2, "0")}`;
+}
+function emStart(emKey) { return `${emKey}-16`; }
+function emEnd(emKey) { return `${emAddMonths(emKey, 1)}-15`; }
+function emLabel(emKey) {
+  const [, m] = emKey.split("-").map(Number);
+  const [, nm] = emAddMonths(emKey, 1).split("-").map(Number);
+  return `Økonomimåned: 16. ${NO_MONTHS_SHORT[m - 1]} – 15. ${NO_MONTHS_SHORT[nm - 1]}`;
+}
+
 // ---- weight log ----
 function loadWeightLog() { return loadLS(WEIGHT_LOG_KEY, []); }
 function saveWeightLog(l) { saveLS(WEIGHT_LOG_KEY, l); }
@@ -2352,12 +2394,81 @@ function loadShopList() { return loadLS(SHOP_LIST_KEY, []); }
 function saveShopList(l) { saveLS(SHOP_LIST_KEY, l); }
 
 // ---- budget config / transactions ----
+// one-time migration from the old flat-cap/calendar-month category set to the new
+// fixed/variable/sparing categories + økonomimåned (16.-15.) model. Carries over
+// cap customizations and re-tags existing transactions where a direct equivalent exists.
+function migrateBudgetConfig(stored) {
+  const fresh = JSON.parse(JSON.stringify(DATA.budgetDefaults));
+  const OLD_KEY_MAP = {
+    bolig: "husleie", mat: "mat", restaurant: "fritid_sosialt", transport: "transport",
+    abonnement: "abonnementer", klaer: "klaer_velvare", trening: "treningssenter",
+    hundefond: "hundefond", annet: "annet",
+  };
+  (stored.categories || []).forEach(oldCat => {
+    const newKey = OLD_KEY_MAP[oldCat.key];
+    const freshCat = newKey && fresh.categories.find(c => c.key === newKey);
+    if (freshCat && oldCat.cap != null) freshCat.cap = oldCat.cap;
+  });
+  saveTransactions(loadTransactions().map(t => ({ ...t, category: OLD_KEY_MAP[t.category] || t.category })));
+  fresh.income = stored.income != null ? stored.income : fresh.income;
+  fresh.migratedV2 = true;
+  return fresh;
+}
 function loadBudgetConfig() {
-  const stored = loadLS(BUDGET_CONFIG_KEY, null);
-  if (stored && stored.categories) return stored;
-  return JSON.parse(JSON.stringify(DATA.budgetDefaults));
+  let stored = loadLS(BUDGET_CONFIG_KEY, null);
+  let changed = false;
+  if (!stored || !stored.categories) {
+    stored = JSON.parse(JSON.stringify(DATA.budgetDefaults));
+    stored.migratedV2 = true;
+    changed = true;
+  } else if (!stored.migratedV2) {
+    stored = migrateBudgetConfig(stored);
+    changed = true;
+  }
+  stored.categories.forEach(c => {
+    if (!c.capHistory) {
+      c.capHistory = [{ from: "2000-01-01", amount: c.cap != null ? c.cap : 0 }];
+      delete c.cap;
+      changed = true;
+    }
+  });
+  if (changed) saveBudgetConfig(stored);
+  return stored;
 }
 function saveBudgetConfig(c) { saveLS(BUDGET_CONFIG_KEY, c); }
+function getCategoryCap(cat, emKey) {
+  const monthStart = emStart(emKey);
+  let amount = 0;
+  (cat.capHistory || []).forEach(h => { if (h.from <= monthStart) amount = h.amount; });
+  return amount;
+}
+function setCategoryCap(catKey, emKey, amount) {
+  const cfg = loadBudgetConfig();
+  const cat = cfg.categories.find(c => c.key === catKey);
+  if (!cat) return;
+  const monthStart = emStart(emKey);
+  cat.capHistory = cat.capHistory.filter(h => h.from !== monthStart);
+  cat.capHistory.push({ from: monthStart, amount });
+  cat.capHistory.sort((a, b) => a.from.localeCompare(b.from));
+  saveBudgetConfig(cfg);
+}
+function categorySpent(key, emKey) {
+  const start = emStart(emKey), end = emEnd(emKey);
+  return loadTransactions().filter(t => t.category === key && t.date >= start && t.date <= end).reduce((s, t) => s + t.amount, 0);
+}
+function isSavingsCategory(key) {
+  const cat = loadBudgetConfig().categories.find(c => c.key === key);
+  return !!(cat && cat.savings);
+}
+function categoryOptionsHtml(cfg) {
+  const fixed = cfg.categories.filter(c => c.type === "fixed");
+  const variable = cfg.categories.filter(c => c.type === "variable" && !c.savings);
+  const savings = cfg.categories.filter(c => c.savings);
+  const opt = c => `<option value="${c.key}">${c.icon ? c.icon + " " : ""}${c.label}</option>`;
+  return `<optgroup label="Faste utgifter">${fixed.map(opt).join("")}</optgroup>` +
+    `<optgroup label="Variable utgifter">${variable.map(opt).join("")}</optgroup>` +
+    `<optgroup label="Sparing">${savings.map(opt).join("")}</optgroup>`;
+}
 function loadTransactions() { return loadLS(TX_KEY, []); }
 function saveTransactions(t) { saveLS(TX_KEY, t); }
 
@@ -2786,48 +2897,47 @@ document.getElementById("shop-clear-checked").addEventListener("click", () => {
 });
 
 // ---------------------------------------------------------------- budget
-let currentMonth = todayISO().slice(0, 7);
-function monthLabel(m) {
-  const d = new Date(m + "-01T00:00:00");
-  return d.toLocaleDateString("nb-NO", { month: "long", year: "numeric" });
-}
+let currentEconMonth = emKeyForDate(todayISO());
 
 document.getElementById("tx-date").value = todayISO();
 
 function populateCategorySelect() {
-  const cfg = loadBudgetConfig();
-  document.getElementById("tx-category").innerHTML = cfg.categories.map(c => `<option value="${c.key}">${c.label}</option>`).join("");
+  document.getElementById("tx-category").innerHTML = categoryOptionsHtml(loadBudgetConfig());
+}
+
+function categoryRowHtml(c, emKey) {
+  const cap = getCategoryCap(c, emKey);
+  const spent = categorySpent(c.key, emKey);
+  const pct = cap ? 100 * spent / cap : (spent > 0 ? 100 : 0);
+  const barWidth = Math.min(100, pct);
+  const cls = pct >= 100 ? "over" : pct >= 80 ? "warn" : "good";
+  const over = spent > cap;
+  return `<div class="cat-row" data-key="${c.key}">
+    <div class="cat-head"><span>${c.icon ? c.icon + " " : ""}${c.label}</span><b>${spent.toLocaleString()} / <input class="cap-edit" type="number" value="${cap}" data-cat="${c.key}"> kr</b></div>
+    <div class="cat-bar"><div class="${cls}" style="width:${barWidth}%"></div></div>
+    ${over ? `<div class="cat-grace">💛 Over budsjett denne økonomimåneden - det går bra, juster og fortsett.</div>` : ""}
+  </div>`;
 }
 
 function renderCategoryBreakdown() {
   const cfg = loadBudgetConfig();
-  const tx = loadTransactions().filter(t => monthOf(t.date) === currentMonth);
-  document.getElementById("cat-breakdown").innerHTML = cfg.categories.map(c => {
-    const spent = tx.filter(t => t.category === c.key).reduce((s, t) => s + t.amount, 0);
-    const pct = c.cap ? Math.min(100, 100 * spent / c.cap) : 0;
-    const over = c.cap && spent > c.cap;
-    return `<div class="cat-row" data-key="${c.key}">
-      <div class="cat-head"><span>${c.label}</span><b>${spent} / <input class="cap-edit" type="number" value="${c.cap}" data-cat="${c.key}"> kr</b></div>
-      <div class="cat-bar"><div class="${over ? "over" : ""}" style="width:${pct}%"></div></div>
-      ${over ? `<div class="cat-grace">💛 Over budsjett denne måneden - det går bra, juster og fortsett.</div>` : ""}
-    </div>`;
-  }).join("");
+  const fixed = cfg.categories.filter(c => c.type === "fixed");
+  const variable = cfg.categories.filter(c => c.type === "variable");
+  document.getElementById("fixed-cat-list").innerHTML = fixed.map(c => categoryRowHtml(c, currentEconMonth)).join("");
+  document.getElementById("variable-cat-list").innerHTML = variable.map(c => categoryRowHtml(c, currentEconMonth)).join("");
 
-  document.querySelectorAll("#cat-breakdown .cap-edit").forEach(inp => {
+  document.querySelectorAll(".budget-cat-list .cap-edit").forEach(inp => {
     inp.addEventListener("change", () => {
-      const c = loadBudgetConfig();
-      const cat = c.categories.find(x => x.key === inp.dataset.cat);
-      if (cat) cat.cap = parseFloat(inp.value) || 0;
-      saveBudgetConfig(c);
-      renderCategoryBreakdown();
+      setCategoryCap(inp.dataset.cat, currentEconMonth, parseFloat(inp.value) || 0);
+      renderBudget();
     });
   });
 }
 
 function renderBudgetSummary() {
   const cfg = loadBudgetConfig();
-  const tx = loadTransactions().filter(t => monthOf(t.date) === currentMonth);
-  const totalSpent = tx.reduce((s, t) => s + t.amount, 0);
+  const start = emStart(currentEconMonth), end = emEnd(currentEconMonth);
+  const totalSpent = loadTransactions().filter(t => t.date >= start && t.date <= end).reduce((s, t) => s + t.amount, 0);
   document.getElementById("budget-summary").innerHTML = `
     <div class="snapshot-chip">Inntekt<b>${cfg.income.toLocaleString()} kr</b></div>
     <div class="snapshot-chip">Brukt denne måneden<b>${totalSpent.toLocaleString()} kr</b></div>
@@ -2838,12 +2948,13 @@ function renderBudgetSummary() {
 function renderTxList() {
   const cfg = loadBudgetConfig();
   const catLabel = key => (cfg.categories.find(c => c.key === key) || {}).label || key;
-  const tx = loadTransactions().filter(t => monthOf(t.date) === currentMonth).sort((a, b) => b.date.localeCompare(a.date));
+  const start = emStart(currentEconMonth), end = emEnd(currentEconMonth);
+  const tx = loadTransactions().filter(t => t.date >= start && t.date <= end).sort((a, b) => b.date.localeCompare(a.date));
   document.getElementById("tx-list").innerHTML = tx.map(t => `
     <li data-id="${t.id}"><span>${fmtShort(t.date)} · ${catLabel(t.category)} · ${t.name || ""}</span>
       <b>${t.amount} kr</b>
       <button data-tx-remove="${t.id}" style="background:none;border:none;color:var(--muted);cursor:pointer;">✕</button>
-    </li>`).join("") || `<li style="border-top:none;color:var(--muted);">Ingen transaksjoner denne måneden</li>`;
+    </li>`).join("") || `<li style="border-top:none;color:var(--muted);">Ingen transaksjoner denne økonomimåneden</li>`;
 
   document.querySelectorAll("#tx-list button[data-tx-remove]").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -2934,18 +3045,16 @@ function renderBudget() {
   renderHjemFinance();
 }
 
-document.getElementById("month-label").textContent = monthLabel(currentMonth);
-function shiftMonth(delta) {
-  const d = new Date(currentMonth + "-01T00:00:00");
-  d.setMonth(d.getMonth() + delta);
-  currentMonth = d.toISOString().slice(0, 7);
-  document.getElementById("month-label").textContent = monthLabel(currentMonth);
+document.getElementById("em-label").textContent = emLabel(currentEconMonth);
+function shiftEconMonth(delta) {
+  currentEconMonth = emAddMonths(currentEconMonth, delta);
+  document.getElementById("em-label").textContent = emLabel(currentEconMonth);
   renderCategoryBreakdown();
   renderBudgetSummary();
   renderTxList();
 }
-document.getElementById("month-prev").addEventListener("click", () => shiftMonth(-1));
-document.getElementById("month-next").addEventListener("click", () => shiftMonth(1));
+document.getElementById("em-prev").addEventListener("click", () => shiftEconMonth(-1));
+document.getElementById("em-next").addEventListener("click", () => shiftEconMonth(1));
 
 populateCategorySelect();
 
@@ -2954,7 +3063,7 @@ function addTransactionWithRoundUp(date, amount, category, name) {
   tx.push({ id: "tx-" + Date.now() + Math.random(), date, amount, category, name });
   saveTransactions(tx);
   let roundedUp = false;
-  if (category !== DATA.dogFund.category) {
+  if (!isSavingsCategory(category)) {
     const roundUp = Math.ceil(amount / 10) * 10 - amount;
     if (roundUp > 0) {
       saveForgottenSavings(loadForgottenSavings() + roundUp);
@@ -2974,8 +3083,8 @@ document.getElementById("tx-add").addEventListener("click", () => {
   const roundedUp = addTransactionWithRoundUp(date, amount, category, name);
   document.getElementById("tx-amount").value = "";
   document.getElementById("tx-name").value = "";
-  currentMonth = monthOf(date);
-  document.getElementById("month-label").textContent = monthLabel(currentMonth);
+  currentEconMonth = emKeyForDate(date);
+  document.getElementById("em-label").textContent = emLabel(currentEconMonth);
   renderBudget();
   if (roundedUp) renderForgottenSavings(true);
 });
@@ -3457,11 +3566,11 @@ function renderHjemFinance() {
   const el = document.getElementById("hjem-finance");
   if (!el) return;
   const cfg = loadBudgetConfig();
-  const totalBudget = cfg.categories.reduce((s, c) => s + (c.cap || 0), 0);
-  const today = todayISO();
-  const monthStart = monthOf(today) + "-01";
+  const emKey = emKeyForDate(todayISO());
+  const totalBudget = cfg.categories.reduce((s, c) => s + getCategoryCap(c, emKey), 0);
+  const start = emStart(emKey), end = emEnd(emKey);
   const spent = loadTransactions()
-    .filter(t => t.date >= monthStart && t.date <= today)
+    .filter(t => t.date >= start && t.date <= end)
     .reduce((s, t) => s + t.amount, 0);
   const pct = totalBudget ? Math.min(100, Math.round(100 * spent / totalBudget)) : 0;
   const over = spent > totalBudget;
@@ -3583,10 +3692,9 @@ function openMatDrawer() {
 
 function openUtgiftDrawer() {
   const cfg = loadBudgetConfig();
-  const opts = cfg.categories.map(c => `<option value="${c.key}">${c.label}</option>`).join("");
   openQuicklogDrawer("Logg utgift", `
     <input type="number" id="ql-tx-amount" placeholder="Beløp (kr)">
-    <select id="ql-tx-category">${opts}</select>
+    <select id="ql-tx-category">${categoryOptionsHtml(cfg)}</select>
     <input type="text" id="ql-tx-name" placeholder="Navn (valgfritt)">
     <button class="btn" id="ql-tx-save">Lagre</button>
   `);
@@ -3596,6 +3704,8 @@ function openUtgiftDrawer() {
     const category = document.getElementById("ql-tx-category").value;
     const name = document.getElementById("ql-tx-name").value.trim();
     addTransactionWithRoundUp(todayISO(), amount, category, name);
+    currentEconMonth = emKeyForDate(todayISO());
+    document.getElementById("em-label").textContent = emLabel(currentEconMonth);
     renderBudget();
     closeQuicklogDrawer();
   });
@@ -3864,7 +3974,7 @@ function renderEveningReport() {
   const totalVolume = setsToday.reduce((s, x) => s + (x.weight || 0) * x.reps, 0);
   const txToday = loadTransactions().filter(t => t.date === todayStr);
   const savedToday = txToday.filter(t => t.category === DATA.dogFund.category).reduce((s, t) => s + t.amount, 0);
-  const spentToday = txToday.filter(t => t.category !== DATA.dogFund.category).reduce((s, t) => s + t.amount, 0);
+  const spentToday = txToday.filter(t => !isSavingsCategory(t.category)).reduce((s, t) => s + t.amount, 0);
 
   const progressBits = [];
   if (prs.length) progressBits.push(`🏆 Ny PR i dag: ${prs.map(p => `${p.label} (${p.weight != null ? p.weight + " kg × " + p.reps : p.reps + " reps"})`).join(", ")}!`);
@@ -3938,7 +4048,7 @@ function renderWeeklyReport() {
   }
 
   const spendByWeekday = {};
-  tx.filter(t => t.date >= weekStart && t.category !== DATA.dogFund.category).forEach(t => {
+  tx.filter(t => t.date >= weekStart && !isSavingsCategory(t.category)).forEach(t => {
     const wd = new Date(t.date + "T00:00:00").getDay();
     spendByWeekday[wd] = (spendByWeekday[wd] || 0) + t.amount;
   });
@@ -3989,13 +4099,6 @@ function renderWeeklyReport() {
     </div>`;
 
   const learnings = [];
-  const restaurantCat = (loadBudgetConfig().categories || []).find(c => c.key === "restaurant");
-  if (restaurantCat && restaurantCat.cap) {
-    const restSpend = tx.filter(t => t.date >= weekStart && t.category === "restaurant").reduce((s, t) => s + t.amount, 0);
-    if (restSpend > restaurantCat.cap * 0.5) {
-      learnings.push("Restaurant/take-away tar en del av budsjettet denne uken - prøv å legge inn et par faste spise-ute-forslag under «Eget forslag», så blir det enklere å styre neste uke.");
-    }
-  }
   const lowProteinDays = history.filter(d => dayNutritionTotals(d.date).protein < DATA.nutritionPlan.proteinMin * 0.8).length;
   if (lowProteinDays >= 3) {
     learnings.push(`Du lå under proteinmålet ${lowProteinDays} dager denne uken - sjekk ut proteinrundstykke-lunsjen eller en av kyllingmiddagene for et enkelt løft.`);
