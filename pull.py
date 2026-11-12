@@ -247,7 +247,11 @@ def determine_window(full_history, earliest_activity_date, existing_data, last_c
     """Each dataset tracks its own resume point, since they can finish pulling
     at different times (e.g. one call fails partway through). last_checked
     covers datasets that came back empty (e.g. no weigh-ins), so we don't
-    keep re-fetching the same empty range forever."""
+    keep re-fetching the same empty range forever.
+
+    The most recent day we have is always re-fetched (not just days after
+    it), since today's data (steps, sleep, HRV) keeps changing as the day
+    goes on and a same-day snapshot is never final."""
     today = date.today()
     anchor = None
     if existing_data:
@@ -258,9 +262,7 @@ def determine_window(full_history, earliest_activity_date, existing_data, last_c
             anchor = checked_date
 
     if anchor is not None:
-        start = anchor + timedelta(days=1)
-        if start > today:
-            return None, None  # nothing new
+        start = min(anchor, today)
         return start, today
 
     if full_history:
