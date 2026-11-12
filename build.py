@@ -1007,20 +1007,126 @@ TEMPLATE = r"""<!DOCTYPE html>
   }
   #plateau-card:empty { display: none; }
 
-  .badday-panel { display: none; max-width: 420px; margin: 24px auto; }
+  .badday-panel { display: none; max-width: 420px; margin: 24px auto; text-align: center; }
   body.badday-active header,
   body.badday-active .wrap > *:not(.badday-panel) { display: none !important; }
   body.badday-active .badday-panel { display: block; }
-  .badday-field { margin: 18px 0; }
-  .badday-label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 6px; }
-  .badday-field input {
-    width: 100%; padding: 10px 12px; font-size: 15px; border: 1px solid var(--line);
-    border-radius: 10px; font-family: Nunito, sans-serif; box-sizing: border-box;
+  .badday-quickbtns { display: flex; flex-direction: column; gap: 12px; margin: 24px 0; }
+  .badday-quickbtns > button { padding: 16px; font-size: 16px; }
+  .badday-quickbtns #badday-trained-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .badday-expense-row { display: flex; gap: 8px; }
+  .badday-expense-row input { flex: 1; min-width: 0; padding: 12px; font-size: 15px; border: 1px solid var(--line); border-radius: 10px; font-family: Nunito, sans-serif; box-sizing: border-box; }
+  .badday-expense-row button { flex: 1; padding: 12px; font-size: 15px; }
+  .badday-saved-msg { font-size: 12px; color: var(--muted); min-height: 16px; margin-top: 4px; }
+
+  /* ---- Hjem dashboard (dark, mobile-first start page) ---- */
+  body.tab-is-hjem header.hero,
+  body.tab-is-hjem #stat-grid { display: none; }
+  .hjem-dash {
+    --hj-bg: #14151a; --hj-card: #1d1f26; --hj-card2: #23262f; --hj-ink: #f2f1f6;
+    --hj-muted: #9a9bab; --hj-accent: #f6c667; --hj-accent2: #a46cc0; --hj-line: #2d2f3a;
+    background: var(--hj-bg); color: var(--hj-ink); border-radius: 20px; padding: 16px;
+    margin: 0 -2px 24px; font-family: Nunito, sans-serif;
   }
-  .badday-yn { display: flex; gap: 8px; }
-  .badday-yn button { flex: 1; }
-  .badday-yn button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-  .badday-saved-msg { font-size: 12px; color: var(--muted); margin-left: 10px; }
+  .hjem-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .hjem-greeting { font-family: "Playfair Display", serif; font-size: 19px; }
+  .hjem-badday-toggle {
+    background: var(--hj-card2); color: var(--hj-ink); border: 1px solid var(--hj-line);
+    border-radius: 20px; padding: 6px 12px; font-size: 12px; cursor: pointer;
+  }
+  .hjem-zone { margin-bottom: 18px; }
+  .hjem-zone-title { font-size: 13px; color: var(--hj-muted); text-transform: uppercase; letter-spacing: .06em; margin: 0 0 8px; }
+  .hjem-card {
+    background: var(--hj-card); border: 1px solid var(--hj-line); border-radius: 14px;
+    padding: 12px 14px; color: var(--hj-ink);
+  }
+  .hjem-card-title { font-size: 12px; color: var(--hj-muted); margin-bottom: 6px; }
+  .hjem-briefing { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .hjem-session, .hjem-weather { grid-column: 1 / -1; }
+  .hjem-session { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .hjem-session .hs-label { font-size: 15px; font-weight: 700; }
+  .hjem-session .hs-sub { font-size: 12px; color: var(--hj-muted); }
+  .hjem-session .hs-readiness { font-size: 11px; padding: 3px 9px; border-radius: 12px; background: var(--hj-card2); }
+  .hjem-session .hs-readiness.go { color: #7bd88f; }
+  .hjem-session .hs-readiness.caution { color: var(--hj-accent); }
+  .hjem-session .hs-readiness.light { color: #e37878; }
+  .hjem-session .hs-link {
+    background: none; border: 1px solid var(--hj-line); color: var(--hj-ink);
+    border-radius: 10px; padding: 6px 10px; font-size: 12px; cursor: pointer;
+  }
+  .hjem-ring-card { display: flex; align-items: center; gap: 10px; }
+  .hjem-ring {
+    width: 56px; height: 56px; min-width: 56px; border-radius: 50%; display: flex;
+    align-items: center; justify-content: center;
+  }
+  .hjem-ring-inner {
+    width: 44px; height: 44px; border-radius: 50%; background: var(--hj-card);
+    display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700;
+  }
+  .hjem-ring-label { font-size: 11px; color: var(--hj-muted); line-height: 1.4; }
+  .hjem-weather { display: flex; align-items: center; justify-content: space-between; }
+  .hjem-weather .hw-temp { font-size: 22px; font-weight: 700; }
+  .hjem-weather .hw-desc { font-size: 12px; color: var(--hj-muted); }
+  .hjem-body-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 10px; }
+  .hjem-stat-chip {
+    background: var(--hj-card); border: 1px solid var(--hj-line); border-radius: 12px;
+    padding: 10px 12px;
+  }
+  .hjem-stat-chip .label { font-size: 11px; color: var(--hj-muted); text-transform: uppercase; }
+  .hjem-stat-chip .value { font-size: 18px; font-weight: 700; margin-top: 2px; }
+  .hjem-body .hjem-card { margin-bottom: 10px; }
+  .hjem-body .hjem-card:last-child { margin-bottom: 0; }
+  .hjem-autoreg ul { margin: 0; padding-left: 18px; font-size: 12px; color: var(--hj-muted); }
+  .hjem-progress { padding-bottom: 86px; }
+  .hjem-progress-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  .hjem-streak-num { font-size: 28px; font-weight: 700; font-family: "Playfair Display", serif; }
+  .hjem-pr-ex { font-size: 13px; color: var(--hj-muted); }
+  .hjem-pr-val { font-size: 16px; font-weight: 700; }
+  .hjem-goal-bar { background: var(--hj-line); border-radius: 8px; height: 8px; overflow: hidden; margin-top: 8px; }
+  .hjem-goal-bar > div { background: var(--hj-accent); height: 100%; }
+
+  .quicklog-bar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 90;
+    display: flex; background: #0f1014; border-top: 1px solid var(--hj-line, #2d2f3a);
+    padding: 8px max(8px, env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-right));
+    gap: 6px;
+  }
+  .quicklog-bar button {
+    flex: 1; background: none; border: none; color: #f2f1f6; display: flex;
+    flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; border-radius: 12px;
+    cursor: pointer; position: relative; font-family: Nunito, sans-serif;
+  }
+  .quicklog-bar button:active { background: #23262f; }
+  .quicklog-bar .ql-icon { font-size: 20px; }
+  .quicklog-bar .ql-label { font-size: 11px; color: #9a9bab; }
+  .quicklog-bar .ql-badge {
+    position: absolute; top: 2px; right: 18%; background: #f6c667; color: #14151a;
+    font-size: 10px; font-weight: 700; border-radius: 10px; padding: 0 5px; min-width: 14px; text-align: center;
+  }
+  .quicklog-drawer {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 91; background: #1d1f26; color: #f2f1f6;
+    border-top: 1px solid #2d2f3a; border-radius: 16px 16px 0 0; padding: 14px 16px;
+    transform: translateY(100%); transition: transform .2s ease; max-height: 60vh; overflow-y: auto;
+    padding-bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+  .quicklog-drawer.open { transform: translateY(0); }
+  .quicklog-drawer-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-weight: 700; }
+  .quicklog-drawer-head button { background: none; border: none; color: #9a9bab; font-size: 16px; cursor: pointer; }
+  .quicklog-drawer .ql-presets { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .quicklog-drawer .ql-presets button {
+    background: #23262f; border: 1px solid #2d2f3a; color: #f2f1f6; border-radius: 20px;
+    padding: 8px 14px; font-size: 13px; cursor: pointer;
+  }
+  .quicklog-drawer input, .quicklog-drawer select {
+    width: 100%; padding: 10px 12px; font-size: 14px; border: 1px solid #2d2f3a; border-radius: 10px;
+    font-family: Nunito, sans-serif; background: #14151a; color: #f2f1f6; box-sizing: border-box; margin-bottom: 8px;
+  }
+  .quicklog-drawer .btn { width: 100%; }
+
+  @media (max-width: 480px) {
+    .hjem-briefing { grid-template-columns: 1fr 1fr; }
+    .hjem-dash { padding: 14px; }
+  }
 
   /* ---- access gate ---- */
   #gate-overlay {
@@ -1081,6 +1187,7 @@ TEMPLATE = r"""<!DOCTYPE html>
   <div class="stat-grid" id="stat-grid"></div>
 
   <nav class="tab-nav" id="tab-nav">
+    <button data-tab="hjem">Hjem</button>
     <button data-tab="trening">Treningsplan</button>
     <button data-tab="rekorder">Rekorder</button>
     <button data-tab="kosthold">Kosthold</button>
@@ -1107,25 +1214,64 @@ TEMPLATE = r"""<!DOCTYPE html>
 
   <div class="badday-panel" id="badday-panel">
     <h2 style="margin-top:0;">Dårlig dag</h2>
-    <div class="section-sub">Bare det viktigste i dag. Gå tilbake til vanlig visning når du vil.</div>
-    <div class="badday-field">
-      <div class="badday-label">Trente du i dag?</div>
-      <div class="badday-yn">
-        <button class="btn secondary" id="badday-trained-yes">Ja</button>
-        <button class="btn secondary" id="badday-trained-no">Nei</button>
-      </div>
-    </div>
-    <div class="badday-field">
-      <label class="badday-label" for="badday-cal">Kalorier (grovt anslag)</label>
-      <input type="number" step="50" id="badday-cal" placeholder="f.eks. 1800">
-    </div>
-    <div class="badday-field">
-      <label class="badday-label" for="badday-expense">Utgift i dag (grovt anslag, kr)</label>
-      <input type="number" step="10" id="badday-expense" placeholder="f.eks. 150">
-    </div>
-    <button class="btn" id="badday-save">Lagre</button>
-    <span class="badday-saved-msg" id="badday-saved-msg"></span>
+    <div class="section-sub">Bare det viktigste i dag. Trykk en knapp for å logge, gå tilbake når du vil.</div>
+    <div class="badday-quickbtns" id="badday-quickbtns"></div>
+    <div class="badday-saved-msg" id="badday-saved-msg"></div>
     <button class="btn ghost" id="badday-exit" style="display:block;margin-top:24px;">Tilbake til vanlig visning</button>
+  </div>
+
+  <div class="tab-panel" data-tab="hjem">
+  <div class="hjem-dash" id="hjem-dash">
+    <div class="hjem-topbar">
+      <div class="hjem-greeting" id="hjem-greeting"></div>
+      <button class="hjem-badday-toggle" id="hjem-badday-toggle">🌧️ Dårlig dag</button>
+    </div>
+
+    <section class="hjem-zone hjem-briefing">
+      <div class="hjem-card hjem-session" id="hjem-session"></div>
+      <div class="hjem-card hjem-ring-card" id="hjem-kcal-ring"></div>
+      <div class="hjem-card hjem-ring-card" id="hjem-savings-ring"></div>
+      <div class="hjem-card hjem-weather" id="hjem-weather"></div>
+    </section>
+
+    <section class="hjem-zone hjem-body">
+      <h3 class="hjem-zone-title">Kropp &amp; Form</h3>
+      <div class="hjem-body-grid">
+        <div class="hjem-stat-chip" id="hjem-stat-hrv"></div>
+        <div class="hjem-stat-chip" id="hjem-stat-sleep"></div>
+        <div class="hjem-stat-chip" id="hjem-stat-steps"></div>
+        <div class="hjem-stat-chip" id="hjem-stat-rhr"></div>
+      </div>
+      <div class="hjem-card">
+        <div class="hjem-card-title">Vekttrend</div>
+        <div class="chart-wrap"><svg id="chart-weight-mini"></svg><div class="tooltip" id="tt-weight-mini"></div></div>
+      </div>
+      <div class="hjem-card" id="hjem-autoreg"></div>
+    </section>
+
+    <section class="hjem-zone hjem-progress">
+      <h3 class="hjem-zone-title">Fremdrift</h3>
+      <div class="hjem-progress-grid">
+        <div class="hjem-card" id="hjem-streak"></div>
+        <div class="hjem-card" id="hjem-latest-pr"></div>
+        <div class="hjem-card" id="hjem-savings-goal"></div>
+      </div>
+    </section>
+
+    <div class="quicklog-drawer" id="quicklog-drawer">
+      <div class="quicklog-drawer-head">
+        <span id="quicklog-drawer-title"></span>
+        <button id="quicklog-drawer-close">✕</button>
+      </div>
+      <div id="quicklog-drawer-body"></div>
+    </div>
+    <nav class="quicklog-bar" id="quicklog-bar">
+      <button data-ql="vann"><span class="ql-icon">💧</span><span class="ql-label">Vann</span><span class="ql-badge" id="ql-water-badge"></span></button>
+      <button data-ql="mat"><span class="ql-icon">🍫</span><span class="ql-label">Mat</span></button>
+      <button data-ql="utgift"><span class="ql-icon">💸</span><span class="ql-label">Utgift</span></button>
+      <button data-ql="okt"><span class="ql-icon">🏋️</span><span class="ql-label">Økt</span></button>
+    </nav>
+  </div>
   </div>
 
   <div class="tab-panel" data-tab="trening">
@@ -1404,12 +1550,13 @@ const ACTIVE_TAB_KEY = "garminDashboardActiveTab_v1";
 function showTab(tab) {
   document.querySelectorAll(".tab-panel").forEach(p => p.classList.toggle("active", p.dataset.tab === tab));
   document.querySelectorAll("#tab-nav button").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+  document.body.classList.toggle("tab-is-hjem", tab === "hjem");
   localStorage.setItem(ACTIVE_TAB_KEY, tab);
 }
 document.querySelectorAll("#tab-nav button").forEach(btn => {
   btn.addEventListener("click", () => showTab(btn.dataset.tab));
 });
-showTab(localStorage.getItem(ACTIVE_TAB_KEY) || "trening");
+showTab(localStorage.getItem(ACTIVE_TAB_KEY) || "hjem");
 
 // ---------------------------------------------------------------- training plan
 const PLAN_OVERRIDES_KEY = "garminDashboardPlanOverrides_v1";
@@ -1832,6 +1979,8 @@ const RATE_KEY = "garminDashboardInvestRate_v1";
 const FORGOTTEN_SAVINGS_KEY = "garminDashboardForgottenSavings_v1";
 const BADDAY_LOG_KEY = "garminDashboardBadDayLog_v1";
 const BADDAY_MODE_KEY = "garminDashboardBadDayActive_v1";
+const WATER_KEY = "garminDashboardWater_v1";
+const WEATHER_CACHE_KEY = "garminDashboardWeatherCache_v1";
 
 function loadLS(key, fallback) {
   try {
@@ -1932,6 +2081,37 @@ function renderLevel() {
   return pts;
 }
 
+// ---------------------------------------------------------------- streak / latest PR
+function computeStreak() {
+  const th = DATA.trainingHistory || [];
+  if (!th.length) return 0;
+  let i = th.length - 1;
+  const last = th[i];
+  const lastPending = last.sessionType !== "rest" && !last.loggedTypes.includes(last.sessionType);
+  if (lastPending) i--;
+  let streak = 0;
+  for (; i >= 0; i--) {
+    const day = th[i];
+    const kept = day.sessionType === "rest" || day.loggedTypes.includes(day.sessionType);
+    if (!kept) break;
+    streak++;
+  }
+  return streak;
+}
+
+function latestPR() {
+  const log = loadSetLog().slice().sort((a, b) => a.date === b.date ? a.id.localeCompare(b.id) : a.date.localeCompare(b.date));
+  const bestByEx = {};
+  let last = null;
+  log.forEach(s => {
+    if (isBetterSet(s, bestByEx[s.exercise])) {
+      bestByEx[s.exercise] = s;
+      last = s;
+    }
+  });
+  return last;
+}
+
 function renderWeeklySnapshot() {
   const since = new Date();
   since.setDate(since.getDate() - 6);
@@ -2013,9 +2193,9 @@ function renderWeightTrend() {
   el.innerHTML = `<div class="weight-trend-box">Trend (7-dagers snitt): <b>${latest.toFixed(1)} kg</b> <span class="log-delta ${diff <= 0 ? "down" : "up"}">${diff > 0 ? "+" : ""}${diff.toFixed(1)} kg siste par uker</span></div>`;
 }
 
-function renderWeightChart() {
-  const svg = document.getElementById("chart-weight");
-  const tooltip = document.getElementById("tt-weight");
+function renderWeightChart(svgId, tooltipId) {
+  const svg = document.getElementById(svgId || "chart-weight");
+  const tooltip = document.getElementById(tooltipId || "tt-weight");
   if (!svg) return;
   const log = loadWeightLog().sort((a, b) => a.date.localeCompare(b.date));
   if (log.length < 2) { svg.innerHTML = ""; return; }
@@ -2100,6 +2280,7 @@ document.getElementById("weight-add").addEventListener("click", () => {
   renderWeightLog();
   renderWeightTrend();
   renderWeightChart();
+  renderWeightChart("chart-weight-mini", "tt-weight-mini");
   renderLevel();
   renderWeeklySnapshot();
   renderPlateau();
@@ -2142,12 +2323,49 @@ document.getElementById("overwhelm-btn").addEventListener("click", () => {
 function loadBadDayLog() { return loadLS(BADDAY_LOG_KEY, {}); }
 function saveBadDayLog(v) { saveLS(BADDAY_LOG_KEY, v); }
 
+function flashBadDaySaved(msg) {
+  const el = document.getElementById("badday-saved-msg");
+  el.textContent = msg;
+  clearTimeout(flashBadDaySaved._t);
+  flashBadDaySaved._t = setTimeout(() => { el.textContent = ""; }, 2000);
+}
+
+function badDayMarkTrained() {
+  const log = loadBadDayLog();
+  const today = todayISO();
+  log[today] = Object.assign({}, log[today], { trained: true });
+  saveBadDayLog(log);
+  renderBadDayPanel();
+  flashBadDaySaved("Trening logget ✓");
+}
+
+function badDayLogFood() {
+  addExtra("Mat/drikke (dårlig dag)", null);
+  flashBadDaySaved("Mat/drikke logget ✓");
+}
+
+function badDayLogExpense() {
+  const input = document.getElementById("badday-expense-amount");
+  const amount = parseFloat(input.value);
+  if (!amount) return;
+  addTransactionWithRoundUp(todayISO(), amount, "annet", "Dårlig dag");
+  input.value = "";
+  flashBadDaySaved("Utgift logget ✓");
+}
+
 function renderBadDayPanel() {
   const entry = loadBadDayLog()[todayISO()] || {};
-  document.getElementById("badday-cal").value = entry.calories != null ? entry.calories : "";
-  document.getElementById("badday-expense").value = entry.expense != null ? entry.expense : "";
-  document.getElementById("badday-trained-yes").classList.toggle("active", entry.trained === true);
-  document.getElementById("badday-trained-no").classList.toggle("active", entry.trained === false);
+  document.getElementById("badday-quickbtns").innerHTML = `
+    <button class="btn ${entry.trained ? "active" : ""}" id="badday-trained-btn">🏋️ ${entry.trained ? "Trent i dag ✓" : "Trente i dag"}</button>
+    <button class="btn secondary" id="badday-food-btn">🍫 Logg mat/drikke</button>
+    <div class="badday-expense-row">
+      <input type="number" step="1" id="badday-expense-amount" placeholder="Beløp (kr)">
+      <button class="btn secondary" id="badday-expense-btn">💸 Logg utgift</button>
+    </div>
+  `;
+  document.getElementById("badday-trained-btn").addEventListener("click", badDayMarkTrained);
+  document.getElementById("badday-food-btn").addEventListener("click", badDayLogFood);
+  document.getElementById("badday-expense-btn").addEventListener("click", badDayLogExpense);
   document.getElementById("badday-saved-msg").textContent = "";
 }
 
@@ -2158,43 +2376,8 @@ function setBadDayMode(active) {
 }
 
 document.getElementById("badday-btn").addEventListener("click", () => setBadDayMode(true));
+document.getElementById("hjem-badday-toggle").addEventListener("click", () => setBadDayMode(true));
 document.getElementById("badday-exit").addEventListener("click", () => setBadDayMode(false));
-
-document.getElementById("badday-trained-yes").addEventListener("click", () => {
-  const log = loadBadDayLog();
-  const today = todayISO();
-  log[today] = Object.assign({}, log[today], { trained: true });
-  saveBadDayLog(log);
-  renderBadDayPanel();
-});
-document.getElementById("badday-trained-no").addEventListener("click", () => {
-  const log = loadBadDayLog();
-  const today = todayISO();
-  log[today] = Object.assign({}, log[today], { trained: false });
-  saveBadDayLog(log);
-  renderBadDayPanel();
-});
-
-document.getElementById("badday-save").addEventListener("click", () => {
-  const today = todayISO();
-  const log = loadBadDayLog();
-  const calVal = document.getElementById("badday-cal").value;
-  const expVal = document.getElementById("badday-expense").value;
-  log[today] = Object.assign({}, log[today], {
-    calories: calVal ? parseInt(calVal, 10) : null,
-    expense: expVal ? parseFloat(expVal) : null,
-  });
-  saveBadDayLog(log);
-
-  const baddayTxId = "badday-" + today;
-  let tx = loadTransactions().filter(t => t.id !== baddayTxId);
-  if (expVal && parseFloat(expVal) > 0) {
-    tx.push({ id: baddayTxId, date: today, amount: parseFloat(expVal), category: "annet", name: "Dårlig dag (grov logging)" });
-  }
-  saveTransactions(tx);
-
-  document.getElementById("badday-saved-msg").textContent = "Lagret ✓";
-});
 
 if (loadLS(BADDAY_MODE_KEY, false)) setBadDayMode(true);
 
@@ -2328,7 +2511,7 @@ function renderTxList() {
   });
 }
 
-function renderFund() {
+function fundProgress() {
   const balance = fundBalance();
   const pct = Math.min(100, 100 * balance / DATA.dogFund.target);
   const tx = loadTransactions().filter(t => t.category === DATA.dogFund.category);
@@ -2343,6 +2526,11 @@ function renderFund() {
     const monthsLeft = Math.ceil(remaining / avgPerMonth);
     etaText = `I dagens tempo (~${Math.round(avgPerMonth)} kr/mnd): ca. ${monthsLeft} ${monthsLeft === 1 ? "måned" : "måneder"} igjen`;
   }
+  return { balance, pct, remaining, etaText };
+}
+
+function renderFund() {
+  const { balance, pct, etaText } = fundProgress();
   document.getElementById("fund-card").innerHTML = `
     <div class="fund-head">
       <div>🐶 Hundefond</div>
@@ -2404,12 +2592,7 @@ document.getElementById("month-next").addEventListener("click", () => shiftMonth
 
 populateCategorySelect();
 
-document.getElementById("tx-add").addEventListener("click", () => {
-  const date = document.getElementById("tx-date").value || todayISO();
-  const amount = parseFloat(document.getElementById("tx-amount").value);
-  const category = document.getElementById("tx-category").value;
-  const name = document.getElementById("tx-name").value.trim();
-  if (!amount) return;
+function addTransactionWithRoundUp(date, amount, category, name) {
   const tx = loadTransactions();
   tx.push({ id: "tx-" + Date.now() + Math.random(), date, amount, category, name });
   saveTransactions(tx);
@@ -2421,6 +2604,16 @@ document.getElementById("tx-add").addEventListener("click", () => {
       roundedUp = true;
     }
   }
+  return roundedUp;
+}
+
+document.getElementById("tx-add").addEventListener("click", () => {
+  const date = document.getElementById("tx-date").value || todayISO();
+  const amount = parseFloat(document.getElementById("tx-amount").value);
+  const category = document.getElementById("tx-category").value;
+  const name = document.getElementById("tx-name").value.trim();
+  if (!amount) return;
+  const roundedUp = addTransactionWithRoundUp(date, amount, category, name);
   document.getElementById("tx-amount").value = "";
   document.getElementById("tx-name").value = "";
   currentMonth = monthOf(date);
@@ -2488,6 +2681,7 @@ document.querySelectorAll(".save-presets button[data-preset]").forEach(btn => {
 renderWeightLog();
 renderWeightTrend();
 renderWeightChart();
+renderWeightChart("chart-weight-mini", "tt-weight-mini");
 renderMeasureLog();
 renderPlateau();
 renderShopList();
@@ -2715,11 +2909,240 @@ recordDefs.forEach(def => {
   recordsGrid.appendChild(card);
 });
 
+// ---------------------------------------------------------------- hjem dashboard
+function renderHjemGreeting() {
+  const h = new Date().getHours();
+  const greet = h < 10 ? "God morgen" : h < 17 ? "God dag" : "God kveld";
+  document.getElementById("hjem-greeting").textContent = greet;
+}
+
+function renderHjemSession() {
+  const p = DATA.program;
+  const el = document.getElementById("hjem-session");
+  if (!p) { el.innerHTML = ""; return; }
+  const overrides = loadPlanOverrides();
+  const todayDay = p.week.find(d => d.isToday);
+  const resolved = resolvePlanDay(todayDay, overrides);
+  const readinessLabel = { go: "Klar for økta", caution: "Vurder lettere", light: "Prioriter hvile" }[p.today.readiness];
+  const doneBadge = resolved.done ? " · ✓ Gjort" : "";
+  el.innerHTML = `
+    <div>
+      <div class="hs-label">${resolved.type === "rest" ? "Hviledag" : resolved.label}${doneBadge}</div>
+      <div class="hs-sub">Uke ${p.currentWeek}${p.weekIsDeload ? " · Deload" : " av 4"} · ${p.weekFocus}</div>
+    </div>
+    <span class="hs-readiness ${p.today.readiness}">${readinessLabel}</span>
+    <button class="hs-link" id="hjem-session-link">Til plan →</button>
+  `;
+  document.getElementById("hjem-session-link").addEventListener("click", () => {
+    showTab("trening");
+    setTimeout(() => {
+      const target = document.getElementById("plan-today");
+      if (target) target.scrollIntoView({ behavior: "smooth" });
+    }, 50);
+  });
+}
+
+function renderHjemKcalRing() {
+  const n = DATA.nutritionPlan;
+  const el = document.getElementById("hjem-kcal-ring");
+  if (!n) { el.innerHTML = ""; return; }
+  const extrasTotal = loadExtras().filter(e => e.date === todayISO()).reduce((s, e) => s + (e.kcal || 0), 0);
+  const total = n.dailyKcal + extrasTotal;
+  const pct = Math.round(100 * total / n.dailyKcal);
+  const over = total > n.dailyKcal;
+  el.innerHTML = `
+    <div class="hjem-ring" style="background: conic-gradient(${over ? "var(--hj-accent2)" : "var(--hj-accent)"} ${Math.min(100, pct)}%, rgba(255,255,255,.12) 0);">
+      <div class="hjem-ring-inner">${pct}%</div>
+    </div>
+    <div class="hjem-ring-label">Kalorier<br>${total} / ${n.dailyKcal} kcal</div>
+  `;
+}
+
+function renderHjemSavingsRing() {
+  const { pct, remaining } = fundProgress();
+  const el = document.getElementById("hjem-savings-ring");
+  el.innerHTML = `
+    <div class="hjem-ring" style="background: conic-gradient(var(--hj-accent2) ${Math.min(100, Math.round(pct))}%, rgba(255,255,255,.12) 0);">
+      <div class="hjem-ring-inner">${Math.round(pct)}%</div>
+    </div>
+    <div class="hjem-ring-label">Hundefond<br>${Math.max(0, Math.round(remaining)).toLocaleString()} kr igjen</div>
+  `;
+}
+
+async function fetchWeather() {
+  const cache = loadLS(WEATHER_CACHE_KEY, null);
+  const now = Date.now();
+  if (cache && now - cache.ts < 45 * 60 * 1000) return cache.data;
+  try {
+    const res = await fetch("https://wttr.in/?format=j1");
+    if (!res.ok) throw new Error("weather fetch failed");
+    const json = await res.json();
+    const cur = json.current_condition[0];
+    const data = { tempC: Math.round(parseFloat(cur.temp_C)), desc: cur.weatherDesc[0].value };
+    saveLS(WEATHER_CACHE_KEY, { ts: now, data });
+    return data;
+  } catch (e) {
+    return cache ? cache.data : null;
+  }
+}
+
+function renderHjemWeather() {
+  const el = document.getElementById("hjem-weather");
+  el.innerHTML = `<div class="hw-desc">Henter vær…</div>`;
+  fetchWeather().then(data => {
+    if (!data) { el.innerHTML = ""; return; }
+    el.innerHTML = `<div class="hw-temp">${data.tempC}°</div><div class="hw-desc">${data.desc}</div>`;
+  });
+}
+
+function renderHjemBody() {
+  const ts = DATA.topStats;
+  function chip(id, label, val, unit) {
+    const e = document.getElementById(id);
+    if (!e) return;
+    e.innerHTML = `<div class="label">${label}</div><div class="value">${val !== null && val !== undefined ? val : "–"}${val !== null && val !== undefined && unit ? " " + unit : ""}</div>`;
+  }
+  if (ts.hrv) chip("hjem-stat-hrv", "HRV", ts.hrv.value, "ms");
+  if (ts.sleep) chip("hjem-stat-sleep", "Søvn", ts.sleep.hours, "t");
+  if (ts.steps) chip("hjem-stat-steps", "Steg", ts.steps.value != null ? ts.steps.value.toLocaleString() : null, "");
+  if (ts.restingHR) chip("hjem-stat-rhr", "Hvilepuls", ts.restingHR.value, "bpm");
+
+  const autoregEl = document.getElementById("hjem-autoreg");
+  const reasons = (DATA.program && DATA.program.today && DATA.program.today.reasons) || [];
+  autoregEl.innerHTML = `<div class="hjem-card-title">Autoregulering</div><ul>${reasons.map(r => `<li>${r}</li>`).join("")}</ul>`;
+}
+
+function renderHjemProgress() {
+  const streak = computeStreak();
+  document.getElementById("hjem-streak").innerHTML = `
+    <div class="hjem-card-title">Streak</div>
+    <div class="hjem-streak-num">${streak} ${streak === 1 ? "dag" : "dager"}</div>
+  `;
+
+  const pr = latestPR();
+  document.getElementById("hjem-latest-pr").innerHTML = pr ? `
+    <div class="hjem-card-title">Siste PR</div>
+    <div class="hjem-pr-ex">${pr.label}</div>
+    <div class="hjem-pr-val">${pr.weight != null ? pr.weight + " kg × " : ""}${pr.reps} reps</div>
+    <div class="hjem-pr-ex">${fmtShort(pr.date)}</div>
+  ` : `<div class="hjem-card-title">Siste PR</div><div class="hjem-pr-ex">Ingen sett logget ennå</div>`;
+
+  const { balance, pct, etaText } = fundProgress();
+  document.getElementById("hjem-savings-goal").innerHTML = `
+    <div class="hjem-card-title">Sparemål</div>
+    <div class="hjem-pr-val">${balance.toLocaleString()} / ${DATA.dogFund.target.toLocaleString()} kr</div>
+    <div class="hjem-goal-bar"><div style="width:${Math.min(100, pct)}%"></div></div>
+    <div class="hjem-pr-ex" style="margin-top:6px;">${etaText}</div>
+  `;
+}
+
+function renderHjem() {
+  renderHjemGreeting();
+  renderHjemSession();
+  renderHjemKcalRing();
+  renderHjemSavingsRing();
+  renderHjemWeather();
+  renderHjemBody();
+  renderHjemProgress();
+}
+
+// ---- quick-log bottom bar & drawer ----
+function openQuicklogDrawer(title, bodyHtml) {
+  document.getElementById("quicklog-drawer-title").textContent = title;
+  document.getElementById("quicklog-drawer-body").innerHTML = bodyHtml;
+  document.getElementById("quicklog-drawer").classList.add("open");
+}
+function closeQuicklogDrawer() {
+  document.getElementById("quicklog-drawer").classList.remove("open");
+}
+document.getElementById("quicklog-drawer-close").addEventListener("click", closeQuicklogDrawer);
+
+function renderWaterBadge() {
+  const count = loadLS(WATER_KEY, {})[todayISO()] || 0;
+  document.getElementById("ql-water-badge").textContent = count > 0 ? count : "";
+}
+function logWater() {
+  const water = loadLS(WATER_KEY, {});
+  const today = todayISO();
+  water[today] = (water[today] || 0) + 1;
+  saveLS(WATER_KEY, water);
+  renderWaterBadge();
+}
+
+function openMatDrawer() {
+  openQuicklogDrawer("Logg mat/drikke", `
+    <div class="ql-presets">
+      <button data-extra-preset="Sjokolade" data-extra-kcal="250">🍫 Sjokolade</button>
+      <button data-extra-preset="Glass vin" data-extra-kcal="120">🍷 Glass vin</button>
+      <button data-extra-preset="Øl" data-extra-kcal="150">🍺 Øl</button>
+    </div>
+    <input type="text" id="ql-mat-name" placeholder="Navn">
+    <input type="number" id="ql-mat-kcal" placeholder="kcal (valgfritt)">
+    <button class="btn" id="ql-mat-save">Lagre</button>
+  `);
+  document.querySelectorAll("#quicklog-drawer-body [data-extra-preset]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      addExtra(btn.dataset.extraPreset, parseInt(btn.dataset.extraKcal, 10));
+      renderHjemKcalRing();
+      closeQuicklogDrawer();
+    });
+  });
+  document.getElementById("ql-mat-save").addEventListener("click", () => {
+    const name = document.getElementById("ql-mat-name").value.trim();
+    if (!name) return;
+    const kcal = parseInt(document.getElementById("ql-mat-kcal").value, 10) || null;
+    addExtra(name, kcal);
+    renderHjemKcalRing();
+    closeQuicklogDrawer();
+  });
+}
+
+function openUtgiftDrawer() {
+  const cfg = loadBudgetConfig();
+  const opts = cfg.categories.map(c => `<option value="${c.key}">${c.label}</option>`).join("");
+  openQuicklogDrawer("Logg utgift", `
+    <input type="number" id="ql-tx-amount" placeholder="Beløp (kr)">
+    <select id="ql-tx-category">${opts}</select>
+    <input type="text" id="ql-tx-name" placeholder="Navn (valgfritt)">
+    <button class="btn" id="ql-tx-save">Lagre</button>
+  `);
+  document.getElementById("ql-tx-save").addEventListener("click", () => {
+    const amount = parseFloat(document.getElementById("ql-tx-amount").value);
+    if (!amount) return;
+    const category = document.getElementById("ql-tx-category").value;
+    const name = document.getElementById("ql-tx-name").value.trim();
+    addTransactionWithRoundUp(todayISO(), amount, category, name);
+    renderBudget();
+    renderHjemSavingsRing();
+    renderHjemProgress();
+    closeQuicklogDrawer();
+  });
+}
+
+document.querySelectorAll("#quicklog-bar button[data-ql]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const action = btn.dataset.ql;
+    if (action === "vann") { logWater(); return; }
+    if (action === "mat") { openMatDrawer(); return; }
+    if (action === "utgift") { openUtgiftDrawer(); return; }
+    if (action === "okt") {
+      showTab("trening");
+      setTimeout(() => {
+        const target = document.getElementById("plan-today");
+        if (target) target.scrollIntoView({ behavior: "smooth" });
+      }, 50);
+    }
+  });
+});
+
+renderWaterBadge();
+renderHjem();
+
 // ---------------------------------------------------------------- backup / export / import
 const BACKUP_KEYS = [
   WEIGHT_LOG_KEY, MEASURE_LOG_KEY, SHOP_LIST_KEY, TX_KEY,
   BUDGET_CONFIG_KEY, PLAN_OVERRIDES_KEY, SET_LOG_KEY, SEEN_KEY, REST_PREFS_KEY,
-  FORGOTTEN_SAVINGS_KEY, BADDAY_LOG_KEY, EXTRAS_KEY,
+  FORGOTTEN_SAVINGS_KEY, BADDAY_LOG_KEY, EXTRAS_KEY, WATER_KEY,
 ];
 
 document.getElementById("backup-export").addEventListener("click", () => {
