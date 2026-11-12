@@ -721,7 +721,8 @@ TEMPLATE = r"""<!DOCTYPE html>
   .plan-card .exercises .set-log-form { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
   .plan-card .exercises .set-log-form input { width: 70px; padding: 5px 8px; font-size: 12px; border: 1px solid var(--line); border-radius: 8px; font-family: Nunito, sans-serif; }
   .plan-card .exercises .set-log-today { margin-top: 6px; font-size: 11px; color: var(--muted); display: flex; gap: 6px; flex-wrap: wrap; }
-  .plan-card .exercises .set-chip { background: var(--accent3); border-radius: 10px; padding: 2px 8px; }
+  .plan-card .exercises .set-chip { background: var(--accent3); border-radius: 10px; padding: 2px 8px; display: inline-flex; align-items: center; gap: 4px; }
+  .plan-card .exercises .set-chip-remove { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 11px; padding: 0; line-height: 1; }
   .pr-row { display: flex; justify-content: space-between; padding: 6px 0; border-top: 1px solid var(--line); font-size: 13px; }
   .pr-row:first-child { border-top: none; }
   .pr-row .pr-ex { color: var(--muted); flex: 1; margin-right: 10px; }
@@ -1498,6 +1499,18 @@ TEMPLATE = r"""<!DOCTYPE html>
 <script>
 const DATA = __DASHBOARD_DATA__;
 
+// ---------------------------------------------------------------- settings
+const SETTINGS_KEY = "garminDashboardSettings_v1";
+function loadSettings() {
+  return Object.assign({ dailyKcal: DATA.nutritionPlan.dailyKcal, savingsTarget: DATA.dogFund.target }, loadLS(SETTINGS_KEY, {}));
+}
+function saveSettings(s) { saveLS(SETTINGS_KEY, s); }
+(function applySettings() {
+  const s = loadSettings();
+  DATA.nutritionPlan.dailyKcal = s.dailyKcal;
+  DATA.dogFund.target = s.savingsTarget;
+})();
+
 // ---------------------------------------------------------------- access gate
 (function () {
   const GATE_KEY = "garminDashboardUnlocked_v1";
@@ -1611,12 +1624,19 @@ function swapSelectHtml(date, resolvedKey) {
 }
 
 const SET_LOG_KEY = "garminDashboardSetLog_v1";
-function loadSetLog() { return loadLS(SET_LOG_KEY, []); }
+function loadSetLogAll() { return loadLS(SET_LOG_KEY, []); }
+function loadSetLog() { return loadSetLogAll().filter(s => !s.deleted); }
 function saveSetLog(l) { saveLS(SET_LOG_KEY, l); }
 function addSet(exKey, label, date, weight, reps) {
-  const log = loadSetLog();
+  const log = loadSetLogAll();
   log.push({ id: "set-" + Date.now() + Math.random(), exercise: exKey, label, date, weight, reps });
   saveSetLog(log);
+}
+function softDeleteSet(id) {
+  const all = loadSetLogAll();
+  const item = all.find(s => s.id === id);
+  if (item) { item.deleted = true; item.deletedAt = Date.now(); }
+  saveSetLog(all);
 }
 function lastSetFor(exKey, date) {
   const entries = loadSetLog().filter(s => s.exercise === exKey).sort((a, b) => a.date.localeCompare(b.date));
@@ -1728,7 +1748,7 @@ function exerciseRowHtml(sessKey, idx, text, date, readiness) {
       ${last ? `<button class="btn ghost small set-log-fill" style="font-size:11px;">Bruk forrige: ${last.weight != null ? last.weight + " kg × " : ""}${last.reps} reps</button>` : `<span style="font-size:11px;color:var(--muted)">ingen tidligere logg</span>`}
       <select class="rest-pref-select" data-ex="${exKey}">${restOptions}</select>
     </div>
-    <div class="set-log-today">${todaySets.map((s, i) => `<span class="set-chip">Sett ${i + 1}: ${s.weight != null ? s.weight + " kg × " : ""}${s.reps} reps</span>`).join("")}</div>
+    <div class="set-log-today">${todaySets.map((s, i) => `<span class="set-chip">Sett ${i + 1}: ${s.weight != null ? s.weight + " kg × " : ""}${s.reps} reps<button class="set-chip-remove" data-set-remove="${s.id}">✕</button></span>`).join("")}</div>
   </div>`;
 }
 
@@ -1847,6 +1867,13 @@ function renderPlan() {
         rIn.value = last.reps;
       });
     }
+    row.querySelectorAll("[data-set-remove]").forEach(delBtn => {
+      delBtn.addEventListener("click", () => {
+        softDeleteSet(delBtn.dataset.setRemove);
+        renderPlan();
+        renderPrBoard();
+      });
+    });
     const restSelect = row.querySelector(".rest-pref-select");
     if (restSelect) {
       restSelect.addEventListener("change", () => {
@@ -1924,7 +1951,22 @@ function renderNutrition() {
   document.getElementById("kcal-row").innerHTML = `
     <div class="kcal-chip">Mål<b>${n.dailyKcal} kcal</b></div>
     <div class="kcal-chip">Protein<b>${n.proteinMin} g+</b></div>
+    <div class="kcal-chip kcal-goal-edit">
+      <input type="number" step="50" id="kcal-goal-input" value="${n.dailyKcal}" style="width:70px;">
+      <button class="btn ghost small" id="kcal-goal-save">Lagre mål</button>
+    </div>
   `;
+  document.getElementById("kcal-goal-save").addEventListener("click", () => {
+    const val = parseInt(document.getElementById("kcal-goal-input").value, 10);
+    if (!val) return;
+    const s = loadSettings();
+    s.dailyKcal = val;
+    saveSettings(s);
+    DATA.nutritionPlan.dailyKcal = val;
+    renderNutrition();
+    renderExtras();
+    renderHjemKcalRing();
+  });
 
   const b = n.breakfast;
   let html = `<div class="meal-group"><h4>${b.label}</h4>${mealOptionHtml({ name: b.label, items: b.items, kcal: b.kcal, protein: b.protein })}</div>`;
@@ -1937,8 +1979,15 @@ function renderNutrition() {
 }
 renderNutrition();
 
-function loadExtras() { return loadLS(EXTRAS_KEY, []); }
+function loadExtrasAll() { return loadLS(EXTRAS_KEY, []); }
+function loadExtras() { return loadExtrasAll().filter(e => !e.deleted); }
 function saveExtras(l) { saveLS(EXTRAS_KEY, l); }
+function softDeleteExtra(id) {
+  const all = loadExtrasAll();
+  const item = all.find(e => e.id === id);
+  if (item) { item.deleted = true; item.deletedAt = Date.now(); }
+  saveExtras(all);
+}
 
 function addExtra(name, kcal) {
   const list = loadExtras();
@@ -1961,7 +2010,7 @@ function renderExtras() {
 
   document.querySelectorAll("#extras-list button[data-extra-remove]").forEach(btn => {
     btn.addEventListener("click", () => {
-      saveExtras(loadExtras().filter(e => e.id !== btn.dataset.extraRemove));
+      softDeleteExtra(btn.dataset.extraRemove);
       renderExtras();
     });
   });
@@ -2554,7 +2603,22 @@ function renderFund() {
     </div>
     <div class="fund-bar"><div style="width:${pct}%"></div></div>
     <div class="fund-eta">${etaText}</div>
+    <div class="fund-goal-edit" style="margin-top:8px;display:flex;gap:6px;align-items:center;">
+      <input type="number" step="500" id="fund-goal-input" value="${DATA.dogFund.target}" style="width:90px;">
+      <button class="btn ghost small" id="fund-goal-save">Lagre sparemål</button>
+    </div>
   `;
+  document.getElementById("fund-goal-save").addEventListener("click", () => {
+    const val = parseInt(document.getElementById("fund-goal-input").value, 10);
+    if (!val) return;
+    const s = loadSettings();
+    s.savingsTarget = val;
+    saveSettings(s);
+    DATA.dogFund.target = val;
+    renderBudget();
+    renderHjemProgress();
+    renderHjemSavingsRing();
+  });
 }
 
 function loadForgottenSavings() { return loadLS(FORGOTTEN_SAVINGS_KEY, 0); }
@@ -3237,6 +3301,7 @@ const BACKUP_KEYS = [
   WEIGHT_LOG_KEY, MEASURE_LOG_KEY, SHOP_LIST_KEY, TX_KEY,
   BUDGET_CONFIG_KEY, PLAN_OVERRIDES_KEY, SET_LOG_KEY, SEEN_KEY, REST_PREFS_KEY,
   FORGOTTEN_SAVINGS_KEY, BADDAY_LOG_KEY, EXTRAS_KEY, WATER_KEY, STREAK_BEST_KEY,
+  SETTINGS_KEY,
 ];
 
 document.getElementById("backup-export").addEventListener("click", () => {
@@ -3284,6 +3349,25 @@ document.getElementById("backup-import-file").addEventListener("change", (e) => 
 });
 
 document.getElementById("footer").textContent = `Generated ${new Date(DATA.meta.generated).toLocaleString()}`;
+
+// ---------------------------------------------------------------- hidden debug page
+// Not linked anywhere in the UI - visit dashboard.html#debug (after unlocking the gate)
+// to dump DATA plus every localStorage key as raw JSON, for troubleshooting.
+function renderDebugPage() {
+  const ls = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    try { ls[k] = JSON.parse(localStorage.getItem(k)); } catch (e) { ls[k] = localStorage.getItem(k); }
+  }
+  document.body.innerHTML = "";
+  const pre = document.createElement("pre");
+  pre.style.cssText = "white-space:pre-wrap;word-break:break-word;padding:16px;font-size:12px;background:#0b0b0f;color:#8f8;min-height:100vh;margin:0;font-family:monospace;";
+  pre.textContent = JSON.stringify({ DATA, localStorage: ls }, null, 2);
+  document.body.appendChild(pre);
+}
+if (location.hash === "#debug" && localStorage.getItem("garminDashboardUnlocked_v1") === "1") {
+  renderDebugPage();
+}
 </script>
 </body>
 </html>
