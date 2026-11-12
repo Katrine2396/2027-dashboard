@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<title>Training Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fff6f8;
+    --card: #ffffff;
+    --ink: #3d1d29;
+    --muted: #8a6472;
+    --line: #f0d5de;
+    --accent: #7a1f3d;
+    --accent2: #a46cc0;
+    --accent3: #e8a3b6;
+    --shadow: 0 2px 10px rgba(122, 31, 61, 0.07);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: Nunito, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    padding: 0 0 60px;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+  h1, h2, h3 { font-family: "Playfair Display", serif; }
+
+  header.hero {
+    background: linear-gradient(135deg, #7a1f3d 0%, #a8406a 100%);
+    color: #fff;
+    padding: 36px 20px 44px;
+    margin-bottom: -28px;
+  }
+  header.hero .wrap { display: flex; flex-direction: column; gap: 6px; }
+  header.hero .eyebrow {
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    font-size: 12px;
+    color: #f6d3dd;
+    font-weight: 600;
+  }
+  header.hero h1 { margin: 2px 0 6px; font-size: 30px; font-weight: 700; font-style: italic; }
+  header.hero .sub { color: #fbe7ed; font-size: 14px; }
+
+  .goal-row {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+  }
+  .goal-chip {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 12px;
+    padding: 10px 16px;
+    font-size: 13px;
+    color: #fbe7ed;
+  }
+  .goal-chip b { font-size: 16px; display: block; color: #fff; }
+  .goal-chip .delta-up { color: #f0cf7a; }
+  .goal-chip .delta-down { color: #f6b8ca; }
+
+  .plan-card {
+    background: var(--card);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    padding: 22px;
+    border-left: 5px solid var(--accent);
+  }
+  .plan-card.caution { border-left-color: #d9a441; }
+  .plan-card.light { border-left-color: var(--accent3); }
+  .plan-card .plan-eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .plan-card h3 { margin: 0; font-size: 20px; }
+  .plan-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 4px 0 10px; }
+  select.swap {
+    font-family: Nunito, -apple-system, sans-serif;
+    font-size: 12px;
+    color: var(--ink);
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 6px 12px;
+  }
+  .week-day select.swap { margin-top: 8px; width: 100%; font-size: 11px; padding: 4px 4px; border-radius: 10px; }
+  .plan-card .exercises { margin-top: 14px; font-size: 13px; }
+  .plan-card .exercises div { padding: 6px 0; border-top: 1px solid var(--line); }
+  .plan-card .done-badge {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    font-size: 12px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    margin-top: 4px;
+  }
+  .plan-card .plan-reasons { list-style: none; padding: 0; margin: 14px 0 0; font-size: 13px; color: var(--muted); }
+  .plan-card .plan-reasons li { padding: 3px 0; }
+  .plan-card .plan-reasons li::before { content: "– "; color: var(--accent2); }
+
+  .week-row { display: flex; gap: 8px; margin-top: 16px; overflow-x: auto; }
+  .week-day {
+    flex: 1;
+    min-width: 92px;
+    background: var(--card);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 10px 8px;
+    text-align: center;
+  }
+  .week-day.today { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .week-day .wd { color: var(--muted); text-transform: uppercase; font-size: 11px; letter-spacing: .04em; }
+  .week-day .sess { font-size: 12px; margin: 6px 0; min-height: 30px; color: var(--ink); }
+  .week-day .mark { font-size: 15px; color: var(--accent); }
+
+  .kcal-row { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 14px; }
+  .kcal-chip {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 8px 16px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .kcal-chip b { color: var(--ink); font-size: 14px; display: block; }
+
+  .meal-group { margin-top: 18px; }
+  .meal-group h4 { font-size: 14px; margin: 0 0 8px; color: var(--ink); }
+  .meal-option {
+    background: var(--card);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    padding: 14px 16px;
+    margin-bottom: 8px;
+  }
+  .meal-option .meal-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .meal-option .meal-head b { font-size: 14px; }
+  .meal-option .meal-macro { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .meal-option .meal-items { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .nutrition-note { font-size: 11px; color: var(--muted); margin-top: 14px; font-style: italic; }
+
+  .stat-grid {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+  .stat-card {
+    background: var(--card);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    padding: 16px 18px;
+  }
+  .stat-card .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  .stat-card .value { font-size: 28px; font-weight: 700; margin: 4px 0 2px; }
+  .stat-card .value small { font-size: 14px; font-weight: 500; color: var(--muted); }
+  .stat-card .asof { font-size: 11px; color: var(--muted); }
+  .stat-card svg { width: 100%; height: 36px; margin-top: 6px; display: block; }
+
+  section { margin-top: 36px; }
+  section h2 {
+    font-size: 18px;
+    margin: 0 0 4px;
+  }
+  section .section-sub { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+
+  .card {
+    background: var(--card);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    padding: 20px;
+  }
+
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; font-size: 12px; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+  .tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: #7a1f3d;
+    color: #fff;
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    transform: translate(-50%, -115%);
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity .1s;
+    z-index: 10;
+  }
+  .chart-wrap { position: relative; }
+
+  .records-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  .record-card {
+    background: var(--card);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    padding: 16px;
+  }
+  .record-card .label { font-size: 12px; color: var(--muted); }
+  .record-card .value { font-size: 22px; font-weight: 700; margin: 4px 0 2px; }
+  .record-card .date { font-size: 11px; color: var(--muted); }
+
+  .trend-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 40px; }
+
+  /* ---- fremgang / points / logging ---- */
+  .snapshot-row { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 14px; }
+  .snapshot-chip {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 8px 16px; font-size: 12px; color: var(--muted); flex: 1; min-width: 130px;
+  }
+  .snapshot-chip b { color: var(--ink); font-size: 16px; display: block; }
+
+  .level-card { margin-top: 14px; }
+  .level-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .level-head .level-name { font-family: "Playfair Display", serif; font-size: 20px; font-weight: 700; }
+  .level-head .level-pts { font-size: 12px; color: var(--muted); }
+  .level-bar { height: 10px; border-radius: 6px; background: var(--line); margin-top: 10px; overflow: hidden; }
+  .level-bar > div { height: 100%; background: linear-gradient(90deg, var(--accent2), var(--accent)); border-radius: 6px; transition: width .3s; }
+  .level-reward { font-size: 12px; color: var(--muted); margin-top: 8px; }
+
+  .celebrate-banner {
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    color: #fff; border-radius: 14px; padding: 14px 18px; margin-top: 14px;
+    font-size: 14px; font-weight: 700; box-shadow: var(--shadow);
+  }
+
+  .log-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px; }
+  .log-form { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .log-form input, .log-form select {
+    font-family: Nunito, sans-serif; font-size: 13px; border: 1px solid var(--line);
+    border-radius: 10px; padding: 8px 10px; background: var(--bg); color: var(--ink);
+  }
+  .log-form input[type="number"] { width: 90px; }
+  .log-form input[type="date"] { width: 140px; }
+  .log-form input[type="text"] { flex: 1; min-width: 120px; }
+  .btn {
+    font-family: Nunito, sans-serif; font-size: 13px; font-weight: 700; color: #fff;
+    background: var(--accent); border: none; border-radius: 10px; padding: 8px 16px; cursor: pointer;
+  }
+  .btn.secondary { background: var(--accent3); color: var(--ink); }
+  .btn.ghost { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+  .btn.small { padding: 5px 10px; font-size: 11px; }
+  .log-list { list-style: none; padding: 0; margin: 10px 0 0; font-size: 13px; }
+  .log-list li { display: flex; justify-content: space-between; padding: 6px 0; border-top: 1px solid var(--line); color: var(--muted); }
+  .log-list li b { color: var(--ink); }
+  .log-delta { font-size: 11px; }
+  .log-delta.down { color: #2f8a4e; }
+  .log-delta.up { color: var(--accent); }
+
+  /* ---- handleliste ---- */
+  .shop-quickadd { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .shop-list { list-style: none; padding: 0; margin: 14px 0 0; }
+  .shop-list li {
+    display: flex; align-items: center; gap: 10px; padding: 8px 4px;
+    border-top: 1px solid var(--line); font-size: 14px;
+  }
+  .shop-list li.checked span { text-decoration: line-through; color: var(--muted); }
+  .shop-list li button { margin-left: auto; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; }
+
+  /* ---- budsjett ---- */
+  .month-nav { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+  .month-nav .btn { padding: 4px 12px; }
+  .month-nav .month-label { font-weight: 700; font-size: 15px; min-width: 140px; text-align: center; }
+  .cat-row { margin-top: 10px; }
+  .cat-row .cat-head { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+  .cat-row .cat-head b { color: var(--ink); }
+  .cat-bar { height: 8px; border-radius: 5px; background: var(--line); margin-top: 4px; overflow: hidden; }
+  .cat-bar > div { height: 100%; border-radius: 5px; background: var(--accent2); }
+  .cat-bar > div.over { background: #c0392b; }
+  .cat-row input.cap-edit {
+    width: 64px; font-size: 11px; border: 1px solid var(--line); border-radius: 6px;
+    padding: 2px 4px; background: var(--bg); color: var(--muted); text-align: right;
+  }
+  .fund-card { background: linear-gradient(135deg, #fff0f4, #fde6ee); border-radius: 16px; padding: 18px; margin-top: 14px; }
+  .fund-card .fund-head { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+  .fund-card .fund-amount { font-size: 24px; font-weight: 700; font-family: "Playfair Display", serif; }
+  .fund-card .fund-eta { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .fund-bar { height: 12px; border-radius: 7px; background: #fff; margin-top: 10px; overflow: hidden; }
+  .fund-bar > div { height: 100%; border-radius: 7px; background: linear-gradient(90deg, var(--accent2), var(--accent)); }
+  .budget-summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 16px; }
+
+  /* ---- tabs ---- */
+  .tab-nav {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    background: var(--bg);
+    padding: 14px 0 10px;
+    margin-top: -8px;
+    border-bottom: 1px solid var(--line);
+  }
+  .tab-nav button {
+    flex: 0 0 auto;
+    font-family: Nunito, sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--muted);
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 8px 16px;
+    cursor: pointer;
+  }
+  .tab-nav button.active { color: #fff; background: var(--accent); border-color: var(--accent); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .overwhelm-btn { width: 100%; margin: 14px 0 0; }
+  .overwhelm-box {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 16px; margin-top: 10px; line-height: 1.6; font-size: 14px;
+  }
+  #plateau-card:empty { display: none; }
+
+  /* ---- access gate ---- */
+  #gate-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: linear-gradient(135deg, #7a1f3d 0%, #a8406a 100%);
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  #gate-overlay .gate-box {
+    background: #fff; border-radius: 18px; padding: 28px 24px; max-width: 320px; width: 100%;
+    text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  }
+  #gate-overlay h2 { margin: 0 0 6px; font-size: 20px; color: var(--ink); }
+  #gate-overlay p { font-size: 12px; color: var(--muted); margin: 0 0 16px; }
+  #gate-overlay input {
+    width: 100%; font-family: Nunito, sans-serif; font-size: 15px; text-align: center;
+    border: 1px solid var(--line); border-radius: 10px; padding: 10px; margin-bottom: 10px;
+    background: var(--bg); color: var(--ink);
+  }
+  #gate-overlay .btn { width: 100%; padding: 10px; }
+  #gate-overlay .gate-error { color: #c0392b; font-size: 12px; margin-top: 8px; min-height: 16px; }
+  #gate-overlay.shake .gate-box { animation: shake .3s; }
+  @keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+
+  @media (max-width: 720px) {
+    .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    .records-grid { grid-template-columns: repeat(2, 1fr); }
+    .trend-grid { grid-template-columns: 1fr; }
+    header.hero h1 { font-size: 24px; }
+    .week-row { overflow-x: scroll; }
+    .week-day { min-width: 76px; }
+    .log-grid { grid-template-columns: 1fr; }
+    .budget-summary-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div id="gate-overlay">
+  <div class="gate-box">
+    <h2>🔒 Privat dashboard</h2>
+    <p>Dette er ikke ekte sikkerhet, bare en liten sperre mot tilfeldige besøk.</p>
+    <input type="password" id="gate-input" placeholder="Passord" autocomplete="off">
+    <button class="btn" id="gate-submit">Lås opp</button>
+    <div class="gate-error" id="gate-error"></div>
+  </div>
+</div>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow" id="goal-eyebrow">Training goal</div>
+    <h1 id="goal-headline">Getting leaner</h1>
+    <div class="sub" id="date-range-sub"></div>
+    <div class="goal-row" id="goal-chips"></div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="stat-grid" id="stat-grid"></div>
+
+  <nav class="tab-nav" id="tab-nav">
+    <button data-tab="trening">Treningsplan</button>
+    <button data-tab="kosthold">Kosthold</button>
+    <button data-tab="fremgang">Fremgang</button>
+    <button data-tab="handleliste">Handleliste</button>
+    <button data-tab="budsjett">Budsjett</button>
+    <button data-tab="statistikk">Statistikk</button>
+  </nav>
+
+  <button class="btn ghost overwhelm-btn" id="overwhelm-btn">🫧 Jeg er overveldet</button>
+  <div id="overwhelm-out"></div>
+
+  <div class="tab-panel" data-tab="trening">
+  <section>
+    <h2>Treningsplan</h2>
+    <div class="section-sub" id="plan-sub"></div>
+    <div class="plan-card" id="plan-today"></div>
+    <div class="week-row" id="plan-week"></div>
+  </section>
+  </div>
+
+  <div class="tab-panel" data-tab="kosthold">
+  <section>
+    <h2>Kosthold</h2>
+    <div class="section-sub">Faste, enkle alternativer - ingen logging nødvendig</div>
+    <div class="kcal-row" id="kcal-row"></div>
+    <div id="meal-plan"></div>
+  </section>
+  </div>
+
+  <div class="tab-panel" data-tab="fremgang">
+  <section>
+    <h2>Fremgang</h2>
+    <div class="section-sub">Poeng, nivå og ukentlig snapshot - alt regnes ut fra ekte data, ingenting telles manuelt</div>
+    <div id="celebrate-banner"></div>
+    <div class="card level-card" id="level-card"></div>
+    <div class="snapshot-row" id="weekly-snapshot"></div>
+    <div class="card" id="plateau-card"></div>
+    <div class="log-grid">
+      <div class="card">
+        <h3 style="margin:0 0 4px;font-size:15px;">Vekt</h3>
+        <div class="section-sub" style="margin-bottom:0;">Logg hver uke</div>
+        <div class="log-form">
+          <input type="date" id="weight-date">
+          <input type="number" step="0.1" id="weight-kg" placeholder="kg">
+          <button class="btn" id="weight-add">Lagre</button>
+        </div>
+        <ul class="log-list" id="weight-list"></ul>
+      </div>
+      <div class="card">
+        <h3 style="margin:0 0 4px;font-size:15px;">Kroppsmål</h3>
+        <div class="section-sub" style="margin-bottom:0;">Logg den 1. hver måned</div>
+        <div class="log-form">
+          <input type="date" id="measure-date">
+          <input type="number" step="0.5" id="measure-waist" placeholder="Mage (cm)">
+          <input type="number" step="0.5" id="measure-hips" placeholder="Hofte (cm)">
+          <button class="btn" id="measure-add">Lagre</button>
+        </div>
+        <ul class="log-list" id="measure-list"></ul>
+      </div>
+    </div>
+  </section>
+  </div>
+
+  <div class="tab-panel" data-tab="handleliste">
+  <section>
+    <h2>Handleliste</h2>
+    <div class="section-sub">Bygget fra matplanen din - kryss av det du har kjøpt</div>
+    <div class="card">
+      <div class="log-form">
+        <input type="text" id="shop-input" placeholder="Legg til vare...">
+        <button class="btn" id="shop-add">Legg til</button>
+      </div>
+      <div class="shop-quickadd">
+        <button class="btn secondary small" id="shop-quickadd-protein">+ Faste proteinvarer</button>
+        <button class="btn secondary small" id="shop-quickadd-meals">+ Fra måltidsideene</button>
+        <button class="btn ghost small" id="shop-clear-checked">Fjern det som er kjøpt</button>
+      </div>
+      <ul class="shop-list" id="shop-list"></ul>
+    </div>
+  </section>
+  </div>
+
+  <div class="tab-panel" data-tab="budsjett">
+  <section>
+    <h2>Budsjett</h2>
+    <div class="section-sub">Alle transaksjoner logges manuelt, for full oversikt per kategori</div>
+    <div class="card">
+      <div class="month-nav">
+        <button class="btn ghost small" id="month-prev">‹</button>
+        <div class="month-label" id="month-label"></div>
+        <button class="btn ghost small" id="month-next">›</button>
+      </div>
+      <div class="log-form">
+        <input type="date" id="tx-date">
+        <input type="number" step="1" id="tx-amount" placeholder="Beløp (kr)">
+        <select id="tx-category"></select>
+        <input type="text" id="tx-name" placeholder="Hva var det?">
+        <button class="btn" id="tx-add">Legg til</button>
+      </div>
+      <div id="cat-breakdown"></div>
+      <div class="budget-summary-grid" id="budget-summary"></div>
+      <h3 style="margin:20px 0 4px;font-size:15px;">Transaksjoner denne måneden</h3>
+      <ul class="log-list" id="tx-list"></ul>
+    </div>
+
+    <div class="fund-card" id="fund-card"></div>
+    <div class="card" style="margin-top:14px;">
+      <h3 style="margin:0 0 4px;font-size:15px;">Spar i stedet</h3>
+      <div class="section-sub" style="margin-bottom:0;">Var du fristet til å kjøpe noe, men valgte å la være? Legg det du sparte rett i hundefondet.</div>
+      <div class="log-form">
+        <input type="number" step="1" id="save-amount" placeholder="Beløp (kr)">
+        <input type="text" id="save-name" placeholder="Fristet av hva?">
+        <button class="btn" id="save-add">Spar i hundefondet</button>
+      </div>
+    </div>
+  </section>
+  </div>
+
+  <div class="tab-panel" data-tab="statistikk">
+  <section>
+    <h2>This week vs. recent weeks</h2>
+    <div class="section-sub">Sessions, time and distance by sport, last 10 weeks</div>
+    <div class="card">
+      <div class="legend" id="sport-legend"></div>
+      <div class="chart-wrap"><svg id="chart-weekly-sport"></svg><div class="tooltip" id="tt-weekly"></div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Trends</h2>
+    <div class="section-sub">Weekly averages over your full history</div>
+    <div class="trend-grid">
+      <div class="card">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">Training load</div>
+        <div class="chart-wrap"><svg id="chart-load"></svg><div class="tooltip" id="tt-load"></div></div>
+      </div>
+      <div class="card">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">Resting heart rate</div>
+        <div class="chart-wrap"><svg id="chart-rhr"></svg><div class="tooltip" id="tt-rhr"></div></div>
+      </div>
+      <div class="card">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">HRV (last night avg)</div>
+        <div class="chart-wrap"><svg id="chart-hrv"></svg><div class="tooltip" id="tt-hrv"></div></div>
+      </div>
+      <div class="card">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">Sleep (hours/night avg)</div>
+        <div class="chart-wrap"><svg id="chart-sleep"></svg><div class="tooltip" id="tt-sleep"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Records</h2>
+    <div class="section-sub">Your biggest days and sessions</div>
+    <div class="records-grid" id="records-grid"></div>
+  </section>
+  </div>
+
+  <footer id="footer"></footer>
+</div>
+
+<script>
+const DATA = {"meta": {"generated": "2026-11-12T16:40:31", "dateRange": ["2018-11-13", "2026-11-12"], "units": "km", "totalActivities": 736}, "topStats": {"hrv": {"value": 40, "weeklyAvg": 44, "status": "BALANCED", "date": "2026-11-12", "trend": [43, 42, 42, 43, 42, 45, 39, 42, 42, 41, 44, 41, 38, 41, 40, 40, 40, 45, 40, 43, 46, 42, 38, 43, 48, 41, 48, 49, 38, 40]}, "sleep": {"hours": 8.2, "score": 87, "date": "2026-11-12", "trend": [9.6, 9.2, 8.8, 9.4, 7.8, 9.2, 7.2, 9.1, 8.4, 9.0, 10.0, 8.7, 8.4, 8.8, 8.0, 8.3, 7.7, 9.4, 9.9, 8.3, 8.5, 8.0, 7.2, 10.1, 9.4, 10.0, 8.0, 9.2, 7.0, 8.2]}, "calories": {"value": 656, "date": "2026-11-12", "trend": [2131, 2505, 2311, 2321, 1999, 2747, 2405, 2513, 2127, 2180, 2212, 2505, 2443, 2639, 2218, 2516, 2293, 2588, 2307, 2247, 2422, 2409, 2389, 2232, 2496, 1875, 2370, 2561, 2288, 656]}, "steps": {"value": 1849, "date": "2026-11-12", "trend": [6090, 11156, 8337, 8633, 2897, 13855, 13299, 11211, 5426, 6181, 8211, 8191, 9806, 13494, 9709, 17244, 10904, 16006, 9987, 8260, 10794, 12007, 10107, 9072, 8677, 970, 10360, 12713, 8303, 1849]}, "restingHR": {"value": 54, "date": "2026-11-12", "trend": [54, 54, 53, 55, 56, 53, 57, 55, 53, 55, 53, 55, 54, 53, 47, 53, 56, 53, 54, 54, 51, 55, 56, 54, 51, 52, 51, 52, 57, 54]}}, "goal": {"type": "leaner", "recentActiveCaloriesPerWeek": 815, "priorActiveCaloriesPerWeek": 643, "caloriesPctChange": 27, "recentSessionsPerWeek": 4.4, "priorSessionsPerWeek": 2.6, "recentStepsPerDay": 7375, "priorStepsPerDay": 6824, "stepsPctChange": 8}, "program": {"currentWeek": 1, "weekFocus": "L\u00e6r \u00f8velsene, lett/moderat vekt, god teknikk og kontroll", "weekSetsNote": "2\u20133 sett", "weekCycleNote": "20\u201325 min", "today": {"date": "2026-11-12", "readiness": "go", "reasons": ["HRV er balansert i natt (40 ms)"]}, "week": [{"date": "2026-11-09", "weekday": "Man", "defaultKey": "gsA", "sessionLabel": "Styrke A: helkropp og kjerne", "sessionType": "strength", "isToday": false, "loggedActivities": [{"type": "strength", "name": "Styrke", "minutes": 29}]}, {"date": "2026-11-10", "weekday": "Tir", "defaultKey": "cyc", "sessionLabel": "Rolig sykling (20\u201325 min)", "sessionType": "cycling", "isToday": false, "loggedActivities": [{"type": "cycling", "name": "Innend\u00f8rssykling", "minutes": 26}]}, {"date": "2026-11-11", "weekday": "Ons", "defaultKey": "gsB", "sessionLabel": "Styrke B: helkropp og kjerne", "sessionType": "strength", "isToday": false, "loggedActivities": []}, {"date": "2026-11-12", "weekday": "Tor", "defaultKey": "restW", "sessionLabel": "Hvile eller rolig g\u00e5tur", "sessionType": "rest", "isToday": true, "loggedActivities": []}, {"date": "2026-11-13", "weekday": "Fre", "defaultKey": "gsC", "sessionLabel": "Styrke C: helkropp og kjerne", "sessionType": "strength", "isToday": false, "loggedActivities": []}, {"date": "2026-11-14", "weekday": "L\u00f8r", "defaultKey": "cyc", "sessionLabel": "Rolig sykling (20\u201325 min)", "sessionType": "cycling", "isToday": false, "loggedActivities": []}, {"date": "2026-11-15", "weekday": "S\u00f8n", "defaultKey": "rest", "sessionLabel": "Hvile eller lett aktivitet", "sessionType": "rest", "isToday": false, "loggedActivities": []}]}, "sessionCatalog": {"gsA": {"label": "Styrke A: helkropp og kjerne", "type": "strength", "exercises": ["Glute bridge (aktivering - kjenn at rumpa jobber, ikke korsryggen) 2\u00d712", "Beinpress, kontrollert dybde 3\u00d710\u201312", "Benkpress i maskin 3\u00d78\u201310", "Sittende roing (kabel) 3\u00d710\u201312", "Hip thrust (stang/manualer) - pause og klem rumpa i toppen 3\u00d710\u201312", "Pallof press (kabel) 3\u00d78\u201310/side"]}, "gsB": {"label": "Styrke B: helkropp og kjerne", "type": "strength", "exercises": ["Supersett aktivering: Glute bridge 2\u00d712 + Fire hydrants 2\u00d710\u201312/side + Donkey kicks (spark bak p\u00e5 4 bein) 2\u00d710\u201312/side", "Rumensk markl\u00f8ft (manualer) - skyv hoftene bak, n\u00f8ytral rygg, kjenn baksiden av l\u00e5r/rumpe 3\u00d78\u201310", "Nedtrekk, bredt grep (kabel) 3\u00d78\u201310", "Skulderpress (manualer) 3\u00d78\u201310", "Sideplanke med hoftehev 3\u00d78\u201310/side"]}, "gsC": {"label": "Styrke C: helkropp og kjerne", "type": "strength", "exercises": ["Armhevinger mot benk/vegg (jobb mot gulvet over tid) 3\u00d78\u201312", "Goblet squat, moderat dybde innenfor smertefri rekkevidde 3\u00d710\u201312", "St\u00e5ende kabelrad 3\u00d710\u201312", "Step-up p\u00e5 lav kasse, kontrollert - skyv gjennom h\u00e6len, kjenn rumpa 3\u00d78/side", "Dead bug med vekt 3\u00d78/side", "Planke med skulderber\u00f8ring 3\u00d720\u201330 s"]}, "cyc": {"label": "Rolig sykling", "type": "cycling", "note": "Lett motstand, prat i hele setninger"}, "walk": {"label": "G\u00e5tur", "type": "walk"}, "rest": {"label": "Hvile", "type": "rest"}}, "nutritionPlan": {"dailyKcal": 1750, "proteinMin": 140, "note": "Tallene er grove anslag basert p\u00e5 vanlige produktverdier (\u00b110%) - sjekk egne etiketter (proteinpulver, YT-produkter) for mer n\u00f8yaktige tall.", "breakfast": {"label": "Frokost (fast)", "items": ["40 g havregryn", "20 g proteinpulver", "1 dl proteinmelk", "10 g chiafr\u00f8", "100 g gresk yoghurt"], "kcal": 450, "protein": 32}, "lunch": {"label": "Lunsj - velg \u00e9n, rull\u00e9r gjennom uken", "options": [{"name": "Kyllingfilet-wrap", "items": ["130 g kyllingfilet", "1 grovt pitabr\u00f8d", "agurk og paprika", "1 ss lett r\u00f8mme/yoghurtdressing"], "kcal": 400, "protein": 35}, {"name": "Karbonadedeig med ris", "items": ["120 g karbonadedeig", "60 g ris (t\u00f8rrvekt)", "agurk og paprika"], "kcal": 430, "protein": 28}, {"name": "Kyllingkj\u00f8ttdeig-taco", "items": ["130 g kyllingkj\u00f8ttdeig", "2 extra thin tacolefser", "agurk og paprika", "litt mager kesam"], "kcal": 400, "protein": 32}]}, "snack": {"label": "Mellomm\u00e5ltid - velg \u00e9n", "options": [{"name": "Yoghurt med bringeb\u00e6r og granola", "items": ["150 g h\u00f8yprotein yoghurt/skyr", "20 g kakaogranola", "bringeb\u00e6r", "1 ts Biscoff"], "kcal": 230, "protein": 18}, {"name": "YT proteinprodukt", "items": ["1 stk (sjekk etiketten for n\u00f8yaktige tall)"], "kcal": 180, "protein": 20}, {"name": "Mager kesam med bringeb\u00e6r", "items": ["150 g mager kesam", "bringeb\u00e6r"], "kcal": 110, "protein": 18}]}, "dinner": {"label": "Middag - velg \u00e9n, rull\u00e9r gjennom uken", "options": [{"name": "Kyllingkj\u00f8ttdeig-stekt ris", "items": ["150 g kyllingkj\u00f8ttdeig", "70 g ris (t\u00f8rrvekt)", "amerikansk gr\u00f8nnsaksblanding (frossen)", "litt soyasaus"], "kcal": 520, "protein": 42}, {"name": "Pasta med kj\u00f8ttsaus", "items": ["80 g pasta (t\u00f8rrvekt)", "130 g karbonadedeig", "litt tomatsaus", "paprika"], "kcal": 560, "protein": 33}, {"name": "Kylling med ris", "items": ["150 g kyllingfilet", "70 g ris (t\u00f8rrvekt)", "agurk og paprika"], "kcal": 480, "protein": 44}]}}, "weeklyBySport": [{"week": "2026-08-03", "sports": {"Running": {"sessions": 1, "minutes": 33, "distanceKm": 4.3, "calories": 334}}}, {"week": "2026-09-14", "sports": {"Strength": {"sessions": 4, "minutes": 142, "distanceKm": 0.0, "calories": 644}, "Running": {"sessions": 3, "minutes": 74, "distanceKm": 8.2, "calories": 658}}}, {"week": "2026-09-21", "sports": {"Strength": {"sessions": 1, "minutes": 37, "distanceKm": 0.0, "calories": 110}}}, {"week": "2026-09-28", "sports": {"Running": {"sessions": 1, "minutes": 21, "distanceKm": 2.7, "calories": 215}}}, {"week": "2026-10-05", "sports": {"Strength": {"sessions": 2, "minutes": 57, "distanceKm": 0.0, "calories": 191}, "Running": {"sessions": 2, "minutes": 59, "distanceKm": 7.0, "calories": 530}}}, {"week": "2026-10-12", "sports": {"Strength": {"sessions": 3, "minutes": 131, "distanceKm": 0.0, "calories": 367}, "Running": {"sessions": 1, "minutes": 30, "distanceKm": 3.5, "calories": 280}, "Walking": {"sessions": 1, "minutes": 28, "distanceKm": 2.6, "calories": 193}}}, {"week": "2026-10-19", "sports": {"Strength": {"sessions": 4, "minutes": 150, "distanceKm": 0.0, "calories": 614}, "Running": {"sessions": 3, "minutes": 90, "distanceKm": 11.0, "calories": 883}}}, {"week": "2026-10-26", "sports": {"Strength": {"sessions": 3, "minutes": 126, "distanceKm": 0.0, "calories": 455}, "Running": {"sessions": 3, "minutes": 97, "distanceKm": 12.0, "calories": 845}, "Walking": {"sessions": 1, "minutes": 52, "distanceKm": 4.6, "calories": 304}}}, {"week": "2026-11-02", "sports": {"Strength": {"sessions": 3, "minutes": 126, "distanceKm": 0.0, "calories": 430}, "Cycling": {"sessions": 2, "minutes": 56, "distanceKm": 0.0, "calories": 377}, "Running": {"sessions": 2, "minutes": 48, "distanceKm": 4.9, "calories": 294}}}, {"week": "2026-11-09", "sports": {"Strength": {"sessions": 1, "minutes": 29, "distanceKm": 0.0, "calories": 95}, "Cycling": {"sessions": 1, "minutes": 26, "distanceKm": 0.0, "calories": 144}, "Running": {"sessions": 1, "minutes": 31, "distanceKm": 2.2, "calories": 194}}}], "trends": {"trainingLoad": {"weeks": ["2025-04-14", "2025-04-21", "2025-04-28", "2025-05-05", "2025-05-12", "2025-05-19", "2025-05-26", "2025-06-02", "2025-06-09", "2025-06-16", "2025-06-23", "2025-06-30", "2025-07-07", "2025-07-14", "2025-07-21", "2025-07-28", "2025-08-04", "2025-08-11", "2025-08-18", "2025-08-25", "2025-09-01", "2025-09-08", "2025-09-15", "2025-09-22", "2025-09-29", "2025-10-06", "2025-10-13", "2025-11-03", "2025-11-10", "2025-11-17", "2025-11-24", "2025-12-01", "2025-12-08", "2025-12-22", "2026-01-05", "2026-01-12", "2026-01-19", "2026-01-26", "2026-02-02", "2026-02-16", "2026-02-23", "2026-03-02", "2026-03-09", "2026-04-06", "2026-05-18", "2026-05-25", "2026-06-15", "2026-06-29", "2026-07-20", "2026-07-27", "2026-08-03", "2026-09-14", "2026-09-21", "2026-09-28", "2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-02", "2026-11-09"], "values": [241, 57, 485, 547, 3, 586, 435, 264, 262, 21, 180, 282, 21, 35, 283, 383, 111, 14, 177, 107, 59, 58, 53, 83, 31, 221, 268, 214, 167, 164, 291, 277, 12, 585, 506, 123, 271, 346, 10, 69, 293, 258, 106, 57, 97, 123, 140, 94, 5, 83, 66, 209, 3, 58, 143, 96, 283, 218, 97, 25]}, "restingHR": {"weeks": ["2024-10-14", "2024-10-21", "2024-10-28", "2024-11-04", "2024-11-11", "2024-11-18", "2024-11-25", "2024-12-02", "2024-12-09", "2024-12-16", "2024-12-23", "2024-12-30", "2025-01-06", "2025-01-13", "2025-01-20", "2025-01-27", "2025-02-03", "2025-02-10", "2025-02-17", "2025-02-24", "2025-03-03", "2025-03-10", "2025-03-17", "2025-03-24", "2025-03-31", "2025-04-07", "2025-04-14", "2025-04-21", "2025-04-28", "2025-05-05", "2025-05-12", "2025-05-19", "2025-05-26", "2025-06-02", "2025-06-09", "2025-06-16", "2025-06-23", "2025-06-30", "2025-07-07", "2025-07-14", "2025-07-21", "2025-07-28", "2025-08-04", "2025-08-11", "2025-08-18", "2025-08-25", "2025-09-01", "2025-09-08", "2025-09-15", "2025-09-22", "2025-09-29", "2025-10-06", "2025-10-13", "2025-10-20", "2025-10-27", "2025-11-03", "2025-11-10", "2025-11-17", "2025-11-24", "2025-12-01", "2025-12-08", "2025-12-15", "2025-12-22", "2025-12-29", "2026-01-05", "2026-01-12", "2026-01-19", "2026-01-26", "2026-02-02", "2026-02-09", "2026-02-16", "2026-02-23", "2026-03-02", "2026-03-09", "2026-03-16", "2026-03-23", "2026-04-06", "2026-04-13", "2026-05-18", "2026-05-25", "2026-06-01", "2026-06-08", "2026-06-15", "2026-06-22", "2026-06-29", "2026-07-06", "2026-07-13", "2026-07-20", "2026-07-27", "2026-08-03", "2026-08-10", "2026-08-17", "2026-08-24", "2026-08-31", "2026-09-07", "2026-09-14", "2026-09-21", "2026-09-28", "2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-02", "2026-11-09"], "values": [53.8, 55, 53.5, 56.2, 60.3, 55, 57, 57.6, 55.3, 55.4, 54.8, 56.1, 53.1, 51.9, 52.3, 52.1, 51.4, 51.3, 50.1, 49.6, 48.9, 49.1, 48.6, 49.6, 47.6, 49, 54.4, 52.7, 52, 52.7, 52.1, 52.6, 53.9, 53.3, 55, 57.3, 55.9, 55.4, 57.4, 57.6, 55.3, 54, 56.7, 55.9, 56, 54.7, 54.6, 55.7, 55, 56.6, 58.3, 55, 56.4, 59.1, 57.9, 56, 54.7, 55.9, 55.7, 54.7, 54.7, 56.5, 59, 55, 56.4, 55.3, 56.1, 55.7, 54.6, 57.6, 54.7, 53.9, 54.5, 53.3, 56, 57.3, 58.2, 57, 57, 57.6, 60, 56.5, 56.7, 58.4, 55.9, 59, 58.3, 54.3, 54.3, 59.1, 57.7, 54.3, 54.4, 55.7, 55.6, 55.7, 54.9, 55.1, 54, 54.3, 54.4, 52.9, 53.3, 53.5]}, "hrv": {"weeks": ["2024-09-23", "2024-09-30", "2024-10-07", "2024-10-14", "2024-10-21", "2024-10-28", "2024-11-04", "2024-11-11", "2024-11-18", "2024-11-25", "2024-12-02", "2024-12-09", "2024-12-16", "2024-12-23", "2024-12-30", "2025-01-06", "2025-01-13", "2025-01-20", "2025-01-27", "2025-02-03", "2025-02-10", "2025-02-17", "2025-02-24", "2025-03-03", "2025-03-10", "2025-03-17", "2025-03-24", "2025-03-31", "2025-04-07", "2025-04-14", "2025-04-21", "2025-04-28", "2025-05-05", "2025-05-12", "2025-05-19", "2025-05-26", "2025-06-02", "2025-06-09", "2025-06-16", "2025-06-23", "2025-06-30", "2025-07-07", "2025-07-14", "2025-07-21", "2025-07-28", "2025-08-04", "2025-08-11", "2025-08-18", "2025-08-25", "2025-09-01", "2025-09-08", "2025-09-15", "2025-09-22", "2025-09-29", "2025-10-06", "2025-10-13", "2025-10-20", "2025-10-27", "2025-11-03", "2025-11-10", "2025-11-17", "2025-11-24", "2025-12-01", "2025-12-08", "2025-12-15", "2025-12-22", "2025-12-29", "2026-01-05", "2026-01-12", "2026-01-19", "2026-01-26", "2026-02-02", "2026-02-09", "2026-02-16", "2026-02-23", "2026-03-02", "2026-03-09", "2026-03-16", "2026-03-23", "2026-04-06", "2026-05-18", "2026-05-25", "2026-06-01", "2026-06-15", "2026-06-22", "2026-06-29", "2026-07-13", "2026-07-20", "2026-07-27", "2026-08-03", "2026-08-10", "2026-08-17", "2026-08-24", "2026-08-31", "2026-09-07", "2026-09-14", "2026-09-21", "2026-09-28", "2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-02", "2026-11-09"], "values": [48.3, 46.5, 51.8, 48.2, 46.8, 53.5, 46, 50, 51.3, 44.5, 56, 47.2, 50, 46.8, 47, 48.6, 53.3, 48.3, 48.1, 53.3, 55.1, 60.3, 51.9, 55.3, 59, 62.6, 59.9, 61, 57.9, 46.7, 50, 54.7, 55.3, 49.3, 51.4, 47.4, 50.9, 43.3, 43.5, 48.1, 46.7, 40.4, 46.1, 52.1, 52.3, 44.2, 46.6, 45, 51.4, 45.1, 46.6, 48.8, 48, 40.8, 44.4, 42.4, 47.6, 45.5, 48.9, 50.7, 46.7, 47, 49.5, 51.6, 46.8, 45.2, 49.3, 43.4, 43.9, 43.8, 46.6, 45.8, 39, 47.8, 47.1, 46.4, 44.6, 41.3, 42.5, 38.3, 40, 39.4, 33, 36.5, 37.3, 41.2, 38, 45.6, 44, 38.2, 36.5, 42.6, 43.6, 40.3, 40.7, 38.7, 38.3, 39.6, 40.9, 42.1, 42, 40.6, 43, 43.8]}, "sleepHours": {"weeks": ["2024-10-07", "2024-10-14", "2024-10-21", "2024-10-28", "2024-11-04", "2024-11-11", "2024-11-18", "2024-11-25", "2024-12-02", "2024-12-09", "2024-12-16", "2024-12-23", "2024-12-30", "2025-01-06", "2025-01-13", "2025-01-20", "2025-01-27", "2025-02-03", "2025-02-10", "2025-02-17", "2025-02-24", "2025-03-03", "2025-03-10", "2025-03-17", "2025-03-24", "2025-03-31", "2025-04-07", "2025-04-14", "2025-04-21", "2025-04-28", "2025-05-05", "2025-05-12", "2025-05-19", "2025-05-26", "2025-06-02", "2025-06-09", "2025-06-16", "2025-06-23", "2025-06-30", "2025-07-07", "2025-07-14", "2025-07-21", "2025-07-28", "2025-08-04", "2025-08-11", "2025-08-18", "2025-08-25", "2025-09-01", "2025-09-08", "2025-09-15", "2025-09-22", "2025-09-29", "2025-10-06", "2025-10-13", "2025-10-20", "2025-10-27", "2025-11-03", "2025-11-10", "2025-11-17", "2025-11-24", "2025-12-01", "2025-12-08", "2025-12-15", "2025-12-22", "2025-12-29", "2026-01-05", "2026-01-12", "2026-01-19", "2026-01-26", "2026-02-02", "2026-02-09", "2026-02-16", "2026-02-23", "2026-03-02", "2026-03-09", "2026-03-16", "2026-03-23", "2026-04-06", "2026-05-18", "2026-05-25", "2026-06-01", "2026-06-08", "2026-06-15", "2026-06-22", "2026-06-29", "2026-07-06", "2026-07-13", "2026-07-20", "2026-07-27", "2026-08-03", "2026-08-10", "2026-08-17", "2026-08-24", "2026-08-31", "2026-09-07", "2026-09-14", "2026-09-21", "2026-09-28", "2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-02", "2026-11-09"], "values": [8.8, 8.8, 9.4, 9.9, 8.4, 8.9, 9.0, 9.1, 9.6, 9.1, 8.6, 8.4, 8.4, 8.0, 8.4, 7.1, 8.8, 8.1, 8.4, 8.0, 8.6, 8.1, 7.8, 8.0, 8.5, 8.0, 8.2, 7.7, 9.1, 8.7, 7.6, 8.7, 8.4, 8.0, 7.8, 7.5, 9.5, 8.0, 7.7, 6.8, 8.2, 7.9, 8.4, 7.8, 7.4, 7.7, 9.1, 8.0, 8.7, 8.2, 8.0, 10.2, 9.2, 8.1, 7.9, 6.5, 7.9, 8.0, 8.2, 8.1, 8.1, 8.4, 7.5, 8.8, 8.5, 8.5, 9.6, 7.7, 7.9, 7.8, 7.7, 8.4, 8.7, 8.3, 8.4, 8.2, 9.8, 9.7, 7.6, 7.0, 8.3, 8.0, 8.0, 8.3, 8.1, 7.4, 8.8, 8.5, 8.0, 7.7, 10.1, 8.4, 9.0, 9.6, 9.3, 8.6, 8.5, 9.2, 8.8, 8.9, 8.8, 8.7, 8.8, 8.1]}, "sleepScore": {"weeks": ["2024-10-07", "2024-10-14", "2024-10-21", "2024-10-28", "2024-11-04", "2024-11-11", "2024-11-18", "2024-11-25", "2024-12-02", "2024-12-09", "2024-12-16", "2024-12-23", "2024-12-30", "2025-01-06", "2025-01-13", "2025-01-20", "2025-01-27", "2025-02-03", "2025-02-10", "2025-02-17", "2025-02-24", "2025-03-03", "2025-03-10", "2025-03-17", "2025-03-24", "2025-03-31", "2025-04-07", "2025-04-14", "2025-04-21", "2025-04-28", "2025-05-05", "2025-05-12", "2025-05-19", "2025-05-26", "2025-06-02", "2025-06-09", "2025-06-16", "2025-06-23", "2025-06-30", "2025-07-07", "2025-07-14", "2025-07-21", "2025-07-28", "2025-08-04", "2025-08-11", "2025-08-18", "2025-08-25", "2025-09-01", "2025-09-08", "2025-09-15", "2025-09-22", "2025-09-29", "2025-10-06", "2025-10-13", "2025-10-20", "2025-10-27", "2025-11-03", "2025-11-10", "2025-11-17", "2025-11-24", "2025-12-01", "2025-12-08", "2025-12-15", "2025-12-22", "2025-12-29", "2026-01-05", "2026-01-12", "2026-01-19", "2026-01-26", "2026-02-02", "2026-02-09", "2026-02-16", "2026-02-23", "2026-03-02", "2026-03-09", "2026-03-16", "2026-03-23", "2026-04-06", "2026-05-18", "2026-05-25", "2026-06-01", "2026-06-08", "2026-06-15", "2026-06-22", "2026-06-29", "2026-07-06", "2026-07-13", "2026-07-20", "2026-07-27", "2026-08-03", "2026-08-10", "2026-08-17", "2026-08-24", "2026-08-31", "2026-09-07", "2026-09-14", "2026-09-21", "2026-09-28", "2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-02", "2026-11-09"], "values": [83.7, 83.6, 79.5, 88.5, 79.6, 81.5, 88, 75.2, 91, 83, 85.8, 81.2, 84.4, 88.1, 88.4, 82.9, 89.6, 84.6, 83.9, 88.1, 90.6, 88.6, 85.6, 88.4, 92.7, 90.9, 90.7, 81.3, 85.2, 81, 83.3, 76.6, 84.1, 79.7, 85.3, 69.4, 77.2, 82, 82, 70.1, 78.4, 85.4, 90, 83, 82.9, 79.4, 86.3, 81.4, 83.1, 85.8, 83.2, 63.4, 77.6, 83.6, 83, 71.2, 81, 86.4, 85, 82.6, 84.3, 90.4, 80.2, 78.8, 82.6, 85.3, 76.3, 75.3, 79.3, 83.4, 75.7, 85.8, 84.6, 86.6, 82.6, 78.9, 84.5, 82.3, 84.2, 73.3, 75.6, 87.3, 76.7, 79.8, 72.7, 76.8, 73.8, 86.1, 84.1, 79.8, 81, 87.1, 81, 81.9, 84, 82.6, 86.1, 79.4, 84.4, 85.1, 87, 87.6, 87.6, 87.5]}}, "records": {"longestRide": {"value": 62, "unit": "min", "date": "2020-04-02", "name": "Innend\u00f8rssykling"}, "longestRun": {"value": 12.0, "unit": "km", "date": "2025-03-29", "name": "Oslo L\u00f8ping"}, "longestStrength": {"value": 139, "unit": "min", "date": "2020-03-12", "name": "Styrke"}, "highestTrainingLoad": {"value": 232, "unit": "load", "date": "2025-05-25", "name": "Oslo - Lett l\u00f8petur"}, "mostSteps": {"value": 28897, "date": "2025-10-26"}, "mostCalories": {"value": 4495, "date": "2020-06-13"}, "longestSleep": {"value": 21.0, "date": "2025-09-29"}, "bestHRV": {"value": 70, "date": "2025-03-22"}}, "sportColors": {"Strength": "#7a1f3d", "Cycling": "#9b3456", "Running": "#a46cc0", "Walking": "#e8a3b6", "Other": "#d9a441"}, "sportOrder": ["Strength", "Cycling", "Running", "Walking", "Other"], "budgetDefaults": {"income": 32000, "categories": [{"key": "bolig", "label": "Bolig/faste utgifter", "cap": 15000}, {"key": "mat", "label": "Dagligvarer", "cap": 3800}, {"key": "restaurant", "label": "Restaurant/take-away", "cap": 600}, {"key": "transport", "label": "Transport", "cap": 900}, {"key": "abonnement", "label": "Abonnementer", "cap": 500}, {"key": "klaer", "label": "Kl\u00e6r/shopping", "cap": 700}, {"key": "trening", "label": "Trening/helse", "cap": 600}, {"key": "hundefond", "label": "Hundefond (sparing)", "cap": 2500}, {"key": "annet", "label": "Annet", "cap": 1000}]}, "dogFund": {"target": 30000, "startSaved": 5000, "category": "hundefond"}, "pointsConfig": {"levelThreshold": 600, "perCompletedSession": 15, "perStepGoalDay": 5, "perWeightWeek": 10, "perMeasurementMonth": 15, "perNewRecord": 20, "perFundMilestone": 50, "levelNames": ["Fr\u00f8", "Spire", "Knopp", "Blomst", "Bukett", "Hage", "Rosekongen"], "levelRewards": ["Start! \ud83c\udf31", "Nye treningssokker eller fin h\u00e5rklype", "Et lite s\u00f8lvsmykke, f.eks. \u00f8redobber eller et armb\u00e5nd", "Ny spilleliste og fin vannflaske til treningsbagen", "Manikyr eller en bukett blomster til deg selv", "Noe fint til leiligheten, f.eks. en plante eller pute", "En hel dag fri fra alt, akkurat som du vil \ud83d\udc51"]}, "trainingHistory": [{"date": "2026-11-09", "sessionType": "strength", "loggedTypes": ["strength"], "stepGoalMet": true}, {"date": "2026-11-10", "sessionType": "cycling", "loggedTypes": ["cycling"], "stepGoalMet": true}, {"date": "2026-11-11", "sessionType": "strength", "loggedTypes": [], "stepGoalMet": true}, {"date": "2026-11-12", "sessionType": "rest", "loggedTypes": [], "stepGoalMet": false}], "programStart": "2026-11-09", "gateHash": "1ffa20f244683c96798d050cb32b8e5bddd8d5efbfdb591cb6c31242023975d0"};
+
+// ---------------------------------------------------------------- access gate
+(function () {
+  const GATE_KEY = "garminDashboardUnlocked_v1";
+  const overlay = document.getElementById("gate-overlay");
+  if (localStorage.getItem(GATE_KEY) === "1") { overlay.remove(); return; }
+
+  async function sha256Hex(text) {
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+  }
+  async function tryUnlock() {
+    const val = document.getElementById("gate-input").value;
+    const hash = await sha256Hex(val);
+    if (hash === DATA.gateHash) {
+      localStorage.setItem(GATE_KEY, "1");
+      overlay.remove();
+    } else {
+      document.getElementById("gate-error").textContent = "Feil passord";
+      overlay.classList.remove("shake");
+      void overlay.offsetWidth;
+      overlay.classList.add("shake");
+    }
+  }
+  document.getElementById("gate-submit").addEventListener("click", tryUnlock);
+  document.getElementById("gate-input").addEventListener("keydown", e => {
+    if (e.key === "Enter") tryUnlock();
+  });
+})();
+
+function fmtDate(s) {
+  if (!s) return "";
+  const d = new Date(s + "T00:00:00");
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+function fmtShort(s) {
+  if (!s) return "";
+  const d = new Date(s + "T00:00:00");
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+// ---------------------------------------------------------------- header
+document.getElementById("date-range-sub").textContent =
+  `${DATA.meta.totalActivities} activities tracked, ${fmtDate(DATA.meta.dateRange[0])} - ${fmtDate(DATA.meta.dateRange[1])}`;
+
+const goalChips = document.getElementById("goal-chips");
+const g = DATA.goal;
+function deltaSpan(pct) {
+  if (pct === null || pct === undefined) return "";
+  const cls = pct >= 0 ? "delta-up" : "delta-down";
+  const sign = pct >= 0 ? "+" : "";
+  return ` <span class="${cls}">${sign}${pct}%</span>`;
+}
+if (g.recentActiveCaloriesPerWeek) {
+  goalChips.innerHTML += `<div class="goal-chip">Active calories / week<b>${g.recentActiveCaloriesPerWeek.toLocaleString()}${deltaSpan(g.caloriesPctChange)}</b></div>`;
+}
+if (g.recentSessionsPerWeek) {
+  goalChips.innerHTML += `<div class="goal-chip">Sessions / week<b>${g.recentSessionsPerWeek}</b></div>`;
+}
+if (g.recentStepsPerDay) {
+  goalChips.innerHTML += `<div class="goal-chip">Steps / day<b>${g.recentStepsPerDay.toLocaleString()}${deltaSpan(g.stepsPctChange)}</b></div>`;
+}
+
+// ---------------------------------------------------------------- tabs
+const ACTIVE_TAB_KEY = "garminDashboardActiveTab_v1";
+function showTab(tab) {
+  document.querySelectorAll(".tab-panel").forEach(p => p.classList.toggle("active", p.dataset.tab === tab));
+  document.querySelectorAll("#tab-nav button").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+  localStorage.setItem(ACTIVE_TAB_KEY, tab);
+}
+document.querySelectorAll("#tab-nav button").forEach(btn => {
+  btn.addEventListener("click", () => showTab(btn.dataset.tab));
+});
+showTab(localStorage.getItem(ACTIVE_TAB_KEY) || "trening");
+
+// ---------------------------------------------------------------- training plan
+const PLAN_OVERRIDES_KEY = "garminDashboardPlanOverrides_v1";
+const SWAP_OPTIONS = ["gsA", "gsB", "gsC", "cyc", "walk", "rest"];
+const SWAP_NAMES = { gsA: "Styrke A", gsB: "Styrke B", gsC: "Styrke C", cyc: "Sykling", walk: "Gåtur", rest: "Hvile" };
+
+function loadPlanOverrides() {
+  try { return JSON.parse(localStorage.getItem(PLAN_OVERRIDES_KEY) || "{}"); } catch (e) { return {}; }
+}
+function savePlanOverrides(o) { localStorage.setItem(PLAN_OVERRIDES_KEY, JSON.stringify(o)); }
+
+function resolvePlanDay(d, overrides) {
+  const ov = overrides[d.date];
+  const cat = DATA.sessionCatalog;
+  let key, label, type, exercises, cycleNote;
+  if (ov && cat[ov]) {
+    key = ov;
+    label = cat[ov].label + (ov === "cyc" ? ` (${DATA.program.weekCycleNote})` : "");
+    type = cat[ov].type;
+    exercises = cat[ov].exercises || null;
+    cycleNote = cat[ov].type === "cycling" ? cat[ov].note : null;
+  } else {
+    key = d.defaultKey;
+    label = d.sessionLabel;
+    type = d.sessionType;
+    exercises = (cat[d.defaultKey] || {}).exercises || null;
+    cycleNote = type === "cycling" ? cat.cyc.note : null;
+  }
+  const matched = type === "rest" ? null : (d.loggedActivities || []).find(a => a.type === type) || null;
+  return { key, label, type, exercises, cycleNote, done: type === "rest" ? null : !!matched, matchedActivity: matched };
+}
+
+function swapSelectHtml(date, resolvedKey) {
+  const selKey = SWAP_OPTIONS.includes(resolvedKey) ? resolvedKey : "rest";
+  const opts = SWAP_OPTIONS.map(k => `<option value="${k}" ${k === selKey ? "selected" : ""}>${SWAP_NAMES[k]}</option>`).join("");
+  return `<select class="swap" data-date="${date}" aria-label="Bytt økt">${opts}</select>`;
+}
+
+function renderPlan() {
+  const p = DATA.program;
+  if (!p) return;
+  const overrides = loadPlanOverrides();
+
+  document.getElementById("plan-sub").textContent = `Uke ${p.currentWeek} av 4 · ${p.weekFocus}`;
+
+  const todayDay = p.week.find(d => d.isToday);
+  const resolved = resolvePlanDay(todayDay, overrides);
+  const readinessLabel = { go: "Klar for økta", caution: "Vurder en lettere variant", light: "Prioriter hvile i dag" }[p.today.readiness];
+  const card = document.getElementById("plan-today");
+  card.className = "plan-card " + p.today.readiness;
+
+  let body = `<div class="plan-eyebrow">I dag · ${readinessLabel}</div>`;
+  body += `<div class="plan-head"><h3>${resolved.label}</h3>${swapSelectHtml(todayDay.date, resolved.key)}</div>`;
+
+  if (resolved.done) {
+    const extra = resolved.matchedActivity ? `: ${resolved.matchedActivity.name} (${resolved.matchedActivity.minutes} min)` : "";
+    body += `<div class="done-badge">✓ Gjort${extra}</div>`;
+  } else if (resolved.type === "rest") {
+    body += `<div style="color:var(--muted);font-size:13px">Ingen planlagt økt i dag. Ta en rolig tur hvis du har overskudd.</div>`;
+  } else {
+    if (resolved.exercises) {
+      body += `<div class="exercises">${resolved.exercises.map(e => `<div>${e}</div>`).join("")}</div>`;
+    }
+    if (resolved.cycleNote) {
+      body += `<div class="exercises"><div>${resolved.cycleNote}</div></div>`;
+    }
+    if (resolved.type === "strength") {
+      body += `<div style="margin-top:10px;font-size:13px;color:var(--muted)">Kjenner du det i kneet på en øvelse? Reduser bevegelsesutslaget eller bytt den ut - ikke press gjennom smerte.</div>`;
+    }
+  }
+
+  body += `<ul class="plan-reasons">${p.today.reasons.map(r => `<li>${r}</li>`).join("")}</ul>`;
+  card.innerHTML = body;
+
+  const weekEl = document.getElementById("plan-week");
+  weekEl.innerHTML = p.week.map(d => {
+    const r = resolvePlanDay(d, overrides);
+    const mark = r.done === true ? "✓"
+      : d.isToday ? "●"
+      : r.type === "rest" ? "–"
+      : d.date < p.today.date ? "✕"
+      : "";
+    return `<div class="week-day${d.isToday ? " today" : ""}">
+      <div class="wd">${d.weekday}</div>
+      <div class="sess">${r.label}</div>
+      <div class="mark">${mark}</div>
+      ${swapSelectHtml(d.date, r.key)}
+    </div>`;
+  }).join("");
+
+  document.querySelectorAll("select.swap").forEach(sel => {
+    sel.addEventListener("change", () => {
+      const current = loadPlanOverrides();
+      const day = p.week.find(x => x.date === sel.dataset.date);
+      const isDefault = sel.value === day.defaultKey
+        || (sel.value === "rest" && (day.defaultKey === "rest" || day.defaultKey === "restW"));
+      if (isDefault) {
+        delete current[sel.dataset.date];
+      } else {
+        current[sel.dataset.date] = sel.value;
+      }
+      savePlanOverrides(current);
+      renderPlan();
+    });
+  });
+}
+renderPlan();
+
+// ---------------------------------------------------------------- nutrition
+function mealOptionHtml(opt) {
+  return `<div class="meal-option">
+    <div class="meal-head"><b>${opt.name}</b><span class="meal-macro">${opt.kcal} kcal · ${opt.protein} g protein</span></div>
+    <div class="meal-items">${opt.items.join(" · ")}</div>
+  </div>`;
+}
+
+function renderNutrition() {
+  const n = DATA.nutritionPlan;
+  if (!n) return;
+
+  document.getElementById("kcal-row").innerHTML = `
+    <div class="kcal-chip">Mål<b>${n.dailyKcal} kcal</b></div>
+    <div class="kcal-chip">Protein<b>${n.proteinMin} g+</b></div>
+  `;
+
+  const b = n.breakfast;
+  let html = `<div class="meal-group"><h4>${b.label}</h4>${mealOptionHtml({ name: b.label, items: b.items, kcal: b.kcal, protein: b.protein })}</div>`;
+  ["lunch", "snack", "dinner"].forEach(key => {
+    const group = n[key];
+    html += `<div class="meal-group"><h4>${group.label}</h4>${group.options.map(mealOptionHtml).join("")}</div>`;
+  });
+  html += `<div class="nutrition-note">${n.note}</div>`;
+  document.getElementById("meal-plan").innerHTML = html;
+}
+renderNutrition();
+
+// ---------------------------------------------------------------- shared storage helpers
+const WEIGHT_LOG_KEY = "garminDashboardWeightLog_v1";
+const MEASURE_LOG_KEY = "garminDashboardMeasureLog_v1";
+const SHOP_LIST_KEY = "garminDashboardShoppingList_v1";
+const TX_KEY = "garminDashboardTransactions_v1";
+const BUDGET_CONFIG_KEY = "garminDashboardBudgetConfig_v1";
+const SEEN_KEY = "garminDashboardSeen_v1";
+
+function loadLS(key, fallback) {
+  try {
+    const v = JSON.parse(localStorage.getItem(key));
+    return v === null || v === undefined ? fallback : v;
+  } catch (e) { return fallback; }
+}
+function saveLS(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+function todayISO() { return new Date().toISOString().slice(0, 10); }
+function isoWeekOf(dateStr) {
+  const d = new Date(dateStr + "T00:00:00");
+  const day = (d.getDay() + 6) % 7;
+  d.setDate(d.getDate() - day);
+  return d.toISOString().slice(0, 10);
+}
+function monthOf(dateStr) { return dateStr.slice(0, 7); }
+
+// ---- weight log ----
+function loadWeightLog() { return loadLS(WEIGHT_LOG_KEY, []); }
+function saveWeightLog(l) { saveLS(WEIGHT_LOG_KEY, l); }
+
+// ---- measurement log ----
+function loadMeasureLog() { return loadLS(MEASURE_LOG_KEY, []); }
+function saveMeasureLog(l) { saveLS(MEASURE_LOG_KEY, l); }
+
+// ---- shopping list ----
+function loadShopList() { return loadLS(SHOP_LIST_KEY, []); }
+function saveShopList(l) { saveLS(SHOP_LIST_KEY, l); }
+
+// ---- budget config / transactions ----
+function loadBudgetConfig() {
+  const stored = loadLS(BUDGET_CONFIG_KEY, null);
+  if (stored && stored.categories) return stored;
+  return JSON.parse(JSON.stringify(DATA.budgetDefaults));
+}
+function saveBudgetConfig(c) { saveLS(BUDGET_CONFIG_KEY, c); }
+function loadTransactions() { return loadLS(TX_KEY, []); }
+function saveTransactions(t) { saveLS(TX_KEY, t); }
+
+function fundBalance() {
+  const tx = loadTransactions();
+  const fundKey = DATA.dogFund.category;
+  const sum = tx.filter(t => t.category === fundKey).reduce((s, t) => s + t.amount, 0);
+  return DATA.dogFund.startSaved + sum;
+}
+
+// ---------------------------------------------------------------- points / level / snapshot
+function computePoints() {
+  const th = DATA.trainingHistory || [];
+  let sessionPts = 0, stepPts = 0;
+  th.forEach(day => {
+    if (day.sessionType !== "rest" && day.loggedTypes.includes(day.sessionType)) sessionPts++;
+    if (day.stepGoalMet) stepPts++;
+  });
+  const weightWeeks = new Set(loadWeightLog().map(e => isoWeekOf(e.date))).size;
+  const measureMonths = new Set(loadMeasureLog().map(e => monthOf(e.date))).size;
+  const newRecords = Object.values(DATA.records || {}).filter(r => r && r.date && r.date >= DATA.programStart).length;
+  const balance = fundBalance();
+  const pct = 100 * balance / DATA.dogFund.target;
+  const milestonesCrossed = [25, 50, 75, 100].filter(m => pct >= m).length;
+
+  const cfg = DATA.pointsConfig;
+  const total =
+    sessionPts * cfg.perCompletedSession +
+    stepPts * cfg.perStepGoalDay +
+    weightWeeks * cfg.perWeightWeek +
+    measureMonths * cfg.perMeasurementMonth +
+    newRecords * cfg.perNewRecord +
+    milestonesCrossed * cfg.perFundMilestone;
+
+  return { total, sessionPts, stepPts, weightWeeks, measureMonths, newRecords, milestonesCrossed };
+}
+
+function renderLevel() {
+  const cfg = DATA.pointsConfig;
+  const pts = computePoints();
+  const levelIdx = Math.min(Math.floor(pts.total / cfg.levelThreshold), cfg.levelNames.length - 1);
+  const inLevel = pts.total - levelIdx * cfg.levelThreshold;
+  const pct = levelIdx >= cfg.levelNames.length - 1 ? 100 : Math.min(100, 100 * inLevel / cfg.levelThreshold);
+
+  document.getElementById("level-card").innerHTML = `
+    <div class="level-head">
+      <div class="level-name">${cfg.levelNames[levelIdx]} · nivå ${levelIdx + 1}</div>
+      <div class="level-pts">${pts.total} poeng</div>
+    </div>
+    <div class="level-bar"><div style="width:${pct}%"></div></div>
+    <div class="level-reward">🎁 ${cfg.levelRewards[levelIdx]}</div>
+  `;
+
+  const seen = loadLS(SEEN_KEY, { level: 0, milestones: 0 });
+  const msgs = [];
+  if (levelIdx > seen.level) msgs.push(`Nytt nivå! Du er nå ${cfg.levelNames[levelIdx]} 🎉`);
+  if (pts.milestonesCrossed > seen.milestones) msgs.push(`Hundefondet har passert en ny milepæl! 🐶`);
+  document.getElementById("celebrate-banner").innerHTML = msgs.length
+    ? `<div class="celebrate-banner">${msgs.join(" · ")}</div>` : "";
+  saveLS(SEEN_KEY, { level: levelIdx, milestones: pts.milestonesCrossed });
+
+  return pts;
+}
+
+function renderWeeklySnapshot() {
+  const since = new Date();
+  since.setDate(since.getDate() - 6);
+  const sinceStr = since.toISOString().slice(0, 10);
+
+  const th = (DATA.trainingHistory || []).filter(d => d.date >= sinceStr);
+  const sessionsDone = th.filter(d => d.sessionType !== "rest" && d.loggedTypes.includes(d.sessionType)).length;
+  const stepsDone = th.filter(d => d.stepGoalMet).length;
+
+  const allWeights = loadWeightLog().sort((a, b) => a.date.localeCompare(b.date));
+  const recentWeights = allWeights.filter(e => e.date >= sinceStr);
+  let kgChangeLabel = "–";
+  if (recentWeights.length >= 2) {
+    const diff = recentWeights[recentWeights.length - 1].kg - recentWeights[0].kg;
+    kgChangeLabel = `${diff > 0 ? "+" : ""}${diff.toFixed(1)} kg`;
+  }
+
+  const krAdded = loadTransactions()
+    .filter(t => t.date >= sinceStr && t.category === DATA.dogFund.category)
+    .reduce((s, t) => s + t.amount, 0);
+
+  document.getElementById("weekly-snapshot").innerHTML = `
+    <div class="snapshot-chip">Økter gjort<b>${sessionsDone}</b></div>
+    <div class="snapshot-chip">Stegmål nådd<b>${stepsDone} dager</b></div>
+    <div class="snapshot-chip">Vektendring<b>${kgChangeLabel}</b></div>
+    <div class="snapshot-chip">Lagt i hundefondet<b>${krAdded} kr</b></div>
+  `;
+}
+
+// ---------------------------------------------------------------- weight / measurement logging
+document.getElementById("weight-date").value = todayISO();
+document.getElementById("measure-date").value = todayISO();
+
+function renderPlateau() {
+  const card = document.getElementById("plateau-card");
+  const log = loadWeightLog().sort((a, b) => a.date.localeCompare(b.date));
+  if (log.length < 3) { card.innerHTML = ""; return; }
+
+  const a = log[log.length - 3], z = log[log.length - 1];
+  const daysBetween = (new Date(z.date) - new Date(a.date)) / 86400000;
+  const stuck = daysBetween >= 14 && (a.kg - z.kg) < 0.3;
+  if (!stuck) { card.innerHTML = ""; return; }
+
+  const mlog = loadMeasureLog().filter(e => e.waist != null).sort((x, y) => x.date.localeCompare(y.date));
+  let waistDown = false;
+  if (mlog.length >= 2) {
+    const first = mlog[mlog.length - 2], last = mlog[mlog.length - 1];
+    const daysSinceLast = (new Date(z.date) - new Date(last.date)) / 86400000;
+    waistDown = (first.waist - last.waist) >= 1 && daysSinceLast <= 35;
+  }
+
+  card.innerHTML = waistDown
+    ? `<h3 style="margin:0 0 4px;font-size:15px;">Vekta står stille, men midjen går ned 🎉</h3><div class="section-sub" style="margin:0;">Det betyr at du mister fett og bygger muskler samtidig. Ikke endre noe, bare fortsett som nå.</div>`
+    : `<h3 style="margin:0 0 4px;font-size:15px;">Vekta har stått stille i 2–3 uker</h3><div class="section-sub" style="margin:0;">Det er helt vanlig. Velg én liten justering og gi den 2 uker: spis litt mindre, eller gå litt mer hver dag. Sjekk også at du logger alt, særlig olje, saus og drikke.</div>`;
+}
+
+function renderWeightLog() {
+  const log = loadWeightLog().sort((a, b) => b.date.localeCompare(a.date));
+  document.getElementById("weight-list").innerHTML = log.slice(0, 8).map((e, i) => {
+    const prev = log[i + 1];
+    let delta = "";
+    if (prev) {
+      const d = e.kg - prev.kg;
+      delta = `<span class="log-delta ${d <= 0 ? "down" : "up"}">${d > 0 ? "+" : ""}${d.toFixed(1)} kg</span>`;
+    }
+    return `<li><span>${fmtShort(e.date)}</span><b>${e.kg} kg</b> ${delta}</li>`;
+  }).join("") || `<li style="border-top:none;color:var(--muted);">Ingen målinger ennå</li>`;
+}
+document.getElementById("weight-add").addEventListener("click", () => {
+  const date = document.getElementById("weight-date").value || todayISO();
+  const kg = parseFloat(document.getElementById("weight-kg").value);
+  if (!kg) return;
+  const log = loadWeightLog().filter(e => e.date !== date);
+  log.push({ date, kg });
+  saveWeightLog(log);
+  document.getElementById("weight-kg").value = "";
+  renderWeightLog();
+  renderLevel();
+  renderWeeklySnapshot();
+  renderPlateau();
+});
+
+function renderMeasureLog() {
+  const log = loadMeasureLog().sort((a, b) => b.date.localeCompare(a.date));
+  document.getElementById("measure-list").innerHTML = log.slice(0, 6).map(e =>
+    `<li><span>${fmtShort(e.date)}</span><b>${e.waist ?? "–"} / ${e.hips ?? "–"} cm</b></li>`
+  ).join("") || `<li style="border-top:none;color:var(--muted);">Ingen mål ennå</li>`;
+}
+document.getElementById("measure-add").addEventListener("click", () => {
+  const date = document.getElementById("measure-date").value || todayISO();
+  const waist = parseFloat(document.getElementById("measure-waist").value) || null;
+  const hips = parseFloat(document.getElementById("measure-hips").value) || null;
+  if (!waist && !hips) return;
+  const log = loadMeasureLog().filter(e => e.date !== date);
+  log.push({ date, waist, hips });
+  saveMeasureLog(log);
+  document.getElementById("measure-waist").value = "";
+  document.getElementById("measure-hips").value = "";
+  renderMeasureLog();
+  renderLevel();
+  renderPlateau();
+});
+
+document.getElementById("overwhelm-btn").addEventListener("click", () => {
+  const out = document.getElementById("overwhelm-out");
+  if (out.innerHTML) { out.innerHTML = ""; return; }
+  out.innerHTML = `<div class="overwhelm-box">
+    <b>1. Stopp og pust 🫧</b><br>Pust inn i 4 sekunder, ut i 6. Gjør det fem ganger.<br><br>
+    <b>2. Velg bare én ting</b><br>Se på neste punkt på treningsplanen eller handlelista. Alt annet kan vente - det forsvinner ikke.<br><br>
+    <b>3. Gjør den i 10 minutter</b><br>Etterpå har du lov til å stoppe. Ofte blir det lettere å fortsette.
+  </div>`;
+});
+
+// ---------------------------------------------------------------- shopping list
+function shopKey(name) { return name.trim().toLowerCase(); }
+function addShopItems(names) {
+  const list = loadShopList();
+  const existing = new Set(list.map(i => shopKey(i.name)));
+  names.forEach(n => {
+    const k = shopKey(n);
+    if (!existing.has(k)) {
+      list.push({ id: k + "-" + Date.now() + Math.random(), name: n, checked: false });
+      existing.add(k);
+    }
+  });
+  saveShopList(list);
+  renderShopList();
+}
+function renderShopList() {
+  const list = loadShopList();
+  document.getElementById("shop-list").innerHTML = list.map(i => `
+    <li class="${i.checked ? "checked" : ""}" data-id="${i.id}">
+      <input type="checkbox" ${i.checked ? "checked" : ""}>
+      <span>${i.name}</span>
+      <button data-remove="${i.id}">✕</button>
+    </li>`).join("") || `<li style="border-top:none;color:var(--muted);">Listen er tom</li>`;
+
+  document.querySelectorAll("#shop-list input[type=checkbox]").forEach(cb => {
+    cb.addEventListener("change", () => {
+      const id = cb.closest("li").dataset.id;
+      const l = loadShopList();
+      const item = l.find(x => x.id === id);
+      if (item) item.checked = cb.checked;
+      saveShopList(l);
+      renderShopList();
+    });
+  });
+  document.querySelectorAll("#shop-list button[data-remove]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      saveShopList(loadShopList().filter(x => x.id !== btn.dataset.remove));
+      renderShopList();
+    });
+  });
+}
+document.getElementById("shop-add").addEventListener("click", () => {
+  const input = document.getElementById("shop-input");
+  if (input.value.trim()) { addShopItems([input.value.trim()]); input.value = ""; }
+});
+document.getElementById("shop-input").addEventListener("keydown", e => {
+  if (e.key === "Enter") document.getElementById("shop-add").click();
+});
+document.getElementById("shop-quickadd-protein").addEventListener("click", () => {
+  addShopItems(["Havregryn", "Proteinpulver", "Proteinmelk", "Chiafrø", "Gresk yoghurt", "Mager kesam"]);
+});
+document.getElementById("shop-quickadd-meals").addEventListener("click", () => {
+  const n = DATA.nutritionPlan;
+  const items = new Set();
+  n.breakfast.items.forEach(i => items.add(i));
+  ["lunch", "snack", "dinner"].forEach(key => n[key].options.forEach(o => o.items.forEach(i => items.add(i))));
+  addShopItems(Array.from(items));
+});
+document.getElementById("shop-clear-checked").addEventListener("click", () => {
+  saveShopList(loadShopList().filter(i => !i.checked));
+  renderShopList();
+});
+
+// ---------------------------------------------------------------- budget
+let currentMonth = todayISO().slice(0, 7);
+function monthLabel(m) {
+  const d = new Date(m + "-01T00:00:00");
+  return d.toLocaleDateString("nb-NO", { month: "long", year: "numeric" });
+}
+
+document.getElementById("tx-date").value = todayISO();
+
+function populateCategorySelect() {
+  const cfg = loadBudgetConfig();
+  document.getElementById("tx-category").innerHTML = cfg.categories.map(c => `<option value="${c.key}">${c.label}</option>`).join("");
+}
+
+function renderCategoryBreakdown() {
+  const cfg = loadBudgetConfig();
+  const tx = loadTransactions().filter(t => monthOf(t.date) === currentMonth);
+  document.getElementById("cat-breakdown").innerHTML = cfg.categories.map(c => {
+    const spent = tx.filter(t => t.category === c.key).reduce((s, t) => s + t.amount, 0);
+    const pct = c.cap ? Math.min(100, 100 * spent / c.cap) : 0;
+    const over = c.cap && spent > c.cap;
+    return `<div class="cat-row" data-key="${c.key}">
+      <div class="cat-head"><span>${c.label}</span><b>${spent} / <input class="cap-edit" type="number" value="${c.cap}" data-cat="${c.key}"> kr</b></div>
+      <div class="cat-bar"><div class="${over ? "over" : ""}" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join("");
+
+  document.querySelectorAll("#cat-breakdown .cap-edit").forEach(inp => {
+    inp.addEventListener("change", () => {
+      const c = loadBudgetConfig();
+      const cat = c.categories.find(x => x.key === inp.dataset.cat);
+      if (cat) cat.cap = parseFloat(inp.value) || 0;
+      saveBudgetConfig(c);
+      renderCategoryBreakdown();
+    });
+  });
+}
+
+function renderBudgetSummary() {
+  const cfg = loadBudgetConfig();
+  const tx = loadTransactions().filter(t => monthOf(t.date) === currentMonth);
+  const totalSpent = tx.reduce((s, t) => s + t.amount, 0);
+  document.getElementById("budget-summary").innerHTML = `
+    <div class="snapshot-chip">Inntekt<b>${cfg.income.toLocaleString()} kr</b></div>
+    <div class="snapshot-chip">Brukt denne måneden<b>${totalSpent.toLocaleString()} kr</b></div>
+    <div class="snapshot-chip">Igjen<b>${(cfg.income - totalSpent).toLocaleString()} kr</b></div>
+  `;
+}
+
+function renderTxList() {
+  const cfg = loadBudgetConfig();
+  const catLabel = key => (cfg.categories.find(c => c.key === key) || {}).label || key;
+  const tx = loadTransactions().filter(t => monthOf(t.date) === currentMonth).sort((a, b) => b.date.localeCompare(a.date));
+  document.getElementById("tx-list").innerHTML = tx.map(t => `
+    <li data-id="${t.id}"><span>${fmtShort(t.date)} · ${catLabel(t.category)} · ${t.name || ""}</span>
+      <b>${t.amount} kr</b>
+      <button data-tx-remove="${t.id}" style="background:none;border:none;color:var(--muted);cursor:pointer;">✕</button>
+    </li>`).join("") || `<li style="border-top:none;color:var(--muted);">Ingen transaksjoner denne måneden</li>`;
+
+  document.querySelectorAll("#tx-list button[data-tx-remove]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      saveTransactions(loadTransactions().filter(t => t.id !== btn.dataset.txRemove));
+      renderBudget();
+    });
+  });
+}
+
+function renderFund() {
+  const balance = fundBalance();
+  const pct = Math.min(100, 100 * balance / DATA.dogFund.target);
+  const tx = loadTransactions().filter(t => t.category === DATA.dogFund.category);
+  const months = new Set(tx.map(t => monthOf(t.date))).size || 1;
+  const avgPerMonth = tx.reduce((s, t) => s + t.amount, 0) / months;
+  const remaining = DATA.dogFund.target - balance;
+
+  let etaText = "Legg til sparing for å se et anslag";
+  if (remaining <= 0) {
+    etaText = "Målet er nådd! 🐶";
+  } else if (avgPerMonth > 0) {
+    const monthsLeft = Math.ceil(remaining / avgPerMonth);
+    etaText = `I dagens tempo (~${Math.round(avgPerMonth)} kr/mnd): ca. ${monthsLeft} ${monthsLeft === 1 ? "måned" : "måneder"} igjen`;
+  }
+  document.getElementById("fund-card").innerHTML = `
+    <div class="fund-head">
+      <div>🐶 Hundefond</div>
+      <div class="fund-amount">${balance.toLocaleString()} / ${DATA.dogFund.target.toLocaleString()} kr</div>
+    </div>
+    <div class="fund-bar"><div style="width:${pct}%"></div></div>
+    <div class="fund-eta">${etaText}</div>
+  `;
+}
+
+function renderBudget() {
+  renderCategoryBreakdown();
+  renderBudgetSummary();
+  renderTxList();
+  renderFund();
+  renderLevel();
+  renderWeeklySnapshot();
+}
+
+document.getElementById("month-label").textContent = monthLabel(currentMonth);
+function shiftMonth(delta) {
+  const d = new Date(currentMonth + "-01T00:00:00");
+  d.setMonth(d.getMonth() + delta);
+  currentMonth = d.toISOString().slice(0, 7);
+  document.getElementById("month-label").textContent = monthLabel(currentMonth);
+  renderCategoryBreakdown();
+  renderBudgetSummary();
+  renderTxList();
+}
+document.getElementById("month-prev").addEventListener("click", () => shiftMonth(-1));
+document.getElementById("month-next").addEventListener("click", () => shiftMonth(1));
+
+populateCategorySelect();
+
+document.getElementById("tx-add").addEventListener("click", () => {
+  const date = document.getElementById("tx-date").value || todayISO();
+  const amount = parseFloat(document.getElementById("tx-amount").value);
+  const category = document.getElementById("tx-category").value;
+  const name = document.getElementById("tx-name").value.trim();
+  if (!amount) return;
+  const tx = loadTransactions();
+  tx.push({ id: "tx-" + Date.now() + Math.random(), date, amount, category, name });
+  saveTransactions(tx);
+  document.getElementById("tx-amount").value = "";
+  document.getElementById("tx-name").value = "";
+  currentMonth = monthOf(date);
+  document.getElementById("month-label").textContent = monthLabel(currentMonth);
+  renderBudget();
+});
+
+document.getElementById("save-add").addEventListener("click", () => {
+  const amount = parseFloat(document.getElementById("save-amount").value);
+  const name = document.getElementById("save-name").value.trim();
+  if (!amount) return;
+  const tx = loadTransactions();
+  tx.push({ id: "save-" + Date.now() + Math.random(), date: todayISO(), amount, category: DATA.dogFund.category, name: name || "Spar i stedet" });
+  saveTransactions(tx);
+  document.getElementById("save-amount").value = "";
+  document.getElementById("save-name").value = "";
+  renderBudget();
+});
+
+renderWeightLog();
+renderMeasureLog();
+renderPlateau();
+renderShopList();
+renderBudget();
+
+// ---------------------------------------------------------------- stat cards
+function sparkline(values) {
+  const vals = values.filter(v => v !== null && v !== undefined);
+  if (vals.length < 2) return "";
+  const min = Math.min(...vals), max = Math.max(...vals);
+  const range = (max - min) || 1;
+  const w = 200, h = 36;
+  const step = w / (values.length - 1);
+  let pts = [];
+  values.forEach((v, i) => {
+    if (v === null || v === undefined) return;
+    const x = i * step;
+    const y = h - ((v - min) / range) * (h - 6) - 3;
+    pts.push([x, y]);
+  });
+  const path = pts.map((p, i) => (i === 0 ? "M" : "L") + p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ");
+  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><path d="${path}" fill="none" stroke="#7a1f3d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+
+const statGrid = document.getElementById("stat-grid");
+const statsDef = [
+  { key: "hrv", label: "HRV (last night)", unit: "ms", from: s => s.value },
+  { key: "sleep", label: "Sleep", unit: "hrs", from: s => s.hours, extra: s => s.score ? `score ${s.score}` : "" },
+  { key: "calories", label: "Calories burned", unit: "kcal", from: s => s.value },
+  { key: "steps", label: "Steps", unit: "", from: s => s.value },
+];
+statsDef.forEach(def => {
+  const s = DATA.topStats[def.key];
+  if (!s) return;
+  const val = def.from(s);
+  const card = document.createElement("div");
+  card.className = "stat-card";
+  card.innerHTML = `
+    <div class="label">${def.label}</div>
+    <div class="value">${val !== null && val !== undefined ? val.toLocaleString() : "-"} <small>${def.unit}</small></div>
+    <div class="asof">as of ${fmtDate(s.date)}${def.extra ? " · " + def.extra(s) : ""}</div>
+    ${sparkline(s.trend)}
+  `;
+  statGrid.appendChild(card);
+});
+
+// ---------------------------------------------------------------- weekly by sport chart
+(function renderWeeklySport() {
+  const svg = document.getElementById("chart-weekly-sport");
+  const tooltip = document.getElementById("tt-weekly");
+  const legend = document.getElementById("sport-legend");
+  const weeks = DATA.weeklyBySport;
+  const sports = DATA.sportOrder;
+  const colors = DATA.sportColors;
+
+  sports.forEach(sp => {
+    legend.innerHTML += `<span><i style="background:${colors[sp]}"></i>${sp}</span>`;
+  });
+
+  const w = 1000, h = 260, padLeft = 40, padBottom = 24, padTop = 10;
+  svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  const plotW = w - padLeft - 10;
+  const plotH = h - padBottom - padTop;
+  const barGroupW = plotW / weeks.length;
+  const barW = Math.min(14, barGroupW / (sports.length + 1));
+
+  let maxMinutes = 0;
+  weeks.forEach(wk => sports.forEach(sp => {
+    const e = wk.sports[sp];
+    if (e) maxMinutes = Math.max(maxMinutes, e.minutes);
+  }));
+  maxMinutes = maxMinutes || 60;
+
+  // gridlines
+  for (let i = 0; i <= 4; i++) {
+    const y = padTop + plotH - (i / 4) * plotH;
+    svg.innerHTML += `<line x1="${padLeft}" y1="${y}" x2="${w - 10}" y2="${y}" stroke="#ece7e0" stroke-width="1"/>`;
+    svg.innerHTML += `<text x="${padLeft - 6}" y="${y + 3}" font-size="9" fill="#8a8580" text-anchor="end">${Math.round((i / 4) * maxMinutes)}</text>`;
+  }
+
+  weeks.forEach((wk, wi) => {
+    const groupX = padLeft + wi * barGroupW + barGroupW / 2;
+    sports.forEach((sp, si) => {
+      const e = wk.sports[sp];
+      const x = groupX - (sports.length * barW) / 2 + si * barW;
+      if (e) {
+        const bh = (e.minutes / maxMinutes) * plotH;
+        const y = padTop + plotH - bh;
+        svg.innerHTML += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW - 2}" height="${bh.toFixed(1)}" fill="${colors[sp]}" rx="2"
+          data-week="${wk.week}" data-sport="${sp}" data-minutes="${e.minutes}" data-sessions="${e.sessions}" data-dist="${e.distanceKm}" class="bar"/>`;
+      }
+    });
+    svg.innerHTML += `<text x="${groupX}" y="${h - 6}" font-size="9" fill="#8a8580" text-anchor="middle">${fmtShort(wk.week)}</text>`;
+  });
+
+  svg.querySelectorAll(".bar").forEach(bar => {
+    bar.addEventListener("mousemove", e => {
+      const r = svg.getBoundingClientRect();
+      tooltip.style.opacity = 1;
+      tooltip.style.left = (e.clientX - r.left) + "px";
+      tooltip.style.top = (e.clientY - r.top) + "px";
+      tooltip.textContent = `${bar.dataset.sport}: ${bar.dataset.sessions} session(s), ${bar.dataset.minutes} min, ${bar.dataset.dist} km`;
+    });
+    bar.addEventListener("mouseleave", () => tooltip.style.opacity = 0);
+  });
+})();
+
+// ---------------------------------------------------------------- line charts
+function renderLineChart(svgId, ttId, weeks, values, color, unit) {
+  const svg = document.getElementById(svgId);
+  const tooltip = document.getElementById(ttId);
+  if (!weeks || !weeks.length) { svg.outerHTML = '<div style="color:#8a8580;font-size:13px;">No data yet</div>'; return; }
+
+  const w = 480, h = 180, padLeft = 36, padBottom = 20, padTop = 10, padRight = 10;
+  svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  const plotW = w - padLeft - padRight;
+  const plotH = h - padBottom - padTop;
+
+  const clean = values.map(v => (v === null || v === undefined ? null : v));
+  const present = clean.filter(v => v !== null);
+  const min = Math.min(...present), max = Math.max(...present);
+  const range = (max - min) || 1;
+  const step = plotW / Math.max(weeks.length - 1, 1);
+
+  for (let i = 0; i <= 3; i++) {
+    const y = padTop + plotH - (i / 3) * plotH;
+    svg.innerHTML += `<line x1="${padLeft}" y1="${y}" x2="${w - padRight}" y2="${y}" stroke="#ece7e0" stroke-width="1"/>`;
+    svg.innerHTML += `<text x="${padLeft - 6}" y="${y + 3}" font-size="9" fill="#8a8580" text-anchor="end">${(min + (i / 3) * range).toFixed(1)}</text>`;
+  }
+
+  let pathPts = [];
+  let dots = "";
+  clean.forEach((v, i) => {
+    if (v === null) return;
+    const x = padLeft + i * step;
+    const y = padTop + plotH - ((v - min) / range) * plotH;
+    pathPts.push([x, y]);
+    dots += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3" fill="${color}" data-week="${weeks[i]}" data-val="${v}" class="dot" opacity="0"/>`;
+  });
+  const path = pathPts.map((p, i) => (i === 0 ? "M" : "L") + p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ");
+  const areaPath = path + ` L ${pathPts[pathPts.length-1][0].toFixed(1)},${(padTop+plotH).toFixed(1)} L ${pathPts[0][0].toFixed(1)},${(padTop+plotH).toFixed(1)} Z`;
+
+  svg.innerHTML += `<path d="${areaPath}" fill="${color}" opacity="0.08"/>`;
+  svg.innerHTML += `<path d="${path}" fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>`;
+  svg.innerHTML += dots;
+
+  // x labels: first, middle, last
+  [0, Math.floor(weeks.length / 2), weeks.length - 1].forEach(i => {
+    const x = padLeft + i * step;
+    svg.innerHTML += `<text x="${x}" y="${h - 4}" font-size="9" fill="#8a8580" text-anchor="middle">${fmtShort(weeks[i])}</text>`;
+  });
+
+  svg.querySelectorAll(".dot").forEach(dot => {
+    const hit = dot.cloneNode();
+    hit.setAttribute("r", 8);
+    hit.setAttribute("opacity", 0);
+    hit.classList.add("hit");
+    svg.appendChild(hit);
+    hit.addEventListener("mousemove", e => {
+      const r = svg.getBoundingClientRect();
+      tooltip.style.opacity = 1;
+      tooltip.style.left = (e.clientX - r.left) + "px";
+      tooltip.style.top = (e.clientY - r.top) + "px";
+      tooltip.textContent = `${fmtDate(hit.dataset.week)}: ${hit.dataset.val} ${unit}`;
+    });
+    hit.addEventListener("mouseleave", () => tooltip.style.opacity = 0);
+  });
+}
+
+renderLineChart("chart-load", "tt-load", DATA.trends.trainingLoad.weeks, DATA.trends.trainingLoad.values, "#7a1f3d", "load");
+renderLineChart("chart-rhr", "tt-rhr", DATA.trends.restingHR.weeks, DATA.trends.restingHR.values, "#9b3456", "bpm");
+renderLineChart("chart-hrv", "tt-hrv", DATA.trends.hrv.weeks, DATA.trends.hrv.values, "#a46cc0", "ms");
+renderLineChart("chart-sleep", "tt-sleep", DATA.trends.sleepHours.weeks, DATA.trends.sleepHours.values, "#e8a3b6", "hrs");
+
+// ---------------------------------------------------------------- records
+const recordsGrid = document.getElementById("records-grid");
+const recordDefs = [
+  { key: "longestRide", label: "Longest ride", fmt: r => `${r.value} ${r.unit}` },
+  { key: "longestRun", label: "Longest run", fmt: r => `${r.value} km` },
+  { key: "longestStrength", label: "Longest strength session", fmt: r => `${r.value} min` },
+  { key: "mostSteps", label: "Most steps in a day", fmt: r => `${r.value.toLocaleString()}` },
+  { key: "mostCalories", label: "Most calories in a day", fmt: r => `${r.value.toLocaleString()} kcal` },
+  { key: "longestSleep", label: "Longest night's sleep", fmt: r => `${r.value} hrs` },
+  { key: "bestHRV", label: "Highest HRV night", fmt: r => `${r.value} ms` },
+  { key: "highestTrainingLoad", label: "Biggest training load", fmt: r => `${r.value}` },
+];
+recordDefs.forEach(def => {
+  const r = DATA.records[def.key];
+  if (!r || r.value === null || r.value === undefined) return;
+  const card = document.createElement("div");
+  card.className = "record-card";
+  card.innerHTML = `
+    <div class="label">${def.label}</div>
+    <div class="value">${def.fmt(r)}</div>
+    <div class="date">${fmtDate(r.date)}</div>
+  `;
+  recordsGrid.appendChild(card);
+});
+
+document.getElementById("footer").textContent = `Generated ${new Date(DATA.meta.generated).toLocaleString()}`;
+</script>
+</body>
+</html>
