@@ -64,6 +64,7 @@ GS_PROG = {
     2: {"sets": "3 sett", "cycle": "20–30 min", "focus": "Øk vekten litt på øvelsene som føltes greie forrige uke"},
     3: {"sets": "3–4 sett", "cycle": "25–35 min", "focus": "Fortsett å øke vekt der kroppen tillater det"},
     4: {"sets": "3–4 sett", "cycle": "25–40 min", "focus": "Sikt på litt mer vekt eller reps der det er smertefritt"},
+    5: {"sets": "1–2 sett", "cycle": "15–20 min", "focus": "Deload-uke: lavere vekt og volum, la kroppen hente seg inn før neste blokk", "deload": True},
 }
 PROG_EXERCISES = {
     "gsA": ["Glute bridge (aktivering - kjenn at rumpa jobber, ikke korsryggen) 2×12",
@@ -167,7 +168,8 @@ SESSION_CATALOG = {
 
 def gs_week(d):
     n = (d - GS_START).days // 7 + 1
-    return max(1, min(4, n))
+    n = max(1, n)
+    return (n - 1) % 5 + 1
 
 
 def session_for(d):
@@ -561,6 +563,7 @@ def main():
         "weekFocus": prog_week["focus"],
         "weekSetsNote": prog_week["sets"],
         "weekCycleNote": prog_week["cycle"],
+        "weekIsDeload": bool(prog_week.get("deload")),
         "today": {
             "date": today.isoformat(),
             "readiness": readiness,
@@ -714,6 +717,7 @@ TEMPLATE = r"""<!DOCTYPE html>
   .plan-card .exercises { margin-top: 14px; font-size: 13px; }
   .plan-card .exercises > .exercise-row { padding: 8px 0; border-top: 1px solid var(--line); }
   .plan-card .exercises .exercise-name { padding: 0 0 6px; }
+  .plan-card .exercises .exercise-suggestion { font-size: 11px; color: var(--muted); padding: 0 0 8px; }
   .plan-card .exercises .set-log-form { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
   .plan-card .exercises .set-log-form input { width: 70px; padding: 5px 8px; font-size: 12px; border: 1px solid var(--line); border-radius: 8px; font-family: Nunito, sans-serif; }
   .plan-card .exercises .set-log-today { margin-top: 6px; font-size: 11px; color: var(--muted); display: flex; gap: 6px; flex-wrap: wrap; }
@@ -1302,6 +1306,10 @@ TEMPLATE = r"""<!DOCTYPE html>
         <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">Sleep (hours/night avg)</div>
         <div class="chart-wrap"><svg id="chart-sleep"></svg><div class="tooltip" id="tt-sleep"></div></div>
       </div>
+      <div class="card">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">Treningsvolum (vekt × reps per uke)</div>
+        <div class="chart-wrap"><svg id="chart-volume"></svg><div class="tooltip" id="tt-volume"></div></div>
+      </div>
     </div>
   </section>
 
@@ -1514,14 +1522,43 @@ document.getElementById("rt-bubble-pause").addEventListener("click", () => {
 });
 document.getElementById("rt-bubble-skip").addEventListener("click", stopRestTimer);
 
-function exerciseRowHtml(sessKey, idx, text, date) {
+function parseRepTarget(text) {
+  const m = text.match(/(\d+)\s*[×x]\s*(\d+)(?:\s*[–\-]\s*(\d+))?/);
+  if (!m) return null;
+  const low = parseInt(m[2], 10);
+  const high = m[3] ? parseInt(m[3], 10) : low;
+  const after = text.slice(m.index + m[0].length).trimStart();
+  const timeBased = after.startsWith("s") || after.startsWith("sek");
+  return { low, high, timeBased };
+}
+
+function progressSuggestion(exKey, text, readiness) {
+  const target = parseRepTarget(text);
+  if (!target || target.timeBased) return null;
+  const best = bestSetFor(exKey);
+  if (!best || !best.reps) return null;
+  const easing = readiness === "light" || readiness === "caution";
+  if (best.reps >= target.high) {
+    if (easing) return `Du klarte toppen av målet (${best.reps} reps) forrige gang, men hold vekten i dag siden kroppen signaliserer ekstra belastning.`;
+    if (best.weight != null) return `Du klarte ${best.reps} reps forrige gang - prøv ${(best.weight + 2.5).toLocaleString()} kg i dag.`;
+    return `Du klarte ${best.reps} reps forrige gang - prøv noen flere reps i dag.`;
+  }
+  if (best.reps < target.low) {
+    return `Hold samme vekt og jobb mot ${target.low}+ reps i dag.`;
+  }
+  return `Du er i målsonen (${target.low}–${target.high} reps) - fortsett på samme vekt.`;
+}
+
+function exerciseRowHtml(sessKey, idx, text, date, readiness) {
   const exKey = sessKey + "::" + idx;
   const last = lastSetFor(exKey, date);
   const todaySets = setsFor(exKey, date);
   const pref = restDurationFor(exKey);
   const restOptions = [60, 90, 120, 180].map(s => `<option value="${s}" ${s === pref ? "selected" : ""}>${s}s</option>`).join("");
+  const suggestion = progressSuggestion(exKey, text, readiness);
   return `<div class="exercise-row" data-ex="${exKey}">
     <div class="exercise-name">${text}</div>
+    ${suggestion ? `<div class="exercise-suggestion">💡 ${suggestion}</div>` : ""}
     <div class="set-log-form">
       <input type="number" step="0.5" class="set-weight-input" placeholder="kg" ${last && last.weight != null ? `value="${last.weight}"` : ""}>
       <input type="number" class="set-reps-input" placeholder="reps" ${last ? `value="${last.reps}"` : ""}>
@@ -1603,7 +1640,8 @@ function renderPlan() {
   if (!p) return;
   const overrides = loadPlanOverrides();
 
-  document.getElementById("plan-sub").textContent = `Uke ${p.currentWeek} av 4 · ${p.weekFocus}`;
+  const weekTag = p.weekIsDeload ? `Uke ${p.currentWeek} · Deload` : `Uke ${p.currentWeek} av 4`;
+  document.getElementById("plan-sub").textContent = `${weekTag} · ${p.weekFocus}`;
 
   const todayDay = p.week.find(d => d.isToday);
   const resolved = resolvePlanDay(todayDay, overrides);
@@ -1621,7 +1659,7 @@ function renderPlan() {
     body += `<div style="color:var(--muted);font-size:13px">Ingen planlagt økt i dag. Ta en rolig tur hvis du har overskudd.</div>`;
   } else {
     if (resolved.exercises) {
-      body += `<div class="exercises">${resolved.exercises.map((e, idx) => exerciseRowHtml(resolved.key, idx, e, todayDay.date)).join("")}</div>`;
+      body += `<div class="exercises">${resolved.exercises.map((e, idx) => exerciseRowHtml(resolved.key, idx, e, todayDay.date, p.today.readiness)).join("")}</div>`;
     }
     if (resolved.cycleNote) {
       body += `<div class="exercises"><div>${resolved.cycleNote}</div></div>`;
@@ -2623,6 +2661,34 @@ renderLineChart("chart-load", "tt-load", DATA.trends.trainingLoad.weeks, DATA.tr
 renderLineChart("chart-rhr", "tt-rhr", DATA.trends.restingHR.weeks, DATA.trends.restingHR.values, "#9b3456", "bpm");
 renderLineChart("chart-hrv", "tt-hrv", DATA.trends.hrv.weeks, DATA.trends.hrv.values, "#a46cc0", "ms");
 renderLineChart("chart-sleep", "tt-sleep", DATA.trends.sleepHours.weeks, DATA.trends.sleepHours.values, "#e8a3b6", "hrs");
+
+function isoAddDays(dateStr, days) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + days);
+  return dt.toISOString().slice(0, 10);
+}
+function weeklyVolumeSeries(numWeeks) {
+  const log = loadSetLog();
+  const byWeek = {};
+  log.forEach(s => {
+    if (!s.date || !s.reps) return;
+    const wk = isoWeekOf(s.date);
+    const vol = (s.weight != null ? s.weight : 1) * s.reps;
+    byWeek[wk] = (byWeek[wk] || 0) + vol;
+  });
+  const base = isoWeekOf(todayISO());
+  const weeks = [];
+  const values = [];
+  for (let i = numWeeks - 1; i >= 0; i--) {
+    const key = isoAddDays(base, -i * 7);
+    weeks.push(key);
+    values.push(Math.round(byWeek[key] || 0));
+  }
+  return { weeks, values };
+}
+const volumeSeries = weeklyVolumeSeries(10);
+renderLineChart("chart-volume", "tt-volume", volumeSeries.weeks, volumeSeries.values, "#f6c667", "vol");
 
 // ---------------------------------------------------------------- records
 const recordsGrid = document.getElementById("records-grid");
