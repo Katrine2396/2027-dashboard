@@ -711,7 +711,19 @@ TEMPLATE = r"""<!DOCTYPE html>
   }
   .week-day select.swap { margin-top: 8px; width: 100%; font-size: 11px; padding: 4px 4px; border-radius: 10px; }
   .plan-card .exercises { margin-top: 14px; font-size: 13px; }
-  .plan-card .exercises div { padding: 6px 0; border-top: 1px solid var(--line); }
+  .plan-card .exercises > .exercise-row { padding: 8px 0; border-top: 1px solid var(--line); }
+  .plan-card .exercises .exercise-name { padding: 0 0 6px; }
+  .plan-card .exercises .set-log-form { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .plan-card .exercises .set-log-form input { width: 70px; padding: 5px 8px; font-size: 12px; border: 1px solid var(--line); border-radius: 8px; font-family: Nunito, sans-serif; }
+  .plan-card .exercises .set-log-today { margin-top: 6px; font-size: 11px; color: var(--muted); display: flex; gap: 6px; flex-wrap: wrap; }
+  .plan-card .exercises .set-chip { background: var(--accent3); border-radius: 10px; padding: 2px 8px; }
+  .pr-row { display: flex; justify-content: space-between; padding: 6px 0; border-top: 1px solid var(--line); font-size: 13px; }
+  .pr-row:first-child { border-top: none; }
+  .pr-row .pr-ex { color: var(--muted); flex: 1; margin-right: 10px; }
+  .pr-row b { white-space: nowrap; }
+  .rest-timer { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .rest-timer .rt-display { font-family: "Playfair Display", serif; font-size: 32px; font-weight: 700; min-width: 80px; }
+  .rest-timer .rt-presets { display: flex; gap: 6px; flex-wrap: wrap; }
   .plan-card .done-badge {
     display: inline-block;
     background: var(--accent);
@@ -837,6 +849,8 @@ TEMPLATE = r"""<!DOCTYPE html>
   .trend-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 
   footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 40px; }
+  .backup-card { margin: 24px 0 0; }
+  .backup-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
   /* ---- fremgang / points / logging ---- */
   .snapshot-row { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 14px; }
@@ -882,6 +896,12 @@ TEMPLATE = r"""<!DOCTYPE html>
   .log-delta { font-size: 11px; }
   .log-delta.down { color: #2f8a4e; }
   .log-delta.up { color: var(--accent); }
+  .weight-trend-box { font-size: 13px; color: var(--muted); margin: 2px 0 10px; }
+  .weight-trend-box b { color: var(--ink); }
+  .buy-check-box { font-size: 13px; color: var(--muted); margin: 10px 0 0; }
+  .buy-check-box b { color: var(--ink); }
+  .save-presets { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .save-presets-label { font-size: 12px; color: var(--muted); }
 
   /* ---- handleliste ---- */
   .shop-quickadd { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
@@ -1027,6 +1047,8 @@ TEMPLATE = r"""<!DOCTYPE html>
     <div class="section-sub" id="plan-sub"></div>
     <div class="plan-card" id="plan-today"></div>
     <div class="week-row" id="plan-week"></div>
+    <div class="card" id="rest-timer-card"></div>
+    <div class="card" id="pr-board-card"></div>
   </section>
   </div>
 
@@ -1056,6 +1078,7 @@ TEMPLATE = r"""<!DOCTYPE html>
           <input type="number" step="0.1" id="weight-kg" placeholder="kg">
           <button class="btn" id="weight-add">Lagre</button>
         </div>
+        <div id="weight-trend"></div>
         <ul class="log-list" id="weight-list"></ul>
       </div>
       <div class="card">
@@ -1118,12 +1141,20 @@ TEMPLATE = r"""<!DOCTYPE html>
 
     <div class="fund-card" id="fund-card"></div>
     <div class="card" style="margin-top:14px;">
-      <h3 style="margin:0 0 4px;font-size:15px;">Spar i stedet</h3>
-      <div class="section-sub" style="margin-bottom:0;">Var du fristet til å kjøpe noe, men valgte å la være? Legg det du sparte rett i hundefondet.</div>
+      <h3 style="margin:0 0 4px;font-size:15px;">Kjøpe eller spare?</h3>
+      <div class="section-sub" style="margin-bottom:0;">Var du fristet til å kjøpe noe? Sjekk hva det betyr for hundefondet, og spar det i stedet hvis du lar være.</div>
       <div class="log-form">
         <input type="number" step="1" id="save-amount" placeholder="Beløp (kr)">
         <input type="text" id="save-name" placeholder="Fristet av hva?">
+        <button class="btn ghost" id="buy-check">Sjekk</button>
         <button class="btn" id="save-add">Spar i hundefondet</button>
+      </div>
+      <div id="buy-check-out"></div>
+      <div class="save-presets">
+        <span class="save-presets-label">Rask sparing:</span>
+        <button class="btn secondary small" data-preset="20">+20 kr</button>
+        <button class="btn secondary small" data-preset="50">+50 kr</button>
+        <button class="btn secondary small" data-preset="100">+100 kr</button>
       </div>
     </div>
   </section>
@@ -1167,6 +1198,17 @@ TEMPLATE = r"""<!DOCTYPE html>
     <div class="section-sub">Your biggest days and sessions</div>
     <div class="records-grid" id="records-grid"></div>
   </section>
+  </div>
+
+  <div class="card backup-card" id="backup-card">
+    <h3 style="margin:0 0 4px;font-size:15px;">Sikkerhetskopi</h3>
+    <div class="section-sub" style="margin-bottom:10px;">Vekt, mål, treningssett, handleliste og transaksjoner lagres kun i denne nettleseren. Last ned en kopi jevnlig, eller gjenopprett den på en annen enhet.</div>
+    <div class="backup-actions">
+      <button class="btn secondary small" id="backup-export">Last ned kopi</button>
+      <button class="btn ghost small" id="backup-import-btn">Gjenopprett fra fil</button>
+      <input type="file" id="backup-import-file" accept="application/json" style="display:none;">
+    </div>
+    <div id="backup-status" class="section-sub" style="margin:8px 0 0;"></div>
   </div>
 
   <footer id="footer"></footer>
@@ -1286,6 +1328,97 @@ function swapSelectHtml(date, resolvedKey) {
   return `<select class="swap" data-date="${date}" aria-label="Bytt økt">${opts}</select>`;
 }
 
+const SET_LOG_KEY = "garminDashboardSetLog_v1";
+function loadSetLog() { return loadLS(SET_LOG_KEY, []); }
+function saveSetLog(l) { saveLS(SET_LOG_KEY, l); }
+function addSet(exKey, label, date, weight, reps) {
+  const log = loadSetLog();
+  log.push({ id: "set-" + Date.now() + Math.random(), exercise: exKey, label, date, weight, reps });
+  saveSetLog(log);
+}
+function lastSetFor(exKey, date) {
+  const entries = loadSetLog().filter(s => s.exercise === exKey).sort((a, b) => a.date.localeCompare(b.date));
+  const upToToday = entries.filter(s => s.date <= date);
+  return upToToday.length ? upToToday[upToToday.length - 1] : null;
+}
+function setsFor(exKey, date) { return loadSetLog().filter(s => s.exercise === exKey && s.date === date); }
+
+function exerciseRowHtml(sessKey, idx, text, date) {
+  const exKey = sessKey + "::" + idx;
+  const last = lastSetFor(exKey, date);
+  const todaySets = setsFor(exKey, date);
+  const lastHint = last ? `sist: ${last.weight != null ? last.weight + " kg × " : ""}${last.reps} reps` : "ingen tidligere logg";
+  return `<div class="exercise-row" data-ex="${exKey}">
+    <div class="exercise-name">${text}</div>
+    <div class="set-log-form">
+      <input type="number" step="0.5" class="set-weight-input" placeholder="kg" ${last && last.weight != null ? `value="${last.weight}"` : ""}>
+      <input type="number" class="set-reps-input" placeholder="reps" ${last ? `value="${last.reps}"` : ""}>
+      <button class="btn secondary small set-log-add">+ Logg sett</button>
+      <span style="font-size:11px;color:var(--muted)">${lastHint}</span>
+    </div>
+    <div class="set-log-today">${todaySets.map((s, i) => `<span class="set-chip">Sett ${i + 1}: ${s.weight != null ? s.weight + " kg × " : ""}${s.reps} reps</span>`).join("")}</div>
+  </div>`;
+}
+
+function renderPrBoard() {
+  const card = document.getElementById("pr-board-card");
+  const log = loadSetLog();
+  if (!log.length) {
+    card.innerHTML = `<h3 style="margin:0 0 4px;font-size:15px;">Personlige rekorder</h3><div class="section-sub" style="margin:0;">Logg sett på treningsøktene for å se rekordene dine her.</div>`;
+    return;
+  }
+  const byEx = {};
+  log.forEach(s => {
+    const cur = byEx[s.exercise];
+    const better = !cur || (s.weight != null && cur.weight != null
+      ? (s.weight > cur.weight || (s.weight === cur.weight && s.reps > cur.reps))
+      : s.reps > cur.reps);
+    if (better) byEx[s.exercise] = { label: s.label, weight: s.weight, reps: s.reps, date: s.date };
+  });
+  const rows = Object.values(byEx).sort((a, b) => b.date.localeCompare(a.date));
+  card.innerHTML = `<h3 style="margin:0 0 10px;font-size:15px;">Personlige rekorder</h3>` +
+    rows.map(r => `<div class="pr-row"><span class="pr-ex">${r.label}</span><b>${r.weight != null ? r.weight + " kg × " + r.reps : r.reps + " reps"}</b></div>`).join("");
+}
+
+function renderRestTimer() {
+  const card = document.getElementById("rest-timer-card");
+  card.innerHTML = `
+    <h3 style="margin:0 0 10px;font-size:15px;">Hviletimer</h3>
+    <div class="rest-timer">
+      <div class="rt-display" id="rt-display">60</div>
+      <div class="rt-presets">
+        <button class="btn secondary small" data-rt="60">60 s</button>
+        <button class="btn secondary small" data-rt="90">90 s</button>
+        <button class="btn secondary small" data-rt="120">120 s</button>
+        <button class="btn secondary small" data-rt="180">180 s</button>
+        <button class="btn ghost small" id="rt-stop">Stopp</button>
+      </div>
+    </div>
+  `;
+  const display = document.getElementById("rt-display");
+  let interval = null;
+  function stop() { if (interval) clearInterval(interval); interval = null; }
+  function start(seconds) {
+    stop();
+    let remaining = seconds;
+    display.textContent = remaining;
+    display.style.color = "";
+    interval = setInterval(() => {
+      remaining--;
+      if (remaining <= 0) {
+        stop();
+        display.textContent = "0";
+        display.style.color = "var(--accent)";
+        if (window.navigator.vibrate) window.navigator.vibrate(300);
+        return;
+      }
+      display.textContent = remaining;
+    }, 1000);
+  }
+  card.querySelectorAll("[data-rt]").forEach(btn => btn.addEventListener("click", () => start(parseInt(btn.dataset.rt, 10))));
+  document.getElementById("rt-stop").addEventListener("click", stop);
+}
+
 function renderPlan() {
   const p = DATA.program;
   if (!p) return;
@@ -1309,7 +1442,7 @@ function renderPlan() {
     body += `<div style="color:var(--muted);font-size:13px">Ingen planlagt økt i dag. Ta en rolig tur hvis du har overskudd.</div>`;
   } else {
     if (resolved.exercises) {
-      body += `<div class="exercises">${resolved.exercises.map(e => `<div>${e}</div>`).join("")}</div>`;
+      body += `<div class="exercises">${resolved.exercises.map((e, idx) => exerciseRowHtml(resolved.key, idx, e, todayDay.date)).join("")}</div>`;
     }
     if (resolved.cycleNote) {
       body += `<div class="exercises"><div>${resolved.cycleNote}</div></div>`;
@@ -1321,6 +1454,21 @@ function renderPlan() {
 
   body += `<ul class="plan-reasons">${p.today.reasons.map(r => `<li>${r}</li>`).join("")}</ul>`;
   card.innerHTML = body;
+
+  card.querySelectorAll(".exercise-row").forEach(row => {
+    const addBtn = row.querySelector(".set-log-add");
+    if (!addBtn) return;
+    addBtn.addEventListener("click", () => {
+      const wIn = row.querySelector(".set-weight-input");
+      const rIn = row.querySelector(".set-reps-input");
+      const weight = wIn.value ? parseFloat(wIn.value) : null;
+      const reps = parseInt(rIn.value, 10);
+      if (!reps) return;
+      addSet(row.dataset.ex, row.querySelector(".exercise-name").textContent, todayDay.date, weight, reps);
+      renderPlan();
+      renderPrBoard();
+    });
+  });
 
   const weekEl = document.getElementById("plan-week");
   weekEl.innerHTML = p.week.map(d => {
@@ -1355,6 +1503,8 @@ function renderPlan() {
   });
 }
 renderPlan();
+renderPrBoard();
+renderRestTimer();
 
 // ---------------------------------------------------------------- nutrition
 function mealOptionHtml(opt) {
@@ -1547,6 +1697,26 @@ function renderPlateau() {
     : `<h3 style="margin:0 0 4px;font-size:15px;">Vekta har stått stille i 2–3 uker</h3><div class="section-sub" style="margin:0;">Det er helt vanlig. Velg én liten justering og gi den 2 uker: spis litt mindre, eller gå litt mer hver dag. Sjekk også at du logger alt, særlig olje, saus og drikke.</div>`;
 }
 
+function renderWeightTrend() {
+  const el = document.getElementById("weight-trend");
+  if (!el) return;
+  const log = loadWeightLog().sort((a, b) => a.date.localeCompare(b.date));
+  if (log.length < 3) { el.innerHTML = ""; return; }
+
+  const alpha = 0.25;
+  let trend = log[0].kg;
+  const series = [trend];
+  for (let i = 1; i < log.length; i++) {
+    trend = alpha * log[i].kg + (1 - alpha) * trend;
+    series.push(trend);
+  }
+
+  const latest = series[series.length - 1];
+  const prior = series[Math.max(0, series.length - 3)];
+  const diff = latest - prior;
+  el.innerHTML = `<div class="weight-trend-box">Trend (glidende snitt): <b>${latest.toFixed(1)} kg</b> <span class="log-delta ${diff <= 0 ? "down" : "up"}">${diff > 0 ? "+" : ""}${diff.toFixed(1)} kg siste par uker</span></div>`;
+}
+
 function renderWeightLog() {
   const log = loadWeightLog().sort((a, b) => b.date.localeCompare(a.date));
   document.getElementById("weight-list").innerHTML = log.slice(0, 8).map((e, i) => {
@@ -1568,6 +1738,7 @@ document.getElementById("weight-add").addEventListener("click", () => {
   saveWeightLog(log);
   document.getElementById("weight-kg").value = "";
   renderWeightLog();
+  renderWeightTrend();
   renderLevel();
   renderWeeklySnapshot();
   renderPlateau();
@@ -1810,10 +1981,35 @@ document.getElementById("save-add").addEventListener("click", () => {
   saveTransactions(tx);
   document.getElementById("save-amount").value = "";
   document.getElementById("save-name").value = "";
+  document.getElementById("buy-check-out").innerHTML = "";
   renderBudget();
 });
 
+document.getElementById("buy-check").addEventListener("click", () => {
+  const amount = parseFloat(document.getElementById("save-amount").value);
+  const out = document.getElementById("buy-check-out");
+  if (!amount) { out.innerHTML = ""; return; }
+  const remaining = Math.max(0, DATA.dogFund.target - fundBalance());
+  const pctOfFund = Math.min(100, 100 * amount / DATA.dogFund.target);
+  const pctOfRemaining = remaining > 0 ? Math.min(100, 100 * amount / remaining) : 100;
+  out.innerHTML = `<div class="buy-check-box">${amount.toLocaleString()} kr er <b>${pctOfFund.toFixed(1)}%</b> av hele hundefondmålet${remaining > 0 ? ` - <b>${pctOfRemaining.toFixed(1)}%</b> av det som gjenstår` : ""}.</div>`;
+});
+
+document.querySelectorAll(".save-presets button[data-preset]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const amount = parseFloat(btn.dataset.preset);
+    const name = document.getElementById("save-name").value.trim();
+    const tx = loadTransactions();
+    tx.push({ id: "save-" + Date.now() + Math.random(), date: todayISO(), amount, category: DATA.dogFund.category, name: name || "Spar i stedet" });
+    saveTransactions(tx);
+    document.getElementById("save-name").value = "";
+    document.getElementById("buy-check-out").innerHTML = "";
+    renderBudget();
+  });
+});
+
 renderWeightLog();
+renderWeightTrend();
 renderMeasureLog();
 renderPlateau();
 renderShopList();
@@ -2011,6 +2207,56 @@ recordDefs.forEach(def => {
     <div class="date">${fmtDate(r.date)}</div>
   `;
   recordsGrid.appendChild(card);
+});
+
+// ---------------------------------------------------------------- backup / export / import
+const BACKUP_KEYS = [
+  WEIGHT_LOG_KEY, MEASURE_LOG_KEY, SHOP_LIST_KEY, TX_KEY,
+  BUDGET_CONFIG_KEY, PLAN_OVERRIDES_KEY, SET_LOG_KEY, SEEN_KEY,
+];
+
+document.getElementById("backup-export").addEventListener("click", () => {
+  const dump = {};
+  BACKUP_KEYS.forEach(k => {
+    const v = localStorage.getItem(k);
+    if (v !== null) dump[k] = JSON.parse(v);
+  });
+  const blob = new Blob([JSON.stringify(dump, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `dashboard-backup-${todayISO()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById("backup-import-btn").addEventListener("click", () => {
+  document.getElementById("backup-import-file").click();
+});
+
+document.getElementById("backup-import-file").addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  const status = document.getElementById("backup-status");
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      let count = 0;
+      BACKUP_KEYS.forEach(k => {
+        if (data[k] !== undefined) {
+          localStorage.setItem(k, JSON.stringify(data[k]));
+          count++;
+        }
+      });
+      status.textContent = `Gjenopprettet ${count} datasett. Laster siden på nytt...`;
+      setTimeout(() => location.reload(), 1200);
+    } catch (err) {
+      status.textContent = "Kunne ikke lese filen - er det en gyldig sikkerhetskopi fra dashbordet?";
+    }
+  };
+  reader.readAsText(file);
 });
 
 document.getElementById("footer").textContent = `Generated ${new Date(DATA.meta.generated).toLocaleString()}`;
