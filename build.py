@@ -419,6 +419,9 @@ def main():
     sleep_score_weeks, sleep_score_vals = weekly_avg(
         sleep, lambda v: ((v.get("sleepScores") or {}).get("overall") or {}).get("value")
     )
+    steps_weeks, steps_vals = weekly_avg(daily, lambda v: (v.get("movement") or {}).get("steps", {}).get("value"))
+    active_cal_weeks, active_cal_vals = weekly_avg(daily, lambda v: (v.get("calories") or {}).get("burnedActive"))
+    stress_weeks, stress_vals = weekly_avg(daily, lambda v: (v.get("stress") or {}).get("avgLevel"))
 
     # align all trend series onto the union of weeks present in training load / rhr (use rhr as backbone, it's most complete)
     trends = {
@@ -427,6 +430,9 @@ def main():
         "hrv": {"weeks": hrv_weeks, "values": hrv_vals},
         "sleepHours": {"weeks": sleep_weeks, "values": sleep_vals},
         "sleepScore": {"weeks": sleep_score_weeks, "values": sleep_score_vals},
+        "steps": {"weeks": steps_weeks, "values": steps_vals},
+        "activeCalories": {"weeks": active_cal_weeks, "values": active_cal_vals},
+        "stress": {"weeks": stress_weeks, "values": stress_vals},
     }
 
     # -------------------------------------------------------------- records
@@ -1087,6 +1093,39 @@ TEMPLATE = r"""<!DOCTYPE html>
   .fund-bar > div { height: 100%; border-radius: 7px; background: linear-gradient(90deg, var(--accent2), var(--accent)); }
   .budget-summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 16px; }
 
+  /* ---- fremgang (long-term trends/goals) ---- */
+  .fremgang-section { margin: 36px 0; }
+  .fremgang-section:first-of-type { margin-top: 18px; }
+  .fremgang-section h3 { margin: 0 0 4px; font-size: 16px; }
+  .fremgang-section .section-sub { margin-bottom: 14px; }
+  .period-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .period-btn, .measure-select-btn {
+    border: 1px solid var(--line); background: #fff; color: var(--ink);
+    border-radius: 999px; padding: 6px 14px; font-size: 12.5px; font-family: inherit;
+    cursor: pointer; transition: background .15s, color .15s, border-color .15s;
+  }
+  .period-btn.active, .measure-select-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .context-note {
+    background: #fff0f4; border-radius: 10px; padding: 10px 14px;
+    font-size: 13px; color: var(--ink); margin-top: 10px; line-height: 1.5;
+  }
+  .tooltip.ml { white-space: normal; text-align: left; line-height: 1.5; transform: translate(-50%, -108%); }
+  .savings-goal-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .savings-goal-card { background: #fff0f4; border-radius: 14px; padding: 16px; }
+  .savings-goal-card .sg-label { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .savings-goal-card .sg-amount { font-size: 19px; font-weight: 700; font-family: "Playfair Display", serif; margin-top: 4px; }
+  .savings-goal-card .sg-goal-row { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 12px; color: var(--muted); }
+  .savings-goal-card .sg-goal-row input { width: 80px; border: 1px solid var(--line); border-radius: 8px; padding: 3px 6px; font-family: inherit; font-size: 12px; }
+  .savings-goal-card .sg-eta { font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .fund-summary-row { display: flex; gap: 22px; flex-wrap: wrap; margin-top: 14px; }
+  .fund-summary-row .fs-item { font-size: 13px; }
+  .fund-summary-row .fs-item b { display: block; font-size: 17px; font-family: "Playfair Display", serif; }
+  .fund-summary-row .fs-item b.pos { color: #3f9a5a; }
+  .fund-summary-row .fs-item b.neg { color: #c24545; }
+  .expense-totals-list { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
+  .expense-totals-list .et-row { display: flex; justify-content: space-between; font-size: 13px; border-top: 1px solid var(--line); padding-top: 6px; }
+  .expense-totals-list .et-row:first-child { border-top: none; padding-top: 0; }
+
   /* ---- tabs ---- */
   .tab-nav {
     position: sticky;
@@ -1309,6 +1348,7 @@ TEMPLATE = r"""<!DOCTYPE html>
     .week-day { min-width: 76px; }
     .log-grid { grid-template-columns: 1fr; }
     .budget-summary-grid { grid-template-columns: 1fr; }
+    .savings-goal-grid { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -1400,6 +1440,14 @@ TEMPLATE = r"""<!DOCTYPE html>
       <div class="hjem-card" id="hjem-finance"></div>
     </section>
 
+    <section class="hjem-zone hjem-section-4">
+      <h3 class="hjem-zone-title">Poeng &amp; Nivå</h3>
+      <div id="celebrate-banner"></div>
+      <div class="card level-card" id="level-card"></div>
+      <div class="snapshot-row" id="weekly-snapshot"></div>
+      <div class="card" id="plateau-card"></div>
+    </section>
+
     <div class="quicklog-drawer" id="quicklog-drawer">
       <div class="quicklog-drawer-head">
         <span id="quicklog-drawer-title"></span>
@@ -1476,37 +1524,104 @@ TEMPLATE = r"""<!DOCTYPE html>
   <div class="tab-panel" data-tab="fremgang">
   <section>
     <h2>Fremgang</h2>
-    <div class="section-sub">Poeng, nivå og ukentlig snapshot - alt regnes ut fra ekte data, ingenting telles manuelt</div>
-    <div id="celebrate-banner"></div>
-    <div class="card level-card" id="level-card"></div>
-    <div class="snapshot-row" id="weekly-snapshot"></div>
-    <div class="card" id="plateau-card"></div>
-    <div class="log-grid">
-      <div class="card">
-        <h3 style="margin:0 0 4px;font-size:15px;">Vekt</h3>
-        <div class="section-sub" style="margin-bottom:0;">Logg hver uke</div>
-        <div class="log-form">
-          <input type="date" id="weight-date">
-          <input type="number" step="0.1" id="weight-kg" placeholder="kg">
-          <button class="btn" id="weight-add">Lagre</button>
-        </div>
-        <div id="weight-trend"></div>
-        <div class="chart-wrap"><svg id="chart-weight"></svg><div class="tooltip" id="tt-weight"></div></div>
-        <ul class="log-list" id="weight-list"></ul>
+    <div class="section-sub">Langsiktige mål, trender og historikk - i motsetning til dashbordet, som bare viser dagens status</div>
+
+    <div class="fremgang-section card">
+      <h3>⚖️ Kropp &amp; mål</h3>
+      <div class="section-sub">Vekt (glattet 7-dagers snitt) sammen med et kroppsmål, i samme tidslinje</div>
+      <div class="period-tabs" id="body-period-tabs">
+        <button class="period-btn" data-period="1">1 mnd</button>
+        <button class="period-btn" data-period="3">3 mnd</button>
+        <button class="period-btn active" data-period="12">1 år</button>
       </div>
-      <div class="card">
-        <h3 style="margin:0 0 4px;font-size:15px;">Kroppsmål</h3>
-        <div class="section-sub" style="margin-bottom:0;">Logg den 1. hver måned</div>
-        <div class="log-form">
-          <input type="date" id="measure-date">
-          <input type="number" step="0.5" id="measure-waist" placeholder="Mage (cm)">
-          <input type="number" step="0.5" id="measure-hips" placeholder="Hofte (cm)">
-          <input type="number" step="0.5" id="measure-arm" placeholder="Arm (cm)">
-          <button class="btn" id="measure-add">Lagre</button>
+      <div class="period-tabs" id="body-measure-tabs">
+        <button class="measure-select-btn active" data-measure="waist">Mage</button>
+        <button class="measure-select-btn" data-measure="hips">Hofte</button>
+        <button class="measure-select-btn" data-measure="arm">Arm</button>
+        <button class="measure-select-btn" data-measure="thigh">Lår</button>
+        <button class="measure-select-btn" data-measure="chest">Bryst</button>
+      </div>
+      <div class="legend" id="legend-body"></div>
+      <div class="chart-wrap"><svg id="chart-body"></svg><div class="tooltip ml" id="tt-body"></div></div>
+      <div class="context-note" id="body-context-note"></div>
+
+      <div class="log-grid">
+        <div class="card">
+          <h3 style="margin:0 0 4px;font-size:15px;">Vekt</h3>
+          <div class="section-sub" style="margin-bottom:0;">Logg hver uke</div>
+          <div class="log-form">
+            <input type="date" id="weight-date">
+            <input type="number" step="0.1" id="weight-kg" placeholder="kg">
+            <button class="btn" id="weight-add">Lagre</button>
+          </div>
+          <div id="weight-trend"></div>
+          <div class="chart-wrap"><svg id="chart-weight"></svg><div class="tooltip" id="tt-weight"></div></div>
+          <ul class="log-list" id="weight-list"></ul>
         </div>
-        <ul class="log-list" id="measure-list"></ul>
+        <div class="card">
+          <h3 style="margin:0 0 4px;font-size:15px;">Kroppsmål</h3>
+          <div class="section-sub" style="margin-bottom:0;">Logg den 1. hver måned</div>
+          <div class="log-form">
+            <input type="date" id="measure-date">
+            <input type="number" step="0.5" id="measure-waist" placeholder="Mage (cm)">
+            <input type="number" step="0.5" id="measure-hips" placeholder="Hofte (cm)">
+            <input type="number" step="0.5" id="measure-arm" placeholder="Arm (cm)">
+            <input type="number" step="0.5" id="measure-thigh" placeholder="Lår (cm)">
+            <input type="number" step="0.5" id="measure-chest" placeholder="Bryst (cm)">
+            <button class="btn" id="measure-add">Lagre</button>
+          </div>
+          <ul class="log-list" id="measure-list"></ul>
+        </div>
       </div>
     </div>
+
+    <div class="fremgang-section card">
+      <h3>🏃 Aktivitets-trender</h3>
+      <div class="section-sub">Ukentlige snitt fra klokken, over tid</div>
+      <div class="trend-grid">
+        <div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">Skritt &amp; aktive kalorier</div>
+          <div class="legend" id="legend-activity"></div>
+          <div class="chart-wrap"><svg id="chart-activity"></svg><div class="tooltip ml" id="tt-activity"></div></div>
+        </div>
+        <div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">Stressnivå &amp; søvnkvalitet</div>
+          <div class="legend" id="legend-stress-sleep"></div>
+          <div class="chart-wrap"><svg id="chart-stress-sleep"></svg><div class="tooltip ml" id="tt-stress-sleep"></div></div>
+        </div>
+      </div>
+      <div class="context-note" id="activity-context-note"></div>
+    </div>
+
+    <div class="fremgang-section card">
+      <h3>💰 Faste vs. variable utgifter</h3>
+      <div class="section-sub">Per økonomimåned (16.–15.), siste 12 måneder</div>
+      <div class="legend" id="legend-expenses"></div>
+      <div class="chart-wrap"><svg id="chart-expenses"></svg><div class="tooltip ml" id="tt-expenses"></div></div>
+      <div id="fixed-expense-totals"></div>
+    </div>
+
+    <div class="fremgang-section card">
+      <h3>🐶 Sparemål</h3>
+      <div class="section-sub">De tre faste sparekategoriene fra budsjettet</div>
+      <div class="savings-goal-grid" id="savings-goals"></div>
+    </div>
+
+    <div class="fremgang-section card">
+      <h3>📈 Fond-utvikling</h3>
+      <div class="section-sub">Innskutt kapital vs. faktisk verdi, slik at du ser avkastningen</div>
+      <div class="log-form">
+        <input type="date" id="fund-log-date">
+        <input type="number" step="100" id="fund-log-contributed" placeholder="Innskutt totalt (kr)">
+        <input type="number" step="100" id="fund-log-value" placeholder="Fondsverdi i dag (kr)">
+        <button class="btn" id="fund-log-add">Lagre</button>
+      </div>
+      <div class="legend" id="legend-fund"></div>
+      <div class="chart-wrap"><svg id="chart-fund"></svg><div class="tooltip ml" id="tt-fund"></div></div>
+      <div class="fund-summary-row" id="fund-summary"></div>
+    </div>
+
+    <div class="fremgang-section card" id="fremgang-weekly-report"></div>
   </section>
   </div>
 
@@ -2343,6 +2458,7 @@ const WAGE_KEY = "garminDashboardWage_v1";
 const RATE_KEY = "garminDashboardInvestRate_v1";
 const FORGOTTEN_SAVINGS_KEY = "garminDashboardForgottenSavings_v1";
 const INVEST_FUND_KEY = "garminDashboardInvestFund_v1";
+const SAVINGS_GOALS_KEY = "garminDashboardSavingsGoals_v1";
 const BADDAY_LOG_KEY = "garminDashboardBadDayLog_v1";
 const BADDAY_MODE_KEY = "garminDashboardBadDayActive_v1";
 const WATER_KEY = "garminDashboardWater_v1";
@@ -2386,6 +2502,17 @@ function emLabel(emKey) {
   const [, m] = emKey.split("-").map(Number);
   const [, nm] = emAddMonths(emKey, 1).split("-").map(Number);
   return `Økonomimåned: 16. ${NO_MONTHS_SHORT[m - 1]} – 15. ${NO_MONTHS_SHORT[nm - 1]}`;
+}
+function emShortLabel(emKey) {
+  const [y, m] = emKey.split("-").map(Number);
+  return `${NO_MONTHS_SHORT[m - 1]} ${y}`;
+}
+function emKeysBack(n) {
+  // the trailing n economic months up to and including the current one, oldest first
+  const current = emKeyForDate(todayISO());
+  const keys = [];
+  for (let i = n - 1; i >= 0; i--) keys.push(emAddMonths(current, -i));
+  return keys;
 }
 
 // ---- weight log ----
@@ -2466,6 +2593,58 @@ function categorySpent(key, emKey) {
 function isSavingsCategory(key) {
   const cat = loadBudgetConfig().categories.find(c => c.key === key);
   return !!(cat && cat.savings);
+}
+
+// ---- savings goals (generalizes the hundefond target to all three savings categories) ----
+function loadSavingsGoals() {
+  const defaults = {};
+  (loadBudgetConfig().categories || []).filter(c => c.savings).forEach(c => {
+    defaults[c.key] = { target: 20000, startSaved: 0 };
+  });
+  return Object.assign(defaults, loadLS(SAVINGS_GOALS_KEY, {}));
+}
+function saveSavingsGoals(g) { saveLS(SAVINGS_GOALS_KEY, g); }
+function savingsBalance(key) {
+  if (key === DATA.dogFund.category) return fundBalance();
+  const goals = loadSavingsGoals();
+  const startSaved = (goals[key] && goals[key].startSaved) || 0;
+  const sum = loadTransactions().filter(t => t.category === key).reduce((s, t) => s + t.amount, 0);
+  return startSaved + sum;
+}
+function savingsTarget(key) {
+  if (key === DATA.dogFund.category) return DATA.dogFund.target;
+  const goals = loadSavingsGoals();
+  return (goals[key] && goals[key].target) || 0;
+}
+function setSavingsTarget(key, target) {
+  if (key === DATA.dogFund.category) {
+    const s = loadSettings();
+    s.savingsTarget = target;
+    saveSettings(s);
+    DATA.dogFund.target = target;
+    return;
+  }
+  const goals = loadSavingsGoals();
+  goals[key] = Object.assign({ startSaved: 0 }, goals[key], { target });
+  saveSavingsGoals(goals);
+}
+function savingsMonthlyRate(key, months) {
+  months = months || 3;
+  const tx = loadTransactions();
+  const totals = emKeysBack(months).map(ek => {
+    const start = emStart(ek), end = emEnd(ek);
+    return tx.filter(t => t.category === key && t.date >= start && t.date <= end).reduce((s, t) => s + t.amount, 0);
+  });
+  return totals.reduce((s, t) => s + t, 0) / months;
+}
+function projectSavingsMilestone(key) {
+  const target = savingsTarget(key);
+  const balance = savingsBalance(key);
+  if (!target || balance >= target) return null;
+  const rate = savingsMonthlyRate(key);
+  if (rate <= 0) return null;
+  const monthsNeeded = Math.ceil((target - balance) / rate);
+  return { monthsNeeded, emKey: emAddMonths(emKeyForDate(todayISO()), monthsNeeded), rate };
 }
 function categoryOptionsHtml(cfg) {
   const fixed = cfg.categories.filter(c => c.type === "fixed");
@@ -2743,12 +2922,13 @@ document.getElementById("weight-add").addEventListener("click", () => {
   renderLevel();
   renderWeeklySnapshot();
   renderPlateau();
+  renderBodyGoalChart();
 });
 
 function renderMeasureLog() {
   const log = loadMeasureLog().sort((a, b) => b.date.localeCompare(a.date));
   document.getElementById("measure-list").innerHTML = log.slice(0, 6).map(e =>
-    `<li><span>${fmtShort(e.date)}</span><b>${e.waist ?? "–"} / ${e.hips ?? "–"} / ${e.arm ?? "–"} cm</b></li>`
+    `<li><span>${fmtShort(e.date)}</span><b>${e.waist ?? "–"} / ${e.hips ?? "–"} / ${e.arm ?? "–"} / ${e.thigh ?? "–"} / ${e.chest ?? "–"} cm</b></li>`
   ).join("") || `<li style="border-top:none;color:var(--muted);">Ingen mål ennå</li>`;
 }
 document.getElementById("measure-add").addEventListener("click", () => {
@@ -2756,16 +2936,21 @@ document.getElementById("measure-add").addEventListener("click", () => {
   const waist = parseFloat(document.getElementById("measure-waist").value) || null;
   const hips = parseFloat(document.getElementById("measure-hips").value) || null;
   const arm = parseFloat(document.getElementById("measure-arm").value) || null;
-  if (!waist && !hips && !arm) return;
+  const thigh = parseFloat(document.getElementById("measure-thigh").value) || null;
+  const chest = parseFloat(document.getElementById("measure-chest").value) || null;
+  if (!waist && !hips && !arm && !thigh && !chest) return;
   const log = loadMeasureLog().filter(e => e.date !== date);
-  log.push({ date, waist, hips, arm });
+  log.push({ date, waist, hips, arm, thigh, chest });
   saveMeasureLog(log);
   document.getElementById("measure-waist").value = "";
   document.getElementById("measure-hips").value = "";
   document.getElementById("measure-arm").value = "";
+  document.getElementById("measure-thigh").value = "";
+  document.getElementById("measure-chest").value = "";
   renderMeasureLog();
   renderLevel();
   renderPlateau();
+  renderBodyGoalChart();
 });
 
 document.getElementById("overwhelm-btn").addEventListener("click", () => {
@@ -3050,6 +3235,8 @@ function renderBudget() {
   renderWeeklySnapshot();
   renderHjemTodayTx();
   renderHjemFinance();
+  renderSavingsGoals();
+  renderExpenseTrends();
 }
 
 document.getElementById("em-label").textContent = emLabel(currentEconMonth);
@@ -3329,6 +3516,301 @@ renderLineChart("chart-rhr", "tt-rhr", DATA.trends.restingHR.weeks, DATA.trends.
 renderLineChart("chart-hrv", "tt-hrv", DATA.trends.hrv.weeks, DATA.trends.hrv.values, "#a46cc0", "ms");
 renderLineChart("chart-sleep", "tt-sleep", DATA.trends.sleepHours.weeks, DATA.trends.sleepHours.values, "#e8a3b6", "hrs");
 
+// ---------------------------------------------------------------- generic multi-series trend chart (Fremgang)
+// series: [{ name, color, values, unit, axis: "left"|"right", decimals }], shared x-axis labels.
+// Used wherever two differently-scaled metrics need to sit on one timeline (dual y-axis),
+// or several same-unit series need to be compared directly (shared y-axis).
+function renderTrendChart(svgId, ttId, labels, series, opts) {
+  opts = opts || {};
+  const svg = document.getElementById(svgId);
+  const tooltip = document.getElementById(ttId);
+  if (!svg) return;
+  const hasData = labels && labels.length && series.some(s => s.values.some(v => v != null));
+  if (!hasData) {
+    svg.outerHTML = '<div style="color:#8a8580;font-size:13px;padding:30px 0;text-align:center;">Ikke nok data ennå</div>';
+    if (tooltip) tooltip.style.opacity = 0;
+    return;
+  }
+  svg.classList.add("ml-chart");
+  if (tooltip) tooltip.classList.add("ml");
+
+  const hasRight = series.some(s => s.axis === "right");
+  const w = 480, h = 190, padLeft = 38, padRight = hasRight ? 38 : 12, padTop = 14, padBottom = 22;
+  svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  svg.innerHTML = "";
+  const plotW = w - padLeft - padRight, plotH = h - padTop - padBottom;
+  const step = plotW / Math.max(labels.length - 1, 1);
+  const xAt = i => padLeft + i * step;
+
+  function scaleFor(vals) {
+    const present = vals.filter(v => v != null);
+    if (!present.length) return { min: 0, max: 1 };
+    let min = Math.min(...present), max = Math.max(...present);
+    if (min === max) { min -= 1; max += 1; }
+    const pad = (max - min) * 0.12;
+    return { min: min - pad, max: max + pad };
+  }
+  const leftSeries = series.filter(s => s.axis !== "right");
+  const rightSeries = series.filter(s => s.axis === "right");
+  const leftScale = scaleFor(leftSeries.flatMap(s => s.values));
+  const rightScale = rightSeries.length ? scaleFor(rightSeries.flatMap(s => s.values)) : null;
+  const yAt = (v, axis) => {
+    const sc = axis === "right" ? rightScale : leftScale;
+    return padTop + plotH - ((v - sc.min) / (sc.max - sc.min)) * plotH;
+  };
+
+  for (let i = 0; i <= 3; i++) {
+    const y = padTop + plotH - (i / 3) * plotH;
+    svg.innerHTML += `<line x1="${padLeft}" y1="${y.toFixed(1)}" x2="${w - padRight}" y2="${y.toFixed(1)}" stroke="#ece7e0" stroke-width="1"/>`;
+    const leftVal = leftScale.min + (i / 3) * (leftScale.max - leftScale.min);
+    svg.innerHTML += `<text x="${padLeft - 6}" y="${(y + 3).toFixed(1)}" font-size="9" fill="#8a8580" text-anchor="end">${leftVal.toFixed(opts.leftDecimals ?? 0)}</text>`;
+    if (rightScale) {
+      const rightVal = rightScale.min + (i / 3) * (rightScale.max - rightScale.min);
+      svg.innerHTML += `<text x="${w - padRight + 6}" y="${(y + 3).toFixed(1)}" font-size="9" fill="#8a8580" text-anchor="start">${rightVal.toFixed(opts.rightDecimals ?? 0)}</text>`;
+    }
+  }
+
+  series.forEach(s => {
+    const pathPts = [];
+    let dots = "";
+    s.values.forEach((v, i) => {
+      if (v == null) return;
+      const x = xAt(i), y = yAt(v, s.axis);
+      pathPts.push([x, y]);
+      dots += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3" fill="${s.color}" opacity="0.9"/>`;
+    });
+    if (pathPts.length) {
+      const path = pathPts.map((p, i) => (i === 0 ? "M" : "L") + p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ");
+      svg.innerHTML += `<path d="${path}" fill="none" stroke="${s.color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>`;
+    }
+    svg.innerHTML += dots;
+  });
+
+  const labelIdxs = labels.length > 1 ? [0, Math.floor(labels.length / 2), labels.length - 1] : [0];
+  labelIdxs.forEach(i => {
+    const x = xAt(i);
+    svg.innerHTML += `<text x="${x.toFixed(1)}" y="${h - 4}" font-size="9" fill="#8a8580" text-anchor="middle">${opts.fmtLabel ? opts.fmtLabel(labels[i]) : fmtShort(labels[i])}</text>`;
+  });
+
+  if (tooltip) {
+    labels.forEach((lab, i) => {
+      const x = xAt(i);
+      const hit = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      hit.setAttribute("x", (x - step / 2).toFixed(1));
+      hit.setAttribute("y", padTop);
+      hit.setAttribute("width", Math.max(step, 4).toFixed(1));
+      hit.setAttribute("height", plotH);
+      hit.setAttribute("fill", "transparent");
+      svg.appendChild(hit);
+      hit.addEventListener("mousemove", e => {
+        const r = svg.getBoundingClientRect();
+        tooltip.style.opacity = 1;
+        tooltip.style.left = (e.clientX - r.left) + "px";
+        tooltip.style.top = (e.clientY - r.top) + "px";
+        const lines = series.filter(s => s.values[i] != null).map(s =>
+          `${s.name}: <b>${s.values[i].toLocaleString()}${s.unit ? " " + s.unit : ""}</b>`
+        );
+        tooltip.innerHTML = `${opts.fmtLabel ? opts.fmtLabel(lab) : fmtDate(lab)}<br>${lines.join("<br>")}`;
+      });
+      hit.addEventListener("mouseleave", () => tooltip.style.opacity = 0);
+    });
+  }
+
+  if (opts.legendId) {
+    const el = document.getElementById(opts.legendId);
+    if (el) el.innerHTML = series.map(s => `<span><i style="background:${s.color}"></i>${s.name}</span>`).join("");
+  }
+}
+
+function alignWeeklySeries(seriesList) {
+  // seriesList: [{weeks, values}, ...] from DATA.trends - different metrics can have
+  // slightly different week coverage, so align them onto their combined week list.
+  const allWeeks = Array.from(new Set(seriesList.flatMap(s => s.weeks))).sort();
+  const valuesList = seriesList.map(s => {
+    const byWeek = {};
+    s.weeks.forEach((w, i) => { byWeek[w] = s.values[i]; });
+    return allWeeks.map(w => (byWeek[w] != null ? byWeek[w] : null));
+  });
+  return { weeks: allWeeks, valuesList };
+}
+
+// ---------------------------------------------------------------- fremgang: kropp & mål
+const BODY_MEASURE_LABELS = { waist: "Mage", hips: "Hofte", arm: "Arm", thigh: "Lår", chest: "Bryst" };
+let bodyChartPeriodMonths = 12;
+let bodyChartMeasure = "waist";
+
+function renderBodyGoalChart() {
+  if (!document.getElementById("chart-body")) return;
+  const cutoff = isoAddDays(todayISO(), -bodyChartPeriodMonths * 30);
+  const weightInRange = loadWeightLog().filter(e => e.date >= cutoff).sort((a, b) => a.date.localeCompare(b.date));
+  const measureInRange = loadMeasureLog()
+    .filter(e => e.date >= cutoff && e[bodyChartMeasure] != null)
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  const weightAvgSeries = weightInRange.length ? weightRollingAvgSeries(weightInRange) : [];
+  const allDates = Array.from(new Set([...weightInRange.map(e => e.date), ...measureInRange.map(e => e.date)])).sort();
+  const weightByDate = {};
+  weightInRange.forEach((e, i) => { weightByDate[e.date] = weightAvgSeries[i]; });
+  const measureByDate = {};
+  measureInRange.forEach(e => { measureByDate[e.date] = e[bodyChartMeasure]; });
+
+  const weightVals = allDates.map(d => (weightByDate[d] != null ? weightByDate[d] : null));
+  const measureVals = allDates.map(d => (measureByDate[d] != null ? measureByDate[d] : null));
+  const measureLabel = BODY_MEASURE_LABELS[bodyChartMeasure];
+
+  renderTrendChart("chart-body", "tt-body", allDates, [
+    { name: "Vekt", color: "#7a1f3d", values: weightVals, unit: "kg", axis: "left" },
+    { name: measureLabel, color: "#a46cc0", values: measureVals, unit: "cm", axis: "right" },
+  ], { legendId: "legend-body", leftDecimals: 1, rightDecimals: 1 });
+
+  const note = document.getElementById("body-context-note");
+  if (!note) return;
+  const wVals = weightVals.filter(v => v != null);
+  const mVals = measureVals.filter(v => v != null);
+  if (wVals.length < 2 && mVals.length < 2) {
+    note.textContent = "Ikke nok logget data i denne perioden ennå til å si noe om trenden.";
+    return;
+  }
+  const weightDiff = wVals.length >= 2 ? wVals[wVals.length - 1] - wVals[0] : null;
+  const measureDiff = mVals.length >= 2 ? mVals[mVals.length - 1] - mVals[0] : null;
+  const weightPhrase = weightDiff == null ? "Ikke nok vektdata ennå i perioden"
+    : Math.abs(weightDiff) < 0.3 ? "Vekten er stabil"
+    : weightDiff < 0 ? `Vekten har gått ned ${Math.abs(weightDiff).toFixed(1)} kg` : `Vekten har gått opp ${weightDiff.toFixed(1)} kg`;
+  const lcLabel = measureLabel.toLowerCase();
+  const measurePhrase = measureDiff == null ? `ingen ${lcLabel}-mål nok ennå i perioden`
+    : Math.abs(measureDiff) < 0.5 ? `${lcLabel}en er uendret`
+    : measureDiff < 0 ? `${lcLabel}en har krympet ${Math.abs(measureDiff).toFixed(1)} cm` : `${lcLabel}en har økt ${measureDiff.toFixed(1)} cm`;
+  note.textContent = `${weightPhrase}, og ${measurePhrase}.`;
+}
+
+// ---------------------------------------------------------------- fremgang: aktivitets-trender
+function renderActivityTrends() {
+  if (!document.getElementById("chart-activity")) return;
+  const act = alignWeeklySeries([DATA.trends.steps, DATA.trends.activeCalories]);
+  renderTrendChart("chart-activity", "tt-activity", act.weeks, [
+    { name: "Skritt", color: "#7a1f3d", values: act.valuesList[0], unit: "skritt", axis: "left" },
+    { name: "Aktive kalorier", color: "#f6c667", values: act.valuesList[1], unit: "kcal", axis: "right" },
+  ], { legendId: "legend-activity" });
+
+  const ss = alignWeeklySeries([DATA.trends.stress, DATA.trends.sleepScore]);
+  renderTrendChart("chart-stress-sleep", "tt-stress-sleep", ss.weeks, [
+    { name: "Stress", color: "#e37878", values: ss.valuesList[0], unit: "", axis: "left" },
+    { name: "Søvnscore", color: "#a46cc0", values: ss.valuesList[1], unit: "", axis: "right" },
+  ], { legendId: "legend-stress-sleep" });
+
+  const note = document.getElementById("activity-context-note");
+  if (!note) return;
+  const pairs = ss.weeks.map((w, i) => ({ stress: ss.valuesList[0][i], sleep: ss.valuesList[1][i] }))
+    .filter(p => p.stress != null && p.sleep != null);
+  if (pairs.length < 4) {
+    note.textContent = "Ikke nok uker med både stress- og søvndata ennå til å se mønstre.";
+    return;
+  }
+  const sorted = [...pairs].sort((a, b) => a.stress - b.stress);
+  const lowHalf = sorted.slice(0, Math.floor(sorted.length / 2));
+  const highHalf = sorted.slice(Math.ceil(sorted.length / 2));
+  const avgSleepLow = lowHalf.reduce((s, p) => s + p.sleep, 0) / lowHalf.length;
+  const avgSleepHigh = highHalf.reduce((s, p) => s + p.sleep, 0) / highHalf.length;
+  const diff = avgSleepLow - avgSleepHigh;
+  note.textContent = Math.abs(diff) >= 3
+    ? `I ukene med høyest stress har søvnscoren i snitt vært ${Math.abs(diff).toFixed(0)} poeng ${diff > 0 ? "lavere" : "høyere"} enn i ukene med lavest stress.`
+    : "Ingen tydelig sammenheng mellom stressnivå og søvnkvalitet i perioden ennå.";
+}
+
+// ---------------------------------------------------------------- fremgang: faste vs. variable utgifter
+function renderExpenseTrends() {
+  if (!document.getElementById("chart-expenses")) return;
+  const emKeys = emKeysBack(12);
+  const cfg = loadBudgetConfig();
+  const fixedKeys = cfg.categories.filter(c => c.type === "fixed").map(c => c.key);
+  const variableKeys = cfg.categories.filter(c => c.type === "variable" && !c.savings).map(c => c.key);
+  const tx = loadTransactions();
+  const totalFor = (keys, emKey) => {
+    const start = emStart(emKey), end = emEnd(emKey);
+    return tx.filter(t => keys.includes(t.category) && t.date >= start && t.date <= end).reduce((s, t) => s + t.amount, 0);
+  };
+  const fixedVals = emKeys.map(ek => totalFor(fixedKeys, ek));
+  const variableVals = emKeys.map(ek => totalFor(variableKeys, ek));
+
+  renderTrendChart("chart-expenses", "tt-expenses", emKeys, [
+    { name: "Faste utgifter", color: "#7a1f3d", values: fixedVals, unit: "kr" },
+    { name: "Variable utgifter", color: "#a46cc0", values: variableVals, unit: "kr" },
+  ], { legendId: "legend-expenses", fmtLabel: emShortLabel });
+
+  const list = document.getElementById("fixed-expense-totals");
+  if (list) {
+    const pairs = emKeys.map((ek, i) => ({ ek, val: fixedVals[i] })).slice(-6).reverse();
+    const rows = pairs.map(p => `<div class="et-row"><span>${emShortLabel(p.ek)}</span><b>${Math.round(p.val).toLocaleString()} kr</b></div>`).join("");
+    list.innerHTML = `<h4 style="margin:14px 0 2px;font-size:13px;">Faste utgifter per økonomimåned</h4><div class="expense-totals-list">${rows}</div>`;
+  }
+}
+
+// ---------------------------------------------------------------- fremgang: sparemål
+function renderSavingsGoals() {
+  const el = document.getElementById("savings-goals");
+  if (!el) return;
+  const cats = loadBudgetConfig().categories.filter(c => c.savings);
+  el.innerHTML = cats.map(c => {
+    const balance = savingsBalance(c.key);
+    const target = savingsTarget(c.key);
+    const pct = target ? Math.min(100, Math.round(100 * balance / target)) : 0;
+    const proj = projectSavingsMilestone(c.key);
+    let etaText;
+    if (target > 0 && balance >= target) etaText = "🎉 Målet er nådd!";
+    else if (proj) etaText = `Ved nåværende sparetakt (~${Math.round(proj.rate).toLocaleString()} kr/mnd) når du målet rundt ${emShortLabel(proj.emKey)}.`;
+    else etaText = "Spar litt i denne kategorien for å se en anslått dato.";
+    return `
+    <div class="savings-goal-card">
+      <div class="sg-label">${c.icon ? c.icon + " " : ""}${c.label}</div>
+      <div class="sg-amount">${Math.round(balance).toLocaleString()} kr</div>
+      <div class="cat-bar"><div class="${pct >= 100 ? "good" : ""}" style="width:${pct}%"></div></div>
+      <div class="sg-goal-row">Mål: <input type="number" step="500" class="sg-target-input" data-cat="${c.key}" value="${target}"> kr</div>
+      <div class="sg-eta">${etaText}</div>
+    </div>`;
+  }).join("");
+
+  el.querySelectorAll(".sg-target-input").forEach(inp => {
+    inp.addEventListener("change", () => {
+      setSavingsTarget(inp.dataset.cat, parseFloat(inp.value) || 0);
+      renderSavingsGoals();
+      renderFund();
+    });
+  });
+}
+
+// ---------------------------------------------------------------- fremgang: fond-utvikling
+function renderFundTrend() {
+  if (!document.getElementById("chart-fund")) return;
+  const log = loadInvestFundLog().sort((a, b) => a.date.localeCompare(b.date));
+  const labels = log.map(e => e.date);
+  const valueVals = log.map(e => e.value);
+  const contributedVals = log.map(e => (e.contributed != null ? e.contributed : null));
+
+  renderTrendChart("chart-fund", "tt-fund", labels, [
+    { name: "Fondsverdi", color: "#7a1f3d", values: valueVals, unit: "kr" },
+    { name: "Innskutt kapital", color: "#a46cc0", values: contributedVals, unit: "kr" },
+  ], { legendId: "legend-fund" });
+
+  const summary = document.getElementById("fund-summary");
+  if (!summary) return;
+  if (!log.length) { summary.innerHTML = ""; return; }
+  const latest = log[log.length - 1];
+  if (latest.contributed != null && latest.value != null) {
+    const gain = latest.value - latest.contributed;
+    const gainPct = latest.contributed ? (100 * gain / latest.contributed) : 0;
+    summary.innerHTML = `
+      <div class="fs-item">Innskutt<br><b>${Math.round(latest.contributed).toLocaleString()} kr</b></div>
+      <div class="fs-item">Verdi i dag<br><b>${Math.round(latest.value).toLocaleString()} kr</b></div>
+      <div class="fs-item">Avkastning<br><b class="${gain >= 0 ? "pos" : "neg"}">${gain >= 0 ? "+" : ""}${Math.round(gain).toLocaleString()} kr (${gainPct >= 0 ? "+" : ""}${gainPct.toFixed(1)}%)</b></div>
+    `;
+  } else {
+    summary.innerHTML = `
+      <div class="fs-item">Verdi i dag<br><b>${Math.round(latest.value).toLocaleString()} kr</b></div>
+      <div class="fs-item" style="color:var(--muted);font-size:12px;max-width:220px;">Logg innskutt kapital for å se avkastningen</div>
+    `;
+  }
+}
+
 function isoAddDays(dateStr, days) {
   const [y, m, d] = dateStr.split("-").map(Number);
   const dt = new Date(Date.UTC(y, m - 1, d));
@@ -3554,8 +4036,15 @@ function renderHjemBodyToday() {
 function loadInvestFundLog() { return loadLS(INVEST_FUND_KEY, []); }
 function saveInvestFundLog(l) { saveLS(INVEST_FUND_KEY, l); }
 function setInvestFundValue(date, value) {
+  // quick single-field update (e.g. the Hjem-tab prompt) - carries the last known
+  // contributed-capital figure forward, since that only changes on an actual deposit.
+  const prior = loadInvestFundLog().filter(e => e.date < date).sort((a, b) => a.date.localeCompare(b.date));
+  const contributed = prior.length ? prior[prior.length - 1].contributed : null;
+  setInvestFundEntry(date, value, contributed);
+}
+function setInvestFundEntry(date, value, contributed) {
   const log = loadInvestFundLog().filter(e => e.date !== date);
-  log.push({ date, value });
+  log.push({ date, value, contributed: contributed != null ? contributed : null });
   log.sort((a, b) => a.date.localeCompare(b.date));
   saveInvestFundLog(log);
 }
@@ -3606,6 +4095,7 @@ function renderHjemFinance() {
     if (Number.isNaN(val)) return;
     setInvestFundValue(todayISO(), val);
     renderHjemFinance();
+    renderFundTrend();
   });
 }
 
@@ -4024,8 +4514,9 @@ function renderEveningReport() {
   `;
 }
 
-function renderWeeklyReport() {
-  const out = document.getElementById("report-output");
+function renderWeeklyReport(targetId) {
+  const out = document.getElementById(targetId || "report-output");
+  if (!out) return;
   const todayStr = todayISO();
   const weekStart = isoAddDays(todayStr, -6);
 
@@ -4068,6 +4559,36 @@ function renderWeeklyReport() {
   const extrasThisWeek = extras.filter(e => e.date >= weekStart);
   if (extrasThisWeek.length >= 5) {
     patterns.push(`Du logget noe utenom planen ${extrasThisWeek.length} ganger denne uken.`);
+  }
+
+  // cross-module: stress vs. variable spending
+  const variableKeysForReport = loadBudgetConfig().categories.filter(c => c.type === "variable" && !c.savings).map(c => c.key);
+  const highStressDays = history.filter(d => d.stress != null && d.stress >= 40);
+  const lowStressDays = history.filter(d => d.stress != null && d.stress < 40);
+  if (highStressDays.length >= 2 && lowStressDays.length >= 2) {
+    const spendOn = date => tx.filter(t => t.date === date && variableKeysForReport.includes(t.category)).reduce((s, t) => s + t.amount, 0);
+    const avgHigh = highStressDays.reduce((s, d) => s + spendOn(d.date), 0) / highStressDays.length;
+    const avgLow = lowStressDays.reduce((s, d) => s + spendOn(d.date), 0) / lowStressDays.length;
+    if (avgLow > 0 && avgHigh > avgLow * 1.15) {
+      const pctMore = Math.round(100 * (avgHigh - avgLow) / avgLow);
+      patterns.push(`I dager med høyt stress brukte du i snitt ${Math.round(avgHigh)} kr på variable utgifter, mot ${Math.round(avgLow)} kr i roligere dager (${pctMore}% mer).`);
+    }
+  }
+
+  // cross-module: steps vs. sleep the following night
+  const stepSleepDays = history.filter(d => d.steps != null && d.sleepHours != null);
+  if (stepSleepDays.length >= 4) {
+    const sorted = [...stepSleepDays].sort((a, b) => a.steps - b.steps);
+    const lowHalf = sorted.slice(0, Math.floor(sorted.length / 2));
+    const highHalf = sorted.slice(Math.ceil(sorted.length / 2));
+    const avgSleepLow = lowHalf.reduce((s, d) => s + d.sleepHours, 0) / lowHalf.length;
+    const avgSleepHigh = highHalf.reduce((s, d) => s + d.sleepHours, 0) / highHalf.length;
+    const sleepDiff = avgSleepHigh - avgSleepLow;
+    if (Math.abs(sleepDiff) >= 0.4) {
+      patterns.push(sleepDiff > 0
+        ? `Du sover bedre i ukedager med mange skritt - i snitt ${sleepDiff.toFixed(1)} t mer søvn enn på de rolige dagene.`
+        : `Dagene med flest skritt ga faktisk ${Math.abs(sleepDiff).toFixed(1)} t mindre søvn - følg med på at aktive dager ikke går på bekostning av søvnen.`);
+    }
   }
 
   if (!patterns.length) {
@@ -4147,6 +4668,48 @@ document.querySelectorAll(".report-tab-btn").forEach(btn => {
 });
 showReport("morning");
 
+// ---------------------------------------------------------------- fremgang (long-term trends/goals)
+document.querySelectorAll("#body-period-tabs .period-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("#body-period-tabs .period-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    bodyChartPeriodMonths = parseInt(btn.dataset.period, 10);
+    renderBodyGoalChart();
+  });
+});
+document.querySelectorAll("#body-measure-tabs .measure-select-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("#body-measure-tabs .measure-select-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    bodyChartMeasure = btn.dataset.measure;
+    renderBodyGoalChart();
+  });
+});
+
+document.getElementById("fund-log-date").value = todayISO();
+document.getElementById("fund-log-add").addEventListener("click", () => {
+  const date = document.getElementById("fund-log-date").value || todayISO();
+  const contributedRaw = document.getElementById("fund-log-contributed").value;
+  const value = parseFloat(document.getElementById("fund-log-value").value);
+  if (Number.isNaN(value)) return;
+  if (contributedRaw.trim() === "") {
+    setInvestFundValue(date, value);
+  } else {
+    setInvestFundEntry(date, value, parseFloat(contributedRaw));
+  }
+  document.getElementById("fund-log-contributed").value = "";
+  document.getElementById("fund-log-value").value = "";
+  renderFundTrend();
+  renderHjemFinance();
+});
+
+renderBodyGoalChart();
+renderActivityTrends();
+renderExpenseTrends();
+renderSavingsGoals();
+renderFundTrend();
+renderWeeklyReport("fremgang-weekly-report");
+
 // ---------------------------------------------------------------- settings toggles
 const personalityToggle = document.getElementById("settings-personality-toggle");
 personalityToggle.checked = loadSettings().personalityEnabled;
@@ -4170,6 +4733,7 @@ const BACKUP_KEYS = [
   BUDGET_CONFIG_KEY, PLAN_OVERRIDES_KEY, SET_LOG_KEY, SEEN_KEY, REST_PREFS_KEY,
   FORGOTTEN_SAVINGS_KEY, BADDAY_LOG_KEY, EXTRAS_KEY, WATER_KEY, STREAK_BEST_KEY,
   SETTINGS_KEY, WHY_KEY, VACATION_KEY, CUSTOM_MEALS_KEY, MEAL_LOG_KEY, INVEST_FUND_KEY,
+  SAVINGS_GOALS_KEY,
 ];
 
 document.getElementById("backup-export").addEventListener("click", () => {
