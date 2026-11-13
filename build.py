@@ -1706,6 +1706,7 @@ TEMPLATE = r"""<!DOCTYPE html>
       <div class="legend" id="legend-body"></div>
       <div class="chart-wrap"><svg id="chart-body"></svg><div class="tooltip ml" id="tt-body"></div></div>
       <div class="context-note" id="body-context-note"></div>
+      <div id="calorie-calibration-note"></div>
 
       <div class="log-grid">
         <div class="card">
@@ -3429,6 +3430,7 @@ document.getElementById("weight-add").addEventListener("click", () => {
   renderWeeklySnapshot();
   renderPlateau();
   renderBodyGoalChart();
+  renderCalorieCalibration();
 });
 
 function renderMeasureLog() {
@@ -3457,6 +3459,7 @@ document.getElementById("measure-add").addEventListener("click", () => {
   renderLevel();
   renderPlateau();
   renderBodyGoalChart();
+  renderCalorieCalibration();
 });
 
 document.getElementById("overwhelm-btn").addEventListener("click", () => {
@@ -4158,6 +4161,68 @@ function renderWeightGoalInput() {
     saveSettings(s);
     renderBodyGoalChart();
   });
+}
+
+// ---- calorie calibration: does logged intake/burn actually match real weight change? ----
+function computeCalorieCalibration() {
+  const history = (DATA.dailyHistory || []).filter(d => d.calories != null);
+  if (history.length < 10) return null;
+
+  const weightLog = loadWeightLog().sort((a, b) => a.date.localeCompare(b.date));
+  if (weightLog.length < 2) return null;
+  const avgSeries = weightRollingAvgSeries(weightLog);
+
+  function weightNear(targetDate) {
+    let best = null, bestDiff = Infinity;
+    weightLog.forEach((e, i) => {
+      const diff = Math.abs(new Date(e.date + "T00:00:00") - new Date(targetDate + "T00:00:00"));
+      if (diff < bestDiff) { bestDiff = diff; best = avgSeries[i]; }
+    });
+    return bestDiff <= 10 * 24 * 3600 * 1000 ? best : null;
+  }
+  const startWeight = weightNear(history[0].date);
+  const endWeight = weightNear(history[history.length - 1].date);
+  if (startWeight == null || endWeight == null) return null;
+
+  let totalDeficit = 0, loggedDays = 0;
+  history.forEach(d => {
+    const totals = dayNutritionTotals(d.date);
+    if (totals.mealsLogged.length < 2) return; // skip days that weren't really logged
+    totalDeficit += d.calories - totals.kcal;
+    loggedDays++;
+  });
+  if (loggedDays < 7) return null;
+
+  const KCAL_PER_KG = 7700;
+  const impliedChangeKg = -totalDeficit / KCAL_PER_KG;
+  const actualChangeKg = endWeight - startWeight;
+  const extraDailyDeficitKcal = Math.round(((impliedChangeKg - actualChangeKg) * KCAL_PER_KG) / loggedDays);
+
+  return {
+    loggedDays, impliedChangeKg, actualChangeKg, extraDailyDeficitKcal,
+    startDate: history[0].date, endDate: history[history.length - 1].date,
+  };
+}
+
+function renderCalorieCalibration() {
+  const el = document.getElementById("calorie-calibration-note");
+  if (!el) return;
+  const c = computeCalorieCalibration();
+  if (!c) { el.innerHTML = ""; return; }
+
+  const impliedTxt = `${c.impliedChangeKg >= 0 ? "+" : ""}${c.impliedChangeKg.toFixed(1)} kg`;
+  const actualTxt = `${c.actualChangeKg >= 0 ? "+" : ""}${c.actualChangeKg.toFixed(1)} kg`;
+  let verdict;
+  if (Math.abs(c.extraDailyDeficitKcal) < 80) {
+    verdict = "Loggen din stemmer godt med faktisk vektendring - ingen justering nødvendig akkurat nå.";
+  } else if (c.extraDailyDeficitKcal > 0) {
+    verdict = `Du har i snitt hatt et ${Math.abs(c.extraDailyDeficitKcal)} kcal/dag <b>større</b> underskudd enn loggen viser - kroppen din ser ut til å forbrenne litt mer enn Garmin-tallene antyder, eller du har fått i deg litt mindre enn det som er logget.`;
+  } else {
+    verdict = `Du har i snitt hatt et ${Math.abs(c.extraDailyDeficitKcal)} kcal/dag <b>mindre</b> underskudd enn loggen viser - sjekk om noe blir spist uten å bli logget, eller om Garmin overvurderer forbrenningen din litt.`;
+  }
+  el.innerHTML = `<div class="context-note">
+    <b>Kalorikalibrering</b> (siste ${c.loggedDays} fullt loggede dager, ${fmtShort(c.startDate)}–${fmtShort(c.endDate)}): loggen antydet ${impliedTxt}, du gikk faktisk ${actualTxt}. ${verdict}
+  </div>`;
 }
 
 function renderBodyGoalChart() {
@@ -5259,6 +5324,7 @@ document.getElementById("fund-log-add").addEventListener("click", () => {
 
 renderWeightGoalInput();
 renderBodyGoalChart();
+renderCalorieCalibration();
 renderActivityTrends();
 renderExpenseTrends();
 renderSavingsGoals();
