@@ -852,7 +852,7 @@ TEMPLATE = r"""<!DOCTYPE html>
     font-family: Nunito, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     background: var(--bg);
     color: var(--ink);
-    padding: 0 0 60px;
+    padding: 0 0 90px;
     overflow-x: hidden;
   }
   button, .btn, a { touch-action: manipulation; }
@@ -1318,14 +1318,13 @@ TEMPLATE = r"""<!DOCTYPE html>
   .badday-expense-row button { flex: 1; padding: 12px; font-size: 15px; }
   .badday-saved-msg { font-size: 12px; color: var(--muted); min-height: 16px; margin-top: 4px; }
 
-  /* ---- Hjem dashboard (dark, mobile-first start page) ---- */
+  /* ---- Hjem dashboard (light, mobile-first start page) ---- */
   body.tab-is-hjem header.hero,
   body.tab-is-hjem #stat-grid { display: none; }
   .hjem-dash {
-    --hj-bg: #14151a; --hj-card: #1d1f26; --hj-card2: #23262f; --hj-ink: #f2f1f6;
-    --hj-muted: #9a9bab; --hj-accent: #f6c667; --hj-accent2: #a46cc0; --hj-line: #2d2f3a;
-    background: var(--hj-bg); color: var(--hj-ink); border-radius: 20px; padding: 16px;
-    padding-bottom: 86px; margin: 0 -2px 24px; font-family: Nunito, sans-serif;
+    --hj-bg: var(--bg); --hj-card: var(--card); --hj-card2: #fff0f4; --hj-ink: var(--ink);
+    --hj-muted: var(--muted); --hj-accent: #f6c667; --hj-accent2: var(--accent2); --hj-line: var(--line);
+    margin: 0 0 24px; font-family: Nunito, sans-serif;
   }
   .hjem-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
   .hjem-greeting { font-family: "Playfair Display", serif; font-size: 19px; }
@@ -1338,7 +1337,7 @@ TEMPLATE = r"""<!DOCTYPE html>
   .hjem-zone { margin-bottom: 18px; }
   .hjem-zone-title { font-size: 13px; color: var(--hj-muted); text-transform: uppercase; letter-spacing: .06em; margin: 0 0 8px; }
   .hjem-card {
-    background: var(--hj-card); border: 1px solid var(--hj-line); border-radius: 14px;
+    background: var(--hj-card); box-shadow: var(--shadow); border-radius: 14px;
     padding: 12px 14px; color: var(--hj-ink);
   }
   .hjem-card-title { font-size: 12px; color: var(--hj-muted); margin-bottom: 6px; }
@@ -1357,13 +1356,13 @@ TEMPLATE = r"""<!DOCTYPE html>
   .hjem-session .hs-sub { font-size: 12px; color: var(--hj-muted); }
   .hjem-session .hs-badges { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
   .hjem-session .hs-readiness { font-size: 11px; padding: 3px 9px; border-radius: 12px; background: var(--hj-card2); }
-  .hjem-session .hs-readiness.go { color: #7bd88f; }
-  .hjem-session .hs-readiness.caution { color: var(--hj-accent); }
-  .hjem-session .hs-readiness.light { color: #e37878; }
+  .hjem-session .hs-readiness.go { color: #2f8a4e; }
+  .hjem-session .hs-readiness.caution { color: #b8860b; }
+  .hjem-session .hs-readiness.light { color: #c0392b; }
   .hjem-session .hs-status { font-size: 11px; padding: 3px 9px; border-radius: 12px; font-weight: 700; }
   .hjem-session .hs-status.notstarted { background: var(--hj-card2); color: var(--hj-muted); }
-  .hjem-session .hs-status.inprogress { background: rgba(246,198,103,.18); color: var(--hj-accent); }
-  .hjem-session .hs-status.done { background: rgba(123,216,143,.16); color: #7bd88f; }
+  .hjem-session .hs-status.inprogress { background: rgba(246,198,103,.18); color: #b8860b; }
+  .hjem-session .hs-status.done { background: rgba(123,216,143,.16); color: #2f8a4e; }
   .hjem-session .hs-link {
     background: none; border: 1px solid var(--hj-line); color: var(--hj-ink);
     border-radius: 10px; padding: 6px 10px; font-size: 12px; cursor: pointer; font-family: Nunito, sans-serif;
@@ -1371,13 +1370,13 @@ TEMPLATE = r"""<!DOCTYPE html>
   .hjem-nutri-quick { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
   .hjem-nutri-quick .hnq-label { font-size: 12px; color: var(--hj-muted); }
   .hjem-nutri-quick .hnq-val { font-size: 17px; font-weight: 700; margin-top: 2px; }
-  .hjem-nutri-quick .hnq-val.over { color: #e37878; }
+  .hjem-nutri-quick .hnq-val.over { color: #c0392b; }
   .hjem-nutri-quick .hnq-macro { font-size: 11px; color: var(--hj-muted); margin-top: 2px; }
   .hjem-nutri-quick .hnq-balance { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--hj-line); font-size: 11px; color: var(--hj-muted); display: flex; flex-direction: column; gap: 2px; }
-  .hjem-nutri-quick .hnq-balance-diff { font-size: 13px; font-weight: 700; color: #7bd88f; }
-  .hjem-nutri-quick .hnq-balance-diff.over { color: #e37878; }
+  .hjem-nutri-quick .hnq-balance-diff { font-size: 13px; font-weight: 700; color: #2f8a4e; }
+  .hjem-nutri-quick .hnq-balance-diff.over { color: #c0392b; }
   .hjem-nutri-quick button {
-    background: var(--hj-accent); color: #14151a; border: none; border-radius: 10px;
+    background: var(--hj-accent); color: var(--ink); border: none; border-radius: 10px;
     padding: 8px 12px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: Nunito, sans-serif; white-space: nowrap;
   }
   .hjem-tx-list { list-style: none; margin: 0; padding: 0; font-size: 13px; max-height: 120px; overflow-y: auto; }
@@ -1408,58 +1407,60 @@ TEMPLATE = r"""<!DOCTYPE html>
   .hjem-finance-bar > div { background: var(--hj-accent); height: 100%; }
   .hjem-finance-bar > div.over { background: #e37878; }
   .hjem-invest-change { font-size: 12px; font-weight: 700; margin-left: 6px; }
-  .hjem-invest-change.pos { color: #7bd88f; }
-  .hjem-invest-change.neg { color: #e37878; }
+  .hjem-invest-change.pos { color: #2f8a4e; }
+  .hjem-invest-change.neg { color: #c0392b; }
   .hjem-reminder-banner {
     display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
     background: rgba(246, 198, 103, 0.14); border: 1px solid var(--hj-accent); color: var(--hj-ink);
     border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; font-size: 13px;
   }
   .hjem-reminder-banner button {
-    background: var(--hj-accent); color: #14151a; border: none; border-radius: 8px;
+    background: var(--hj-accent); color: var(--ink); border: none; border-radius: 8px;
     padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: Nunito, sans-serif;
   }
 
   .quicklog-bar {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 90;
-    display: flex; background: #0f1014; border-top: 1px solid var(--hj-line, #2d2f3a);
+    display: flex; background: var(--card); border-top: 1px solid var(--line);
+    box-shadow: 0 -2px 10px rgba(122, 31, 61, 0.07);
     padding: 8px max(8px, env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-right));
     gap: 6px;
   }
   .quicklog-bar button {
-    flex: 1; background: none; border: none; color: #f2f1f6; display: flex;
+    flex: 1; background: none; border: none; color: var(--ink); display: flex;
     flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; border-radius: 12px;
     cursor: pointer; position: relative; font-family: Nunito, sans-serif;
   }
-  .quicklog-bar button:active { background: #23262f; }
+  .quicklog-bar button:active { background: var(--line); }
   .quicklog-bar .ql-icon { font-size: 20px; }
-  .quicklog-bar .ql-label { font-size: 11px; color: #9a9bab; }
+  .quicklog-bar .ql-label { font-size: 11px; color: var(--muted); }
   .quicklog-bar .ql-badge {
-    position: absolute; top: 2px; right: 18%; background: #f6c667; color: #14151a;
+    position: absolute; top: 2px; right: 18%; background: #f6c667; color: var(--ink);
     font-size: 10px; font-weight: 700; border-radius: 10px; padding: 0 5px; min-width: 14px; text-align: center;
   }
   .quicklog-drawer {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 91; background: #1d1f26; color: #f2f1f6;
-    border-top: 1px solid #2d2f3a; border-radius: 16px 16px 0 0; padding: 14px 16px;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 91; background: var(--card); color: var(--ink);
+    border-top: 1px solid var(--line); border-radius: 16px 16px 0 0; padding: 14px 16px;
+    box-shadow: 0 -2px 16px rgba(122, 31, 61, 0.1);
     transform: translateY(100%); transition: transform .2s ease; max-height: 60vh; overflow-y: auto;
     padding-bottom: calc(76px + env(safe-area-inset-bottom));
   }
   .quicklog-drawer.open { transform: translateY(0); }
   .quicklog-drawer-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-weight: 700; }
-  .quicklog-drawer-head button { background: none; border: none; color: #9a9bab; font-size: 16px; cursor: pointer; }
+  .quicklog-drawer-head button { background: none; border: none; color: var(--muted); font-size: 16px; cursor: pointer; }
   .quicklog-drawer .ql-presets { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
   .quicklog-drawer .ql-presets button {
-    background: #23262f; border: 1px solid #2d2f3a; color: #f2f1f6; border-radius: 20px;
+    background: var(--bg); border: 1px solid var(--line); color: var(--ink); border-radius: 20px;
     padding: 8px 14px; font-size: 13px; cursor: pointer;
   }
   .quicklog-drawer input, .quicklog-drawer select {
-    width: 100%; padding: 10px 12px; font-size: 14px; border: 1px solid #2d2f3a; border-radius: 10px;
-    font-family: Nunito, sans-serif; background: #14151a; color: #f2f1f6; box-sizing: border-box; margin-bottom: 8px;
+    width: 100%; padding: 10px 12px; font-size: 14px; border: 1px solid var(--line); border-radius: 10px;
+    font-family: Nunito, sans-serif; background: var(--bg); color: var(--ink); box-sizing: border-box; margin-bottom: 8px;
   }
   .quicklog-drawer .btn { width: 100%; }
 
   @media (max-width: 480px) {
-    .hjem-dash { padding: 14px; padding-bottom: 86px; }
+    .hjem-dash { padding: 14px; }
   }
 
   /* ---- access gate ---- */
@@ -1532,12 +1533,12 @@ TEMPLATE = r"""<!DOCTYPE html>
     <button data-tab="hjem">Hjem</button>
     <button data-tab="rapport">Rapport</button>
     <button data-tab="trening">Treningsplan</button>
-    <button data-tab="rekorder">Rekorder</button>
     <button data-tab="kosthold">Kosthold</button>
     <button data-tab="fremgang">Fremgang</button>
     <button data-tab="handleliste">Handleliste</button>
     <button data-tab="budsjett">Budsjett</button>
     <button data-tab="statistikk">Statistikk</button>
+    <button data-tab="innstillinger">Innstillinger</button>
   </nav>
 
   <div class="quiet-actions">
@@ -1601,19 +1602,6 @@ TEMPLATE = r"""<!DOCTYPE html>
       <div class="card" id="plateau-card"></div>
     </section>
 
-    <div class="quicklog-drawer" id="quicklog-drawer">
-      <div class="quicklog-drawer-head">
-        <span id="quicklog-drawer-title"></span>
-        <button id="quicklog-drawer-close">✕</button>
-      </div>
-      <div id="quicklog-drawer-body"></div>
-    </div>
-    <nav class="quicklog-bar" id="quicklog-bar">
-      <button data-ql="vann"><span class="ql-icon">💧</span><span class="ql-label">Vann</span><span class="ql-badge" id="ql-water-badge"></span></button>
-      <button data-ql="mat"><span class="ql-icon">🍫</span><span class="ql-label">Måltid</span></button>
-      <button data-ql="utgift"><span class="ql-icon">💸</span><span class="ql-label">Utgift</span></button>
-      <button data-ql="okt"><span class="ql-icon">🏋️</span><span class="ql-label">Økt</span></button>
-    </nav>
   </div>
   </div>
 
@@ -1640,11 +1628,9 @@ TEMPLATE = r"""<!DOCTYPE html>
     <div class="plan-card" id="plan-today"></div>
     <div class="card" id="rest-timer-card"></div>
   </section>
-  </div>
 
-  <div class="tab-panel" data-tab="rekorder">
-  <section>
-    <h2>Rekorder</h2>
+  <section style="margin-top:28px;">
+    <h2>🏆 Rekorder</h2>
     <div class="section-sub">Dine beste løft, oppdateres automatisk når du logger sett</div>
     <div class="card" id="pr-board-card"></div>
   </section>
@@ -1865,8 +1851,8 @@ TEMPLATE = r"""<!DOCTYPE html>
 
   <div class="tab-panel" data-tab="statistikk">
   <section>
-    <h2>This week vs. recent weeks</h2>
-    <div class="section-sub">Sessions, time and distance by sport, last 10 weeks</div>
+    <h2>Denne uken vs. nylige uker</h2>
+    <div class="section-sub">Økter, tid og distanse per idrett, siste 10 uker</div>
     <div class="card">
       <div class="legend" id="sport-legend"></div>
       <div class="chart-wrap"><svg id="chart-weekly-sport"></svg><div class="tooltip" id="tt-weekly"></div></div>
@@ -1874,23 +1860,23 @@ TEMPLATE = r"""<!DOCTYPE html>
   </section>
 
   <section>
-    <h2>Trends</h2>
-    <div class="section-sub">Weekly averages over your full history</div>
+    <h2>Trender</h2>
+    <div class="section-sub">Ukentlig snitt, siste 6 måneder</div>
     <div class="trend-grid">
       <div class="card">
-        <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">Training load</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">Treningsbelastning</div>
         <div class="chart-wrap"><svg id="chart-load"></svg><div class="tooltip" id="tt-load"></div></div>
       </div>
       <div class="card">
-        <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">Resting heart rate</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">Hvilepuls</div>
         <div class="chart-wrap"><svg id="chart-rhr"></svg><div class="tooltip" id="tt-rhr"></div></div>
       </div>
       <div class="card">
-        <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">HRV (last night avg)</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">HRV (nattlig snitt)</div>
         <div class="chart-wrap"><svg id="chart-hrv"></svg><div class="tooltip" id="tt-hrv"></div></div>
       </div>
       <div class="card">
-        <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">Sleep (hours/night avg)</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">Søvn (timer/natt, snitt)</div>
         <div class="chart-wrap"><svg id="chart-sleep"></svg><div class="tooltip" id="tt-sleep"></div></div>
       </div>
       <div class="card">
@@ -1901,47 +1887,67 @@ TEMPLATE = r"""<!DOCTYPE html>
   </section>
 
   <section>
-    <h2>Records</h2>
-    <div class="section-sub">Your biggest days and sessions</div>
+    <h2>Toppnoteringer</h2>
+    <div class="section-sub">Dine største dager og økter</div>
     <div class="records-grid" id="records-grid"></div>
   </section>
   </div>
 
-  <div class="card settings-card" id="settings-card">
-    <h3 style="margin:0 0 4px;font-size:15px;">Innstillinger</h3>
-    <label class="settings-toggle-row">
-      <input type="checkbox" id="settings-personality-toggle">
-      <span>Personlighet (konfetti og påminnelser)</span>
-    </label>
-    <label class="settings-toggle-row">
-      <input type="checkbox" id="settings-vacation-toggle">
-      <span>Ferie/pause-modus - ingen påminnelser, streaken fryses</span>
-    </label>
-  </div>
+  <div class="tab-panel" data-tab="innstillinger">
+  <section>
+    <h2>Innstillinger</h2>
 
-  <div class="card sync-card" id="sync-card">
-    <h3 style="margin:0 0 4px;font-size:15px;">Skylagring</h3>
-    <div class="section-sub" style="margin-bottom:10px;">Data synkroniseres automatisk med kontoen din i bakgrunnen. Bruk knappen under om noe virker bakpå, f.eks. rett etter du har gjort endringer på en annen enhet.</div>
-    <div class="backup-actions">
-      <button class="btn secondary small" id="sync-now-btn">Synk nå</button>
-      <button class="btn ghost small" id="sync-logout-btn">Logg ut</button>
+    <div class="card settings-card" id="settings-card">
+      <h3 style="margin:0 0 4px;font-size:15px;">Generelt</h3>
+      <label class="settings-toggle-row">
+        <input type="checkbox" id="settings-personality-toggle">
+        <span>Personlighet (konfetti og påminnelser)</span>
+      </label>
+      <label class="settings-toggle-row">
+        <input type="checkbox" id="settings-vacation-toggle">
+        <span>Ferie/pause-modus - ingen påminnelser, streaken fryses</span>
+      </label>
     </div>
-    <div id="sync-status" class="section-sub" style="margin:8px 0 0;"></div>
-  </div>
 
-  <div class="card backup-card" id="backup-card">
-    <h3 style="margin:0 0 4px;font-size:15px;">Sikkerhetskopi (fil)</h3>
-    <div class="section-sub" style="margin-bottom:10px;">Et ekstra trygghetsnett i tillegg til skylagringen over - last ned en kopi innimellom, eller bruk den til å gjenopprette data manuelt.</div>
-    <div class="backup-actions">
-      <button class="btn secondary small" id="backup-export">Last ned kopi</button>
-      <button class="btn ghost small" id="backup-import-btn">Gjenopprett fra fil</button>
-      <input type="file" id="backup-import-file" accept="application/json" style="display:none;">
+    <div class="card sync-card" id="sync-card">
+      <h3 style="margin:0 0 4px;font-size:15px;">Skylagring</h3>
+      <div class="section-sub" style="margin-bottom:10px;">Data synkroniseres automatisk med kontoen din i bakgrunnen. Bruk knappen under om noe virker bakpå, f.eks. rett etter du har gjort endringer på en annen enhet.</div>
+      <div class="backup-actions">
+        <button class="btn secondary small" id="sync-now-btn">Synk nå</button>
+        <button class="btn ghost small" id="sync-logout-btn">Logg ut</button>
+      </div>
+      <div id="sync-status" class="section-sub" style="margin:8px 0 0;"></div>
     </div>
-    <div id="backup-status" class="section-sub" style="margin:8px 0 0;"></div>
+
+    <div class="card backup-card" id="backup-card">
+      <h3 style="margin:0 0 4px;font-size:15px;">Sikkerhetskopi (fil)</h3>
+      <div class="section-sub" style="margin-bottom:10px;">Et ekstra trygghetsnett i tillegg til skylagringen over - last ned en kopi innimellom, eller bruk den til å gjenopprette data manuelt.</div>
+      <div class="backup-actions">
+        <button class="btn secondary small" id="backup-export">Last ned kopi</button>
+        <button class="btn ghost small" id="backup-import-btn">Gjenopprett fra fil</button>
+        <input type="file" id="backup-import-file" accept="application/json" style="display:none;">
+      </div>
+      <div id="backup-status" class="section-sub" style="margin:8px 0 0;"></div>
+    </div>
+  </section>
   </div>
 
   <footer id="footer"></footer>
 </div>
+
+<div class="quicklog-drawer" id="quicklog-drawer">
+  <div class="quicklog-drawer-head">
+    <span id="quicklog-drawer-title"></span>
+    <button id="quicklog-drawer-close">✕</button>
+  </div>
+  <div id="quicklog-drawer-body"></div>
+</div>
+<nav class="quicklog-bar" id="quicklog-bar">
+  <button data-ql="vann"><span class="ql-icon">💧</span><span class="ql-label">Vann</span><span class="ql-badge" id="ql-water-badge"></span></button>
+  <button data-ql="mat"><span class="ql-icon">🍫</span><span class="ql-label">Måltid</span></button>
+  <button data-ql="utgift"><span class="ql-icon">💸</span><span class="ql-label">Utgift</span></button>
+  <button data-ql="okt"><span class="ql-icon">🏋️</span><span class="ql-label">Økt</span></button>
+</nav>
 
 <script>
 const DATA = __DASHBOARD_DATA__;
@@ -2089,7 +2095,9 @@ function showTab(tab) {
 document.querySelectorAll("#tab-nav button").forEach(btn => {
   btn.addEventListener("click", () => showTab(btn.dataset.tab));
 });
-showTab(localStorage.getItem(ACTIVE_TAB_KEY) || "hjem");
+const rememberedTab = localStorage.getItem(ACTIVE_TAB_KEY);
+const validTabs = Array.from(document.querySelectorAll(".tab-panel")).map(p => p.dataset.tab);
+showTab(validTabs.includes(rememberedTab) ? rememberedTab : "hjem");
 
 // ---------------------------------------------------------------- training plan
 const PLAN_OVERRIDES_KEY = "garminDashboardPlanOverrides_v1";
@@ -3933,6 +3941,8 @@ statsDef.forEach(def => {
 });
 
 // ---------------------------------------------------------------- weekly by sport chart
+const SPORT_LABELS_NO = { Strength: "Styrke", Cycling: "Sykling", Running: "Løping", Walking: "Gange", Other: "Annet" };
+
 (function renderWeeklySport() {
   const svg = document.getElementById("chart-weekly-sport");
   const tooltip = document.getElementById("tt-weekly");
@@ -3942,7 +3952,7 @@ statsDef.forEach(def => {
   const colors = DATA.sportColors;
 
   sports.forEach(sp => {
-    legend.innerHTML += `<span><i style="background:${colors[sp]}"></i>${sp}</span>`;
+    legend.innerHTML += `<span><i style="background:${colors[sp]}"></i>${SPORT_LABELS_NO[sp] || sp}</span>`;
   });
 
   const w = 1000, h = 260, padLeft = 40, padBottom = 24, padTop = 10;
@@ -3987,7 +3997,7 @@ statsDef.forEach(def => {
       tooltip.style.opacity = 1;
       tooltip.style.left = (e.clientX - r.left) + "px";
       tooltip.style.top = (e.clientY - r.top) + "px";
-      tooltip.textContent = `${bar.dataset.sport}: ${bar.dataset.sessions} session(s), ${bar.dataset.minutes} min, ${bar.dataset.dist} km`;
+      tooltip.textContent = `${SPORT_LABELS_NO[bar.dataset.sport] || bar.dataset.sport}: ${bar.dataset.sessions} økt(er), ${bar.dataset.minutes} min, ${bar.dataset.dist} km`;
     });
     bar.addEventListener("mouseleave", () => tooltip.style.opacity = 0);
   });
@@ -3997,7 +4007,7 @@ statsDef.forEach(def => {
 function renderLineChart(svgId, ttId, weeks, values, color, unit) {
   const svg = document.getElementById(svgId);
   const tooltip = document.getElementById(ttId);
-  if (!weeks || !weeks.length) { svg.outerHTML = '<div style="color:#8a8580;font-size:13px;">No data yet</div>'; return; }
+  if (!weeks || !weeks.length) { svg.outerHTML = '<div style="color:#8a8580;font-size:13px;">Ingen data ennå</div>'; return; }
 
   const w = 480, h = 180, padLeft = 36, padBottom = 20, padTop = 10, padRight = 10;
   svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
@@ -4055,10 +4065,11 @@ function renderLineChart(svgId, ttId, weeks, values, color, unit) {
   });
 }
 
-renderLineChart("chart-load", "tt-load", DATA.trends.trainingLoad.weeks, DATA.trends.trainingLoad.values, "#7a1f3d", "load");
-renderLineChart("chart-rhr", "tt-rhr", DATA.trends.restingHR.weeks, DATA.trends.restingHR.values, "#9b3456", "bpm");
-renderLineChart("chart-hrv", "tt-hrv", DATA.trends.hrv.weeks, DATA.trends.hrv.values, "#a46cc0", "ms");
-renderLineChart("chart-sleep", "tt-sleep", DATA.trends.sleepHours.weeks, DATA.trends.sleepHours.values, "#e8a3b6", "hrs");
+const TREND_WEEKS_SHOWN = 26; // ~6 months - full history is overkill for these charts
+renderLineChart("chart-load", "tt-load", DATA.trends.trainingLoad.weeks.slice(-TREND_WEEKS_SHOWN), DATA.trends.trainingLoad.values.slice(-TREND_WEEKS_SHOWN), "#7a1f3d", "load");
+renderLineChart("chart-rhr", "tt-rhr", DATA.trends.restingHR.weeks.slice(-TREND_WEEKS_SHOWN), DATA.trends.restingHR.values.slice(-TREND_WEEKS_SHOWN), "#9b3456", "bpm");
+renderLineChart("chart-hrv", "tt-hrv", DATA.trends.hrv.weeks.slice(-TREND_WEEKS_SHOWN), DATA.trends.hrv.values.slice(-TREND_WEEKS_SHOWN), "#a46cc0", "ms");
+renderLineChart("chart-sleep", "tt-sleep", DATA.trends.sleepHours.weeks.slice(-TREND_WEEKS_SHOWN), DATA.trends.sleepHours.values.slice(-TREND_WEEKS_SHOWN), "#e8a3b6", "hrs");
 
 // ---------------------------------------------------------------- generic multi-series trend chart (Fremgang)
 // series: [{ name, color, values, unit, axis: "left"|"right", decimals }], shared x-axis labels.
@@ -4481,14 +4492,14 @@ renderLineChart("chart-volume", "tt-volume", volumeSeries.weeks, volumeSeries.va
 // ---------------------------------------------------------------- records
 const recordsGrid = document.getElementById("records-grid");
 const recordDefs = [
-  { key: "longestRide", label: "Longest ride", fmt: r => `${r.value} ${r.unit}` },
-  { key: "longestRun", label: "Longest run", fmt: r => `${r.value} km` },
-  { key: "longestStrength", label: "Longest strength session", fmt: r => `${r.value} min` },
-  { key: "mostSteps", label: "Most steps in a day", fmt: r => `${r.value.toLocaleString()}` },
-  { key: "mostCalories", label: "Most calories in a day", fmt: r => `${r.value.toLocaleString()} kcal` },
-  { key: "longestSleep", label: "Longest night's sleep", fmt: r => `${r.value} hrs` },
-  { key: "bestHRV", label: "Highest HRV night", fmt: r => `${r.value} ms` },
-  { key: "highestTrainingLoad", label: "Biggest training load", fmt: r => `${r.value}` },
+  { key: "longestRide", label: "Lengste sykkeltur", fmt: r => `${r.value} ${r.unit}` },
+  { key: "longestRun", label: "Lengste løpetur", fmt: r => `${r.value} km` },
+  { key: "longestStrength", label: "Lengste styrkeøkt", fmt: r => `${r.value} min` },
+  { key: "mostSteps", label: "Flest skritt på en dag", fmt: r => `${r.value.toLocaleString()}` },
+  { key: "mostCalories", label: "Flest kalorier på en dag", fmt: r => `${r.value.toLocaleString()} kcal` },
+  { key: "longestSleep", label: "Lengste søvn på en natt", fmt: r => `${r.value} t` },
+  { key: "bestHRV", label: "Høyeste HRV-natt", fmt: r => `${r.value} ms` },
+  { key: "highestTrainingLoad", label: "Høyeste treningsbelastning", fmt: r => `${r.value}` },
 ];
 recordDefs.forEach(def => {
   const r = DATA.records[def.key];
