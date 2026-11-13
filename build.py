@@ -1164,6 +1164,8 @@ TEMPLATE = r"""<!DOCTYPE html>
   .level-bar { height: 10px; border-radius: 6px; background: var(--line); margin-top: 10px; overflow: hidden; }
   .level-bar > div { height: 100%; background: linear-gradient(90deg, var(--accent2), var(--accent)); border-radius: 6px; transition: width .3s; }
   .level-reward { font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .level-explainer { font-size: 11px; color: var(--muted); margin-top: 10px; line-height: 1.6; border-top: 1px solid var(--line); padding-top: 8px; }
+  .level-explainer span { display: inline-block; margin-right: 10px; white-space: nowrap; }
 
   .celebrate-banner {
     background: linear-gradient(135deg, var(--accent2), var(--accent));
@@ -1388,6 +1390,14 @@ TEMPLATE = r"""<!DOCTYPE html>
   .hs-mini-score .hs-mini-label { font-size: 11px; color: var(--hj-muted); flex: 1; min-width: 0; padding-top: 3px; }
   .hs-mini-score .hs-mini-label b { display: block; font-size: 13px; color: var(--hj-ink); font-weight: 700; }
   .hs-mini-note { display: block; font-size: 10.5px; color: var(--hj-muted); margin-top: 2px; line-height: 1.3; }
+  .rpe-picker { margin-top: 2px; }
+  .rpe-buttons { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 5px; }
+  .rpe-btn {
+    width: 26px; height: 26px; border-radius: 8px; border: 1px solid var(--hj-line);
+    background: var(--hj-card2); color: var(--hj-ink); font-family: Nunito, sans-serif;
+    font-size: 12px; font-weight: 700; cursor: pointer; padding: 0;
+  }
+  .rpe-btn:active { background: var(--hj-accent); }
   .hjem-session .hs-status { font-size: 11px; padding: 3px 9px; border-radius: 12px; font-weight: 700; }
   .hjem-session .hs-status.notstarted { background: var(--hj-card2); color: var(--hj-muted); }
   .hjem-session .hs-status.inprogress { background: rgba(246,198,103,.18); color: #b8860b; }
@@ -1401,6 +1411,7 @@ TEMPLATE = r"""<!DOCTYPE html>
   .hjem-nutri-quick .hnq-val { font-size: 17px; font-weight: 700; margin-top: 2px; }
   .hjem-nutri-quick .hnq-val.over { color: #c0392b; }
   .hjem-nutri-quick .hnq-macro { font-size: 11px; color: var(--hj-muted); margin-top: 2px; }
+  .hjem-nutri-quick .hnq-macro.over { color: #c0392b; font-weight: 700; }
   .hjem-nutri-quick .hnq-balance { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--hj-line); font-size: 11px; color: var(--hj-muted); display: flex; flex-direction: column; gap: 2px; }
   .hjem-nutri-quick .hnq-balance-diff { font-size: 13px; font-weight: 700; color: #2f8a4e; }
   .hjem-nutri-quick .hnq-balance-diff.over { color: #c0392b; }
@@ -1435,9 +1446,17 @@ TEMPLATE = r"""<!DOCTYPE html>
   .hjem-finance-bar { background: var(--hj-line); border-radius: 8px; height: 8px; overflow: hidden; margin-top: 6px; }
   .hjem-finance-bar > div { background: var(--hj-accent); height: 100%; }
   .hjem-finance-bar > div.over { background: #e37878; }
-  .hjem-invest-change { font-size: 12px; font-weight: 700; margin-left: 6px; }
+  .hjem-invest-change { font-size: 12px; font-weight: 700; }
   .hjem-invest-change.pos { color: #2f8a4e; }
   .hjem-invest-change.neg { color: #c0392b; }
+  .hjem-invest-main { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 2px; }
+  .hjem-fund-spark { flex-shrink: 0; }
+  .hjem-tx-nudge {
+    display: block; width: 100%; margin-top: 8px; padding: 9px 12px; border: none; border-radius: 10px;
+    background: var(--hj-card2); color: var(--hj-ink); font-family: Nunito, sans-serif; font-size: 12.5px;
+    font-weight: 700; text-align: center; cursor: pointer;
+  }
+  .hjem-tx-nudge:active { background: var(--hj-accent); }
   .hjem-reminder-banner {
     display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
     background: rgba(246, 198, 103, 0.14); border: 1px solid var(--hj-accent); color: var(--hj-ink);
@@ -2293,6 +2312,21 @@ function setupWeekDrag() {
       handle.addEventListener("pointercancel", onUp);
     });
   });
+}
+
+// ---- manual RPE fallback for days Garmin doesn't give a training load for the session ----
+const RPE_LOG_KEY = "garminDashboardRpeLog_v1";
+function loadRpeLog() { return loadLS(RPE_LOG_KEY, {}); }
+function saveRpeLog(l) { saveLS(RPE_LOG_KEY, l); }
+function todayRpe() {
+  const v = loadRpeLog()[todayISO()];
+  return v == null ? null : v;
+}
+function effectiveStrainScore(garminStrain) {
+  if (garminStrain != null && garminStrain > 0) return garminStrain;
+  const rpe = todayRpe();
+  if (rpe != null) return Math.min(100, rpe * 10);
+  return garminStrain;
 }
 
 // ---- "du hoppet over en dag" - offer to move it to tomorrow, or drop it for this week ----
@@ -3363,6 +3397,14 @@ function renderLevel() {
     </div>
     <div class="level-bar"><div style="width:${pct}%"></div></div>
     <div class="level-reward">🎁 ${cfg.levelRewards[levelIdx]}</div>
+    <div class="level-explainer">
+      <span>💪 1 økt = ${cfg.perCompletedSession}p</span>
+      <span>👟 Skrittmål nådd = ${cfg.perStepGoalDay}p</span>
+      <span>⚖️ Ukentlig veiing = ${cfg.perWeightWeek}p</span>
+      <span>📏 Månedlig målerunde = ${cfg.perMeasurementMonth}p</span>
+      <span>🏆 Ny rekord = ${cfg.perNewRecord}p</span>
+      <span>🐶 Fondsmilepæl = ${cfg.perFundMilestone}p</span>
+    </div>
   `;
 
   const seen = loadLS(SEEN_KEY, { level: 0, milestones: 0 });
@@ -4706,10 +4748,19 @@ function renderHjemSession() {
   }
 
   const recovery = p.today.recoveryScore;
-  const strain = p.today.strainScore;
+  const garminStrain = p.today.strainScore;
+  const rpe = todayRpe();
+  const strain = effectiveStrainScore(garminStrain);
   const nutritionTotals = dayNutritionTotals(todayISO());
   const nutrition = nutritionScore();
   const recoveryText = [recoveryVerdict(recovery), ...(p.today.reasons || [])].join(" ");
+
+  // Garmin doesn't always give indoor/manually-entered strength sessions a training load,
+  // so belastning can stay at 0 even on a completed session - offer an RPE fallback then.
+  const needsRpe = resolved.type !== "rest" && (garminStrain == null || garminStrain === 0) && rpe == null;
+  const strainNoteText = rpe != null && (garminStrain == null || garminStrain === 0)
+    ? `${strainNote(strain, recovery, p)} (basert på RPE ${rpe}/10 du satte selv)`
+    : strainNote(strain, recovery, p);
 
   el.innerHTML = `
     <div class="hs-top">
@@ -4728,7 +4779,12 @@ function renderHjemSession() {
       <div class="hs-mini-score">
         ${scoreRingHtml(strain, 40, 5)}
         <div class="hs-mini-label">Belastning<b>${strain != null ? strain : "–"}</b>
-          <span class="hs-mini-note">${strainNote(strain, recovery, p)}</span>
+          ${needsRpe
+            ? `<div class="rpe-picker">
+                <span class="hs-mini-note">Garmin ga ingen belastning for økta - hvor hardt føltes den?</span>
+                <div class="rpe-buttons">${Array.from({ length: 10 }, (_, i) => i + 1).map(n => `<button class="rpe-btn" data-rpe="${n}">${n}</button>`).join("")}</div>
+              </div>`
+            : `<span class="hs-mini-note">${strainNoteText}</span>`}
         </div>
       </div>
       <div class="hs-mini-score">
@@ -4747,6 +4803,14 @@ function renderHjemSession() {
       if (target) target.scrollIntoView({ behavior: "smooth" });
     }, 50);
   });
+  el.querySelectorAll(".rpe-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const log = loadRpeLog();
+      log[todayISO()] = parseInt(btn.dataset.rpe, 10);
+      saveRpeLog(log);
+      renderHjemSession();
+    });
+  });
 }
 
 function renderHjemKcalRing() {
@@ -4754,8 +4818,12 @@ function renderHjemKcalRing() {
   const el = document.getElementById("hjem-kcal-ring");
   if (!n || !el) return;
   const totals = dayNutritionTotals(todayISO());
-  const over = totals.kcal > n.dailyKcal;
+  const remaining = n.dailyKcal - totals.kcal;
+  const over = remaining < 0;
 
+  // Kept deliberately separate from "igjen av målet" above: that's a fixed daily budget,
+  // this is a live Garmin-based deficit/surplus (burned vs. eaten) - mixing the two into one
+  // number was confusing since they answer different questions.
   const burned = reportMetric("calories").today;
   let balanceHtml = "";
   if (burned != null) {
@@ -4763,21 +4831,28 @@ function renderHjemKcalRing() {
     const diffLabel = diff >= 0 ? `${diff} kcal underskudd så langt` : `${Math.abs(diff)} kcal overskudd så langt`;
     balanceHtml = `
       <div class="hnq-balance">
-        <span>Forbrent så langt i dag (Garmin): ${burned} kcal</span>
-        <span class="hnq-balance-diff${diff >= 0 ? "" : " over"}">${diffLabel}</span>
+        <span>🔥 Forbrent i dag (Garmin): ${burned} kcal</span>
+        <span class="hnq-balance-diff${diff >= 0 ? "" : " over"}">${diffLabel} (forbrent − spist)</span>
       </div>`;
   }
 
   el.innerHTML = `
     <div>
-      <div class="hnq-label">Spist / Budsjett</div>
-      <div class="hnq-val${over ? " over" : ""}">${totals.kcal} / ${n.dailyKcal} kcal</div>
+      <div class="hnq-label">Spist i dag</div>
+      <div class="hnq-val">${totals.kcal} kcal</div>
+      <div class="hnq-macro${over ? " over" : ""}">${over ? `${Math.abs(remaining)} kcal over målet` : `${remaining} kcal igjen av målet (${n.dailyKcal} kcal)`}</div>
       <div class="hnq-macro">${totals.protein} / ${n.proteinMin} g protein</div>
       ${balanceHtml}
     </div>
     <button id="hjem-logg-maltid-btn">+ Logg måltid</button>
   `;
   document.getElementById("hjem-logg-maltid-btn").addEventListener("click", openMatDrawer);
+}
+
+function quickSaveToDogFund(amount, name) {
+  const tx = loadTransactions();
+  tx.push({ id: "save-" + Date.now() + Math.random(), date: todayISO(), amount, category: DATA.dogFund.category, name: name || "Spar i stedet" });
+  saveTransactions(tx);
 }
 
 function renderHjemTodayTx() {
@@ -4792,10 +4867,21 @@ function renderHjemTodayTx() {
     <ul class="hjem-tx-list">
       ${tx.length
         ? tx.map(t => `<li><span class="tx-name">${t.name || catLabel(t.category)}</span><b>${t.amount.toLocaleString()} kr</b></li>`).join("")
-        : `<li class="hjem-tx-empty">Ingen transaksjoner i dag</li>`}
+        : `<li class="hjem-tx-empty">Ingen utgifter i dag 🎉</li>`}
     </ul>
-    <div class="hjem-tx-total"><span>Totalt i dag</span><span>${total.toLocaleString()} kr</span></div>
+    ${tx.length
+      ? `<div class="hjem-tx-total"><span>Totalt i dag</span><span>${total.toLocaleString()} kr</span></div>`
+      : `<button class="hjem-tx-nudge" id="hjem-tx-nudge-btn">Kanskje du skal sette inn 50 kr på hundefondet i stedet? 🐶</button>`}
   `;
+  const nudgeBtn = document.getElementById("hjem-tx-nudge-btn");
+  if (nudgeBtn) {
+    nudgeBtn.addEventListener("click", () => {
+      quickSaveToDogFund(50, "Ingen utgifter i dag");
+      renderHjemTodayTx();
+      renderHjemFinance();
+      renderBudget();
+    });
+  }
 }
 
 async function fetchWeather() {
@@ -4890,6 +4976,28 @@ function investFundStatus() {
   return { value: latest.value, date: latest.date, changeKr, changePct };
 }
 
+function fundSparklineSvg(log, width, height) {
+  const recent = log.slice(-14).filter(e => e.value != null);
+  if (recent.length < 2) return "";
+  const vals = recent.map(e => e.value);
+  const min = Math.min(...vals), max = Math.max(...vals);
+  const range = max - min || 1;
+  const pad = 3;
+  const pts = vals.map((v, i) => {
+    const x = pad + (i / (vals.length - 1)) * (width - pad * 2);
+    const y = pad + (1 - (v - min) / range) * (height - pad * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  const up = vals[vals.length - 1] >= vals[0];
+  const color = up ? "#2f8a4e" : "#c0392b";
+  const lastX = pad + (width - pad * 2);
+  const lastY = pad + (1 - (vals[vals.length - 1] - min) / range) * (height - pad * 2);
+  return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" class="hjem-fund-spark">
+    <polyline points="${pts.join(" ")}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="2.5" fill="${color}"/>
+  </svg>`;
+}
+
 function renderHjemFinance() {
   const el = document.getElementById("hjem-finance");
   if (!el) return;
@@ -4909,15 +5017,21 @@ function renderHjemFinance() {
   const changeHtml = inv.changeKr != null
     ? `<span class="hjem-invest-change ${changeClass}">${changeSign}${Math.round(inv.changeKr).toLocaleString()} kr / ${changeSign}${inv.changePct.toFixed(1)}%</span>`
     : "";
+  const fundLog = loadInvestFundLog();
+  const sparkHtml = fundSparklineSvg(fundLog, 60, 26);
+  const growthIcon = inv.changeKr != null ? (inv.changeKr >= 0 ? "📈" : "📉") : "💰";
 
   el.innerHTML = `
     <div class="hjem-finance-row">
       <div class="hf-label"><span>Brukt denne måneden</span><span>${spent.toLocaleString()} / ${totalBudget.toLocaleString()} kr</span></div>
       <div class="hjem-finance-bar"><div class="${over ? "over" : ""}" style="width:${pct}%"></div></div>
     </div>
-    <div class="hjem-finance-row" id="hjem-invest-row" style="cursor:pointer;">
+    <div class="hjem-finance-row hjem-invest-row" id="hjem-invest-row" style="cursor:pointer;">
       <div class="hf-label"><span>Fond</span><span>${inv.date ? "Oppdatert " + fmtShort(inv.date) : "Ikke satt"}</span></div>
-      <div class="hf-val">${inv.value != null ? inv.value.toLocaleString() + " kr" : "– kr"} ${changeHtml}</div>
+      <div class="hjem-invest-main">
+        <div class="hf-val">${growthIcon} ${inv.value != null ? inv.value.toLocaleString() + " kr" : "– kr"}<br>${changeHtml}</div>
+        ${sparkHtml}
+      </div>
     </div>
   `;
   document.getElementById("hjem-invest-row").addEventListener("click", () => {
@@ -5531,7 +5645,7 @@ const BACKUP_KEYS = [
   BUDGET_CONFIG_KEY, PLAN_OVERRIDES_KEY, SET_LOG_KEY, SEEN_KEY, REST_PREFS_KEY,
   FORGOTTEN_SAVINGS_KEY, BADDAY_LOG_KEY, EXTRAS_KEY, WATER_KEY, STREAK_BEST_KEY,
   SETTINGS_KEY, WHY_KEY, VACATION_KEY, CUSTOM_MEALS_KEY, MEAL_LOG_KEY, INVEST_FUND_KEY,
-  SAVINGS_GOALS_KEY, CUSTOM_INGREDIENTS_KEY, MEAL_ING_OVERRIDES_KEY, MISSED_DAY_ACK_KEY,
+  SAVINGS_GOALS_KEY, CUSTOM_INGREDIENTS_KEY, MEAL_ING_OVERRIDES_KEY, MISSED_DAY_ACK_KEY, RPE_LOG_KEY,
 ];
 window.BACKUP_KEYS = BACKUP_KEYS;
 
