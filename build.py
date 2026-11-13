@@ -79,6 +79,41 @@ PROG_EXERCISES = {
             "Stående kabelrad 3×10–12", "Step-up på lav kasse, kontrollert - skyv gjennom hælen, kjenn rumpa 3×8/side",
             "Dead bug med vekt 3×8/side", "Planke med skulderberøring 3×20–30 s"],
 }
+# Built-in ingredient catalog: kcal/protein per 100g, used for the "bytt ingrediens" feature
+# in the meal plan. Values are standard reference estimates (±10%, same spirit as the rest
+# of the nutrition numbers in this app) - she can add her own ingredients or correct these
+# in the app itself (stored in localStorage, layered on top of this list).
+INGREDIENT_CATALOG = {
+    "kyllingfilet": {"label": "Kyllingfilet", "kcal100": 165, "protein100": 31},
+    "kyllingkjottdeig": {"label": "Kyllingkjøttdeig", "kcal100": 143, "protein100": 18},
+    "karbonadedeig": {"label": "Karbonadedeig", "kcal100": 220, "protein100": 18},
+    "kalkunfilet": {"label": "Kalkunfilet", "kcal100": 135, "protein100": 29},
+    "laksefilet": {"label": "Laksefilet", "kcal100": 208, "protein100": 20},
+    "torsk": {"label": "Torsk/hvit fisk", "kcal100": 82, "protein100": 18},
+    "egg": {"label": "Egg", "kcal100": 155, "protein100": 13},
+    "ris": {"label": "Ris (tørrvekt)", "kcal100": 360, "protein100": 7},
+    "quinoa": {"label": "Quinoa (tørrvekt)", "kcal100": 368, "protein100": 14},
+    "pasta": {"label": "Pasta (tørrvekt)", "kcal100": 350, "protein100": 12},
+    "poteter": {"label": "Poteter", "kcal100": 77, "protein100": 2},
+    "havregryn": {"label": "Havregryn", "kcal100": 375, "protein100": 13},
+    "proteinpulver": {"label": "Proteinpulver", "kcal100": 380, "protein100": 75},
+    "proteinmelk": {"label": "Proteinmelk", "kcal100": 55, "protein100": 8},
+    "gresk_yoghurt": {"label": "Gresk yoghurt", "kcal100": 97, "protein100": 9},
+    "mager_kesam": {"label": "Mager kesam", "kcal100": 70, "protein100": 12},
+    "cottage_cheese": {"label": "Cottage cheese", "kcal100": 98, "protein100": 11},
+    "skyr": {"label": "Høyprotein yoghurt/skyr", "kcal100": 60, "protein100": 10},
+    "kakaogranola": {"label": "Kakaogranola", "kcal100": 450, "protein100": 8},
+    "chiafro": {"label": "Chiafrø", "kcal100": 486, "protein100": 17},
+}
+
+# Each recipe's "items" are either a structured, swappable ingredient line
+# ({"ing": <catalog key>, "amount": grams, optionally "display": "<custom label>"})
+# or a plain non-swappable display line ({"text": "..."}) for garnish/sauces that
+# aren't worth a full macro breakdown. "kcal"/"protein" stay the original hand-estimated
+# totals for the recipe; _finalize_nutrition_plan() below backs out how much of that total
+# isn't explained by the structured ingredients ("extraKcal"/"extraProtein" - covers the
+# text-only lines), so swapping a structured ingredient recalculates the total correctly
+# without needing to re-type every recipe's numbers by hand.
 NUTRITION_PLAN = {
     "dailyKcal": 1750,
     "proteinMin": 140,
@@ -86,38 +121,114 @@ NUTRITION_PLAN = {
     "breakfast": {
         "label": "Frokost - standard, eller velg et eget forslag",
         "options": [
-            {"name": "Havregrøt med protein", "items": ["40 g havregryn", "20 g proteinpulver", "1 dl proteinmelk", "10 g chiafrø", "100 g gresk yoghurt"], "kcal": 450, "protein": 32},
+            {"name": "Havregrøt med protein", "items": [
+                {"ing": "havregryn", "amount": 40},
+                {"ing": "proteinpulver", "amount": 20},
+                {"ing": "proteinmelk", "amount": 100, "display": "1 dl proteinmelk"},
+                {"ing": "chiafro", "amount": 10},
+                {"ing": "gresk_yoghurt", "amount": 100},
+            ], "kcal": 450, "protein": 32},
         ],
     },
     "lunch": {
         "label": "Lunsj - velg én, rullér gjennom uken",
         "options": [
-            {"name": "Kyllingfilet-wrap", "items": ["130 g kyllingfilet", "1 grovt pitabrød", "agurk og paprika", "1 ss lett rømme/yoghurtdressing"], "kcal": 400, "protein": 35},
-            {"name": "Karbonadedeig med ris", "items": ["120 g karbonadedeig", "60 g ris (tørrvekt)", "agurk og paprika"], "kcal": 430, "protein": 28},
-            {"name": "Kyllingkjøttdeig-taco", "items": ["130 g kyllingkjøttdeig", "2 extra thin tacolefser", "agurk og paprika", "litt mager kesam"], "kcal": 400, "protein": 32},
-            {"name": "Proteinrundstykke med kyllingfilet", "items": ["1 proteinrundstykke", "80 g kyllingfilet-pålegg", "salat og tomat", "litt lett dressing"], "kcal": 350, "protein": 30},
-            {"name": "Wrap med ferdigstekt kylling", "items": ["1 grov tortillalefse", "100 g ferdigstekt kyllingfilet (butikk)", "agurk og paprika", "litt lett dressing"], "kcal": 380, "protein": 30},
+            {"name": "Kyllingfilet-wrap", "items": [
+                {"ing": "kyllingfilet", "amount": 130},
+                {"text": "1 grovt pitabrød"},
+                {"text": "agurk og paprika"},
+                {"text": "1 ss lett rømme/yoghurtdressing"},
+            ], "kcal": 400, "protein": 35},
+            {"name": "Karbonadedeig med ris", "items": [
+                {"ing": "karbonadedeig", "amount": 120},
+                {"ing": "ris", "amount": 60, "display": "60 g ris (tørrvekt)"},
+                {"text": "agurk og paprika"},
+            ], "kcal": 430, "protein": 28},
+            {"name": "Kyllingkjøttdeig-taco", "items": [
+                {"ing": "kyllingkjottdeig", "amount": 130},
+                {"text": "2 extra thin tacolefser"},
+                {"text": "agurk og paprika"},
+                {"text": "litt mager kesam"},
+            ], "kcal": 400, "protein": 32},
+            {"name": "Proteinrundstykke med kyllingfilet", "items": [
+                {"text": "1 proteinrundstykke"},
+                {"ing": "kyllingfilet", "amount": 80, "display": "80 g kyllingfilet-pålegg"},
+                {"text": "salat og tomat"},
+                {"text": "litt lett dressing"},
+            ], "kcal": 350, "protein": 30},
+            {"name": "Wrap med ferdigstekt kylling", "items": [
+                {"text": "1 grov tortillalefse"},
+                {"ing": "kyllingfilet", "amount": 100, "display": "100 g ferdigstekt kyllingfilet (butikk)"},
+                {"text": "agurk og paprika"},
+                {"text": "litt lett dressing"},
+            ], "kcal": 380, "protein": 30},
         ],
     },
     "snack": {
         "label": "Mellommåltid - velg én",
         "options": [
-            {"name": "Yoghurt med bringebær og granola", "items": ["150 g høyprotein yoghurt/skyr", "20 g kakaogranola", "bringebær", "1 ts Biscoff"], "kcal": 230, "protein": 18},
-            {"name": "YT proteinprodukt", "items": ["1 stk (sjekk etiketten for nøyaktige tall)"], "kcal": 180, "protein": 20},
-            {"name": "Mager kesam med bringebær", "items": ["150 g mager kesam", "bringebær"], "kcal": 110, "protein": 18},
+            {"name": "Yoghurt med bringebær og granola", "items": [
+                {"ing": "skyr", "amount": 150, "display": "150 g høyprotein yoghurt/skyr"},
+                {"ing": "kakaogranola", "amount": 20},
+                {"text": "bringebær"},
+                {"text": "1 ts Biscoff"},
+            ], "kcal": 230, "protein": 18},
+            {"name": "YT proteinprodukt", "items": [
+                {"text": "1 stk (sjekk etiketten for nøyaktige tall)"},
+            ], "kcal": 180, "protein": 20},
+            {"name": "Mager kesam med bringebær", "items": [
+                {"ing": "mager_kesam", "amount": 150},
+                {"text": "bringebær"},
+            ], "kcal": 110, "protein": 18},
         ],
     },
     "dinner": {
         "label": "Middag - velg én, rullér gjennom uken",
         "options": [
-            {"name": "Kyllingkjøttdeig-stekt ris", "items": ["150 g kyllingkjøttdeig", "70 g ris (tørrvekt)", "amerikansk grønnsaksblanding (frossen)", "litt soyasaus"], "kcal": 520, "protein": 42},
-            {"name": "Pasta med kjøttsaus", "items": ["80 g pasta (tørrvekt)", "130 g karbonadedeig", "litt tomatsaus", "paprika"], "kcal": 560, "protein": 33},
-            {"name": "Kylling med ris", "items": ["150 g kyllingfilet", "70 g ris (tørrvekt)", "agurk og paprika"], "kcal": 480, "protein": 44},
-            {"name": "Laks med poteter", "items": ["150 g laksefilet", "200 g poteter", "brokkoli"], "kcal": 490, "protein": 38},
-            {"name": "Taco-gryte", "items": ["150 g kyllingkjøttdeig", "100 g mais og bønner", "1 dl lettrømme", "liten porsjon tortillachips"], "kcal": 540, "protein": 36},
+            {"name": "Kyllingkjøttdeig-stekt ris", "items": [
+                {"ing": "kyllingkjottdeig", "amount": 150},
+                {"ing": "ris", "amount": 70, "display": "70 g ris (tørrvekt)"},
+                {"text": "amerikansk grønnsaksblanding (frossen)"},
+                {"text": "litt soyasaus"},
+            ], "kcal": 520, "protein": 42},
+            {"name": "Pasta med kjøttsaus", "items": [
+                {"ing": "pasta", "amount": 80, "display": "80 g pasta (tørrvekt)"},
+                {"ing": "karbonadedeig", "amount": 130},
+                {"text": "litt tomatsaus"},
+                {"text": "paprika"},
+            ], "kcal": 560, "protein": 33},
+            {"name": "Kylling med ris", "items": [
+                {"ing": "kyllingfilet", "amount": 150},
+                {"ing": "ris", "amount": 70, "display": "70 g ris (tørrvekt)"},
+                {"text": "agurk og paprika"},
+            ], "kcal": 480, "protein": 44},
+            {"name": "Laks med poteter", "items": [
+                {"ing": "laksefilet", "amount": 150},
+                {"ing": "poteter", "amount": 200},
+                {"text": "brokkoli"},
+            ], "kcal": 490, "protein": 38},
+            {"name": "Taco-gryte", "items": [
+                {"ing": "kyllingkjottdeig", "amount": 150},
+                {"text": "100 g mais og bønner"},
+                {"text": "1 dl lettrømme"},
+                {"text": "liten porsjon tortillachips"},
+            ], "kcal": 540, "protein": 36},
         ],
     },
 }
+
+
+def _finalize_nutrition_plan(plan, catalog):
+    for group_key in ("breakfast", "lunch", "snack", "dinner"):
+        for opt in plan[group_key]["options"]:
+            structured_kcal = sum(catalog[i["ing"]]["kcal100"] * i["amount"] / 100 for i in opt["items"] if "ing" in i)
+            structured_protein = sum(catalog[i["ing"]]["protein100"] * i["amount"] / 100 for i in opt["items"] if "ing" in i)
+            opt["extraKcal"] = round(opt["kcal"] - structured_kcal)
+            opt["extraProtein"] = round(opt["protein"] - structured_protein, 1)
+    return plan
+
+
+NUTRITION_PLAN = _finalize_nutrition_plan(NUTRITION_PLAN, INGREDIENT_CATALOG)
 # ---- budget (starting points - fully editable in the app; income 32k/mnd) ----
 # Økonomimåned: 16.-15. (lønn kommer den 16.). "cap" is the initial budget amount;
 # the app converts this to a capHistory (effective-dated) list on first load so that
@@ -688,6 +799,7 @@ def main():
         "program": program,
         "sessionCatalog": SESSION_CATALOG,
         "nutritionPlan": NUTRITION_PLAN,
+        "ingredientCatalog": INGREDIENT_CATALOG,
         "weeklyBySport": weekly_by_sport_out,
         "trends": trends,
         "records": records,
@@ -896,9 +1008,27 @@ TEMPLATE = r"""<!DOCTYPE html>
   .meal-option .meal-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
   .meal-option .meal-head b { font-size: 14px; }
   .meal-option .meal-macro { font-size: 12px; color: var(--muted); white-space: nowrap; }
-  .meal-option .meal-items { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .meal-option .meal-items { font-size: 12px; color: var(--muted); margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px 10px; }
+  .meal-item-text { white-space: nowrap; }
+  .meal-item-ing { white-space: nowrap; }
+  .meal-item-ing.meal-item-overridden { color: var(--accent); font-weight: 700; }
+  .meal-ing-swap-btn, .meal-ing-reset-btn {
+    background: none; border: none; color: var(--accent2); cursor: pointer;
+    font-size: 11px; padding: 0; margin-left: 3px; text-decoration: underline;
+  }
   .meal-option-remove { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 11px; padding: 0; margin-left: 6px; }
   .meal-add-form { margin-top: 2px; }
+  .ing-swap-form {
+    background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px; margin-top: 6px; display: flex; flex-direction: column; gap: 8px;
+  }
+  .ing-swap-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .ing-swap-row select { font-family: inherit; font-size: 13px; border: 1px solid var(--line); border-radius: 8px; padding: 5px 6px; background: #fff; }
+  .ing-swap-row input { width: 64px; font-family: inherit; font-size: 13px; border: 1px solid var(--line); border-radius: 8px; padding: 5px 6px; }
+  .ing-new-form { display: flex; gap: 6px; flex-wrap: wrap; }
+  .ing-new-form input { font-family: inherit; font-size: 13px; border: 1px solid var(--line); border-radius: 8px; padding: 5px 6px; }
+  .ing-new-form input[type="text"] { width: 140px; }
+  .ing-new-form input[type="number"] { width: 90px; }
   .nutrition-note { font-size: 11px; color: var(--muted); margin-top: 14px; font-style: italic; }
   .meal-eaten-btn { margin-top: 8px; }
   .meal-option-eaten { border-left: 3px solid var(--accent); }
@@ -2260,6 +2390,8 @@ renderRestTimer();
 const EXTRAS_KEY = "garminDashboardExtras_v1";
 const CUSTOM_MEALS_KEY = "garminDashboardCustomMeals_v1";
 const MEAL_LOG_KEY = "garminDashboardMealLog_v1";
+const CUSTOM_INGREDIENTS_KEY = "garminDashboardCustomIngredients_v1";
+const MEAL_ING_OVERRIDES_KEY = "garminDashboardMealIngOverrides_v1";
 function loadCustomMeals() { return Object.assign({ breakfast: [], lunch: [], snack: [], dinner: [] }, loadLS(CUSTOM_MEALS_KEY, {})); }
 function saveCustomMeals(m) { saveLS(CUSTOM_MEALS_KEY, m); }
 
@@ -2278,16 +2410,73 @@ function isMealEatenToday(type, name) {
   const m = mealLoggedFor(todayISO(), type);
   return !!m && m.name === name;
 }
+
+// ---- ingredient catalog (built-in + her own additions) and per-day swap overrides ----
+function loadCustomIngredients() { return loadLS(CUSTOM_INGREDIENTS_KEY, {}); }
+function saveCustomIngredients(c) { saveLS(CUSTOM_INGREDIENTS_KEY, c); }
+function getIngredient(key) {
+  const custom = loadCustomIngredients();
+  return custom[key] || DATA.ingredientCatalog[key] || null;
+}
+function ingredientOptionsForSelect(selectedKey) {
+  const all = Object.assign({}, DATA.ingredientCatalog, loadCustomIngredients());
+  const keys = Object.keys(all).sort((a, b) => all[a].label.localeCompare(all[b].label, "no"));
+  return keys.map(k => `<option value="${k}" ${k === selectedKey ? "selected" : ""}>${all[k].label}</option>`).join("");
+}
+function ingOverrideKey(date, type, optIdx, itemIdx) { return `${date}|${type}|${optIdx}|${itemIdx}`; }
+function loadMealIngOverrides() { return loadLS(MEAL_ING_OVERRIDES_KEY, {}); }
+function saveMealIngOverrides(o) { saveLS(MEAL_ING_OVERRIDES_KEY, o); }
+function getIngOverride(date, type, optIdx, itemIdx) {
+  return loadMealIngOverrides()[ingOverrideKey(date, type, optIdx, itemIdx)] || null;
+}
+function setIngOverride(date, type, optIdx, itemIdx, ing, amount) {
+  const o = loadMealIngOverrides();
+  o[ingOverrideKey(date, type, optIdx, itemIdx)] = { ing, amount };
+  saveMealIngOverrides(o);
+}
+function clearIngOverride(date, type, optIdx, itemIdx) {
+  const o = loadMealIngOverrides();
+  delete o[ingOverrideKey(date, type, optIdx, itemIdx)];
+  saveMealIngOverrides(o);
+}
+// recomputes a built-in option's macros for the given date, applying any ingredient
+// swaps logged for that day - custom (no-ingredient) meals pass through unchanged.
+function effectiveMealOption(type, optIdx, opt, date) {
+  if (!opt.items || !opt.items.some(i => i.ing)) {
+    return Object.assign({}, opt, { effectiveItems: (opt.items || []).map(i => ({ text: i.text })) });
+  }
+  let kcal = opt.extraKcal || 0;
+  let protein = opt.extraProtein || 0;
+  const effectiveItems = opt.items.map((item, itemIdx) => {
+    if (!item.ing) return { text: item.text };
+    const override = getIngOverride(date, type, optIdx, itemIdx);
+    const ing = override ? override.ing : item.ing;
+    const amount = override ? override.amount : item.amount;
+    const data = getIngredient(ing);
+    if (data) {
+      kcal += data.kcal100 * amount / 100;
+      protein += data.protein100 * amount / 100;
+    }
+    return {
+      ing, amount, itemIdx,
+      label: data ? data.label : ing,
+      display: override ? `${amount} g` : (item.display || `${amount} g`),
+      overridden: !!override,
+    };
+  });
+  return { name: opt.name, kcal: Math.round(kcal), protein: Math.round(protein), effectiveItems };
+}
+
 // totals actually eaten on a given date: breakfast (the standard one, unless a different
-// breakfast option was marked eaten that day) + whichever lunch/snack/dinner options were
-// marked eaten that day + anything logged as an "extra"
+// breakfast option was marked eaten that day, or its ingredients were swapped for the day)
+// + whichever lunch/snack/dinner options were marked eaten that day + anything logged as an "extra"
 function dayNutritionTotals(date) {
   const n = DATA.nutritionPlan;
   const meals = loadMealLog().filter(m => m.date === date);
   const extrasForDay = loadExtras().filter(e => e.date === date);
   const extrasTotal = extrasForDay.reduce((s, e) => s + (e.kcal || 0), 0);
   const loggedBreakfast = meals.find(m => m.type === "breakfast");
-  const breakfast = loggedBreakfast || n.breakfast.options[0];
+  const breakfast = loggedBreakfast || effectiveMealOption("breakfast", 0, n.breakfast.options[0], date);
   const otherMeals = meals.filter(m => m.type !== "breakfast");
   return {
     kcal: breakfast.kcal + otherMeals.reduce((s, m) => s + (m.kcal || 0), 0) + extrasTotal,
@@ -2297,11 +2486,52 @@ function dayNutritionTotals(date) {
   };
 }
 
-function mealOptionHtml(opt, removeId, toggle) {
+// transient UI state (not persisted) for which ingredient's swap-form is open
+let openIngSwapKey = null;
+let openIngSwapShowCustomForm = false;
+
+function mealOptionHtml(opt, removeId, toggle, swapCtx) {
   const eaten = !!(toggle && toggle.eaten);
+  const itemsHtml = (opt.effectiveItems || []).map(item => {
+    if (item.text) return `<span class="meal-item-text">${item.text}</span>`;
+    if (!swapCtx) return `<span class="meal-item-ing">${item.display} ${item.label}</span>`;
+    const key = ingOverrideKey(todayISO(), swapCtx.type, swapCtx.optIdx, item.itemIdx);
+    return `<span class="meal-item-ing${item.overridden ? " meal-item-overridden" : ""}">
+      ${item.display} ${item.label}
+      <button class="meal-ing-swap-btn" data-swap-key="${key}">Bytt</button>
+      ${item.overridden ? `<button class="meal-ing-reset-btn" data-type="${swapCtx.type}" data-opt-idx="${swapCtx.optIdx}" data-item-idx="${item.itemIdx}">↺</button>` : ""}
+    </span>`;
+  }).join("");
+
+  let swapFormHtml = "";
+  if (swapCtx) {
+    (opt.effectiveItems || []).forEach(item => {
+      if (item.text) return;
+      const key = ingOverrideKey(todayISO(), swapCtx.type, swapCtx.optIdx, item.itemIdx);
+      if (openIngSwapKey !== key) return;
+      swapFormHtml = `<div class="ing-swap-form">
+        <div class="ing-swap-row">
+          <select class="ing-swap-select">${ingredientOptionsForSelect(item.ing)}</select>
+          <input type="number" class="ing-swap-amount" value="${item.amount}"> g
+          <button class="btn small ing-swap-save" data-type="${swapCtx.type}" data-opt-idx="${swapCtx.optIdx}" data-item-idx="${item.itemIdx}">Lagre</button>
+          <button class="btn ghost small ing-swap-cancel">Avbryt</button>
+        </div>
+        ${openIngSwapShowCustomForm
+          ? `<div class="ing-new-form">
+              <input type="text" class="ing-new-name" placeholder="Navn på ny ingrediens">
+              <input type="number" class="ing-new-kcal" placeholder="kcal/100g">
+              <input type="number" class="ing-new-protein" placeholder="protein/100g">
+              <button class="btn ghost small ing-new-save" data-type="${swapCtx.type}" data-opt-idx="${swapCtx.optIdx}" data-item-idx="${item.itemIdx}">Legg til og bruk</button>
+            </div>`
+          : `<button class="btn ghost small ing-swap-new-toggle">+ Legg til ny ingrediens</button>`}
+      </div>`;
+    });
+  }
+
   return `<div class="meal-option${eaten ? " meal-option-eaten" : ""}">
     <div class="meal-head"><b>${opt.name}</b><span class="meal-macro">${opt.kcal} kcal · ${opt.protein} g protein${removeId ? `<button class="meal-option-remove" data-meal-remove="${removeId}">✕</button>` : ""}</span></div>
-    ${opt.items && opt.items.length ? `<div class="meal-items">${opt.items.join(" · ")}</div>` : ""}
+    ${itemsHtml ? `<div class="meal-items">${itemsHtml}</div>` : ""}
+    ${swapFormHtml}
     ${toggle ? `<button class="btn ghost small meal-eaten-btn" data-meal-type="${toggle.type}" data-meal-idx="${toggle.idx}">${eaten ? "✓ Spist i dag" : "Merk som spist i dag"}</button>` : ""}
   </div>`;
 }
@@ -2309,6 +2539,7 @@ function mealOptionHtml(opt, removeId, toggle) {
 function renderNutrition() {
   const n = DATA.nutritionPlan;
   if (!n) return;
+  const today = todayISO();
 
   document.getElementById("kcal-row").innerHTML = `
     <div class="kcal-chip">Mål<b>${n.dailyKcal} kcal</b></div>
@@ -2336,8 +2567,8 @@ function renderNutrition() {
     const group = n[key];
     const customOpts = custom[key] || [];
     html += `<div class="meal-group"><h4>${group.label}</h4>
-      ${group.options.map((o, idx) => mealOptionHtml(o, null, { type: key, idx, eaten: isMealEatenToday(key, o.name) })).join("")}
-      ${customOpts.map((o, i) => mealOptionHtml(o, o.id, { type: key, idx: group.options.length + i, eaten: isMealEatenToday(key, o.name) })).join("")}
+      ${group.options.map((o, idx) => mealOptionHtml(effectiveMealOption(key, idx, o, today), null, { type: key, idx, eaten: isMealEatenToday(key, o.name) }, { type: key, optIdx: idx })).join("")}
+      ${customOpts.map((o, i) => mealOptionHtml(effectiveMealOption(key, group.options.length + i, o, today), o.id, { type: key, idx: group.options.length + i, eaten: isMealEatenToday(key, o.name) }, null)).join("")}
       ${key === "breakfast" ? `<div class="section-sub" style="margin:4px 0 10px;">Standardfrokosten over telles automatisk hver dag, med mindre du merker en annen frokost som spist i dag.</div>` : ""}
       <div class="log-form meal-add-form">
         <input type="text" id="meal-add-name-${key}" placeholder="Eget forslag - navn">
@@ -2354,10 +2585,66 @@ function renderNutrition() {
     btn.addEventListener("click", () => {
       const type = btn.dataset.mealType;
       const idx = parseInt(btn.dataset.mealIdx, 10);
-      const combined = n[type].options.concat((loadCustomMeals()[type] || []));
-      const opt = combined[idx];
-      if (!opt) return;
+      const combinedRaw = n[type].options.concat((loadCustomMeals()[type] || []));
+      const raw = combinedRaw[idx];
+      if (!raw) return;
+      const opt = idx < n[type].options.length ? effectiveMealOption(type, idx, raw, today) : raw;
       if (isMealEatenToday(type, opt.name)) unlogMeal(type); else logMealEaten(type, opt);
+      renderNutrition();
+      renderNutritionCoach();
+      renderHjemKcalRing();
+    });
+  });
+
+  document.querySelectorAll(".meal-ing-swap-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      openIngSwapKey = openIngSwapKey === btn.dataset.swapKey ? null : btn.dataset.swapKey;
+      openIngSwapShowCustomForm = false;
+      renderNutrition();
+    });
+  });
+  document.querySelectorAll(".meal-ing-reset-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      clearIngOverride(today, btn.dataset.type, parseInt(btn.dataset.optIdx, 10), parseInt(btn.dataset.itemIdx, 10));
+      renderNutrition();
+      renderNutritionCoach();
+      renderHjemKcalRing();
+    });
+  });
+  document.querySelectorAll(".ing-swap-cancel").forEach(btn => {
+    btn.addEventListener("click", () => { openIngSwapKey = null; renderNutrition(); });
+  });
+  document.querySelectorAll(".ing-swap-new-toggle").forEach(btn => {
+    btn.addEventListener("click", () => { openIngSwapShowCustomForm = true; renderNutrition(); });
+  });
+  document.querySelectorAll(".ing-swap-save").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const form = btn.closest(".ing-swap-form");
+      const ing = form.querySelector(".ing-swap-select").value;
+      const amount = parseFloat(form.querySelector(".ing-swap-amount").value) || 0;
+      setIngOverride(today, btn.dataset.type, parseInt(btn.dataset.optIdx, 10), parseInt(btn.dataset.itemIdx, 10), ing, amount);
+      openIngSwapKey = null;
+      openIngSwapShowCustomForm = false;
+      renderNutrition();
+      renderNutritionCoach();
+      renderHjemKcalRing();
+    });
+  });
+  document.querySelectorAll(".ing-new-save").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const form = btn.closest(".ing-swap-form");
+      const name = form.querySelector(".ing-new-name").value.trim();
+      const kcal100 = parseFloat(form.querySelector(".ing-new-kcal").value);
+      const protein100 = parseFloat(form.querySelector(".ing-new-protein").value) || 0;
+      if (!name || !kcal100) return;
+      const amount = parseFloat(form.querySelector(".ing-swap-amount").value) || 100;
+      const key = "custom_" + Date.now();
+      const customIng = loadCustomIngredients();
+      customIng[key] = { label: name, kcal100, protein100 };
+      saveCustomIngredients(customIng);
+      setIngOverride(today, btn.dataset.type, parseInt(btn.dataset.optIdx, 10), parseInt(btn.dataset.itemIdx, 10), key, amount);
+      openIngSwapKey = null;
+      openIngSwapShowCustomForm = false;
       renderNutrition();
       renderNutritionCoach();
       renderHjemKcalRing();
@@ -3105,7 +3392,9 @@ document.getElementById("shop-quickadd-protein").addEventListener("click", () =>
 document.getElementById("shop-quickadd-meals").addEventListener("click", () => {
   const n = DATA.nutritionPlan;
   const items = new Set();
-  ["breakfast", "lunch", "snack", "dinner"].forEach(key => n[key].options.forEach(o => o.items.forEach(i => items.add(i))));
+  ["breakfast", "lunch", "snack", "dinner"].forEach(key => n[key].options.forEach(o => o.items.forEach(i => {
+    items.add(i.text || `${i.display || i.amount + " g"} ${(getIngredient(i.ing) || {}).label || i.ing}`);
+  })));
   addShopItems(Array.from(items));
 });
 document.getElementById("shop-clear-checked").addEventListener("click", () => {
