@@ -902,38 +902,33 @@ TEMPLATE = r"""<!DOCTYPE html>
   header.hero {
     background: linear-gradient(135deg, #7a1f3d 0%, #a8406a 100%);
     color: #fff;
-    padding: calc(36px + env(safe-area-inset-top)) 20px 44px;
-    margin-bottom: -28px;
+    padding: calc(14px + env(safe-area-inset-top)) 20px 14px;
   }
-  header.hero .wrap { display: flex; flex-direction: column; gap: 6px; }
-  header.hero .eyebrow {
-    text-transform: uppercase;
-    letter-spacing: .12em;
-    font-size: 12px;
-    color: #f6d3dd;
-    font-weight: 600;
-  }
-  header.hero h1 { margin: 2px 0 6px; font-size: 30px; font-weight: 700; font-style: italic; }
-  header.hero .hero-datetime { color: #fff; font-size: 15px; font-weight: 600; margin-bottom: 4px; }
-  header.hero .sub { color: #fbe7ed; font-size: 14px; }
+  header.hero .wrap { display: flex; flex-direction: column; gap: 2px; }
+  header.hero .hero-greeting { font-family: "Playfair Display", serif; font-style: italic; font-weight: 700; font-size: 21px; }
+  header.hero .hero-datetime { color: #fbe7ed; font-size: 12.5px; font-weight: 500; }
+  .hero-status-strip { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; }
+  .hss-chip { display: flex; flex-direction: column; gap: 3px; }
+  .hss-main { font-size: 13px; font-weight: 700; color: #fff; white-space: nowrap; }
+  .hss-spark { width: 46px; height: 12px; display: block; color: #f6b8ca; opacity: .85; }
 
   .goal-row {
     display: flex;
     gap: 14px;
     flex-wrap: wrap;
-    margin-top: 18px;
+    margin: 10px 0 24px;
   }
   .goal-chip {
-    background: rgba(255,255,255,0.1);
-    border: 1px solid rgba(255,255,255,0.2);
+    background: #fff0f4;
+    border: 1px solid var(--line);
     border-radius: 12px;
     padding: 10px 16px;
     font-size: 13px;
-    color: #fbe7ed;
+    color: var(--muted);
   }
-  .goal-chip b { font-size: 16px; display: block; color: #fff; }
-  .goal-chip .delta-up { color: #f0cf7a; }
-  .goal-chip .delta-down { color: #f6b8ca; }
+  .goal-chip b { font-size: 16px; display: block; color: var(--ink); }
+  .goal-chip .delta-up { color: #2f8a4e; }
+  .goal-chip .delta-down { color: #c0392b; }
 
   .plan-card {
     background: var(--card);
@@ -1093,24 +1088,6 @@ TEMPLATE = r"""<!DOCTYPE html>
   .report-card .report-empty { font-size: 13px; color: var(--muted); }
   .report-card .report-title { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 2px; }
 
-  .stat-grid {
-    position: relative;
-    z-index: 2;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 14px;
-  }
-  .stat-card {
-    background: var(--card);
-    border-radius: 16px;
-    box-shadow: var(--shadow);
-    padding: 16px 18px;
-  }
-  .stat-card .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
-  .stat-card .value { font-size: 28px; font-weight: 700; margin: 4px 0 2px; }
-  .stat-card .value small { font-size: 14px; font-weight: 500; color: var(--muted); }
-  .stat-card .asof { font-size: 11px; color: var(--muted); }
-  .stat-card svg { width: 100%; height: 36px; margin-top: 6px; display: block; }
 
   section { margin-top: 36px; }
   section h2 {
@@ -1194,21 +1171,23 @@ TEMPLATE = r"""<!DOCTYPE html>
   }
 
   .log-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px; }
-  .log-form { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .log-form { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
   .log-form input, .log-form select {
-    font-family: Nunito, sans-serif; font-size: 13px; border: 1px solid var(--line);
-    border-radius: 10px; padding: 8px 10px; background: var(--bg); color: var(--ink);
+    font-family: Nunito, sans-serif; font-size: 14px; border: 1px solid var(--line);
+    border-radius: 10px; padding: 11px 12px; background: var(--bg); color: var(--ink); min-height: 44px;
   }
-  .log-form input[type="number"] { width: 90px; }
-  .log-form input[type="date"] { width: 140px; }
+  .log-form input[type="number"] { width: 100px; }
+  .log-form input[type="date"] { width: 150px; }
   .log-form input[type="text"] { flex: 1; min-width: 120px; }
   .btn {
-    font-family: Nunito, sans-serif; font-size: 13px; font-weight: 700; color: #fff;
-    background: var(--accent); border: none; border-radius: 10px; padding: 8px 16px; cursor: pointer;
+    font-family: Nunito, sans-serif; font-size: 14px; font-weight: 700; color: #fff;
+    background: var(--accent); border: none; border-radius: 10px; padding: 12px 20px;
+    min-height: 44px; cursor: pointer;
   }
   .btn.secondary { background: var(--accent3); color: var(--ink); }
   .btn.ghost { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
-  .btn.small { padding: 5px 10px; font-size: 11px; }
+  .btn.small { padding: 6px 12px; font-size: 12px; min-height: 0; }
+  .btn-big { width: 100%; padding: 15px; font-size: 16px; margin-top: 2px; }
   .log-list { list-style: none; padding: 0; margin: 10px 0 0; font-size: 13px; }
   .log-list li { display: flex; justify-content: space-between; padding: 6px 0; border-top: 1px solid var(--line); color: var(--muted); }
   .log-list li b { color: var(--ink); }
@@ -1315,26 +1294,27 @@ TEMPLATE = r"""<!DOCTYPE html>
     top: 0;
     z-index: 5;
     display: flex;
-    gap: 6px;
+    gap: 8px;
     overflow-x: auto;
     background: var(--bg);
-    padding: calc(14px + env(safe-area-inset-top)) 0 10px;
+    padding: calc(14px + env(safe-area-inset-top)) 0 12px;
     margin-top: -8px;
     border-bottom: 1px solid var(--line);
   }
   .tab-nav button {
     flex: 0 0 auto;
     font-family: Nunito, sans-serif;
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 700;
     color: var(--muted);
     background: var(--card);
     border: 1px solid var(--line);
-    border-radius: 20px;
-    padding: 8px 16px;
+    border-radius: 24px;
+    padding: 13px 22px;
+    min-height: 46px;
     cursor: pointer;
   }
-  .tab-nav button.active { color: #fff; background: var(--accent); border-color: var(--accent); }
+  .tab-nav button.active { color: #fff; background: var(--accent); border-color: var(--accent); font-weight: 800; }
   .tab-panel { display: none; }
   .tab-panel.active { display: block; }
 
@@ -1360,14 +1340,12 @@ TEMPLATE = r"""<!DOCTYPE html>
   .badday-saved-msg { font-size: 12px; color: var(--muted); min-height: 16px; margin-top: 4px; }
 
   /* ---- Hjem dashboard (light, mobile-first start page) ---- */
-  body.tab-is-hjem header.hero,
-  body.tab-is-hjem #stat-grid { display: none; }
   .hjem-dash {
     --hj-bg: var(--bg); --hj-card: var(--card); --hj-card2: #fff0f4; --hj-ink: var(--ink);
     --hj-muted: var(--muted); --hj-accent: #f6c667; --hj-accent2: var(--accent2); --hj-line: var(--line);
     margin: 0 0 24px; font-family: Nunito, sans-serif;
   }
-  .hjem-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .hjem-topbar { display: flex; align-items: center; justify-content: flex-end; margin-bottom: 12px; }
   .hjem-greeting { font-family: "Playfair Display", serif; font-size: 19px; }
   .hjem-datetime { font-size: 12px; color: var(--hj-muted); margin-top: 2px; }
   .hjem-badday-toggle {
@@ -1528,10 +1506,8 @@ TEMPLATE = r"""<!DOCTYPE html>
   @keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
 
   @media (max-width: 720px) {
-    .stat-grid { grid-template-columns: repeat(2, 1fr); }
     .records-grid { grid-template-columns: repeat(2, 1fr); }
     .trend-grid { grid-template-columns: 1fr; }
-    header.hero h1 { font-size: 24px; }
     .week-row { overflow-x: scroll; }
     .week-day { min-width: 76px; }
     .log-grid { grid-template-columns: 1fr; }
@@ -1562,16 +1538,13 @@ TEMPLATE = r"""<!DOCTYPE html>
 
 <header class="hero">
   <div class="wrap">
-    <h1 id="goal-headline">Katrine 2027</h1>
+    <div class="hero-greeting" id="hero-greeting"></div>
     <div class="hero-datetime" id="hero-datetime"></div>
-    <div class="sub" id="date-range-sub"></div>
-    <div class="goal-row" id="goal-chips"></div>
+    <div class="hero-status-strip" id="hero-status-strip"></div>
   </div>
 </header>
 
 <div class="wrap">
-  <div class="stat-grid" id="stat-grid"></div>
-
   <nav class="tab-nav" id="tab-nav">
     <button data-tab="hjem">Hjem</button>
     <button data-tab="kosthold">Kosthold</button>
@@ -1610,10 +1583,6 @@ TEMPLATE = r"""<!DOCTYPE html>
   <div class="tab-panel" data-tab="hjem">
   <div class="hjem-dash" id="hjem-dash">
     <div class="hjem-topbar">
-      <div>
-        <div class="hjem-greeting" id="hjem-greeting"></div>
-        <div class="hjem-datetime" id="hjem-datetime"></div>
-      </div>
       <div class="hjem-topbar-btns">
         <button class="hjem-refresh-btn" id="hjem-refresh-btn" title="Oppdater">⟳</button>
         <button class="hjem-badday-toggle" id="hjem-badday-toggle">🌧️ Dårlig dag</button>
@@ -1712,6 +1681,8 @@ TEMPLATE = r"""<!DOCTYPE html>
   <section>
     <h2>Fremgang</h2>
     <div class="section-sub">Langsiktige mål, trender og historikk - i motsetning til dashbordet, som bare viser dagens status</div>
+    <div class="section-sub" id="fremgang-meta" style="margin-top:-8px;"></div>
+    <div class="goal-row" id="goal-chips"></div>
 
     <div class="fremgang-section card">
       <h3>⚖️ Kropp &amp; mål</h3>
@@ -1843,12 +1814,13 @@ TEMPLATE = r"""<!DOCTYPE html>
         <div class="month-label" id="em-label"></div>
         <button class="btn ghost small" id="em-next">›</button>
       </div>
+      <h3 style="margin:10px 0 2px;font-size:15px;">Logg utgift</h3>
       <div class="log-form">
         <input type="date" id="tx-date">
         <input type="number" step="1" id="tx-amount" placeholder="Beløp (kr)">
         <select id="tx-category"></select>
         <input type="text" id="tx-name" placeholder="Hva var det?">
-        <button class="btn" id="tx-add">Legg til</button>
+        <button class="btn btn-big" id="tx-add">Legg til</button>
       </div>
     </div>
 
@@ -1863,11 +1835,6 @@ TEMPLATE = r"""<!DOCTYPE html>
     </div>
 
     <div class="budget-summary-grid" id="budget-summary"></div>
-
-    <div class="card" style="margin-top:14px;">
-      <h3 style="margin:0 0 4px;font-size:15px;">Transaksjoner denne økonomimåneden</h3>
-      <ul class="log-list" id="tx-list"></ul>
-    </div>
 
     <div class="fund-card" id="fund-card"></div>
     <div class="card forgotten-savings-card" id="forgotten-savings-card" style="margin-top:14px;"></div>
@@ -1891,6 +1858,12 @@ TEMPLATE = r"""<!DOCTYPE html>
         <button class="btn secondary small" data-preset="50">+50 kr</button>
         <button class="btn secondary small" data-preset="100">+100 kr</button>
       </div>
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <h3 style="margin:0 0 4px;font-size:15px;">📜 Historikk</h3>
+      <div class="section-sub" style="margin-bottom:0;">Transaksjoner denne økonomimåneden</div>
+      <ul class="log-list" id="tx-list"></ul>
     </div>
   </section>
   </div>
@@ -2116,35 +2089,81 @@ function nowDateTimeLabel() {
   const time = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
   return { full: `${weekday} ${day}. ${month}`, time };
 }
-function renderHeroDateTime() {
-  const el = document.getElementById("hero-datetime");
-  if (!el) return;
+function renderHeroGreeting() {
+  const h = new Date().getHours();
+  const greet = h < 10 ? "God morgen" : h < 17 ? "God dag" : "God kveld";
+  const el = document.getElementById("hero-greeting");
+  if (el) el.textContent = `${greet}, Katrine`;
   const dt = nowDateTimeLabel();
-  el.textContent = `${dt.full} · ${dt.time}`;
+  const sub = document.getElementById("hero-datetime");
+  if (sub) sub.textContent = `${dt.full} · ${dt.time}`;
 }
-renderHeroDateTime();
-setInterval(renderHeroDateTime, 30000);
+renderHeroGreeting();
+setInterval(renderHeroGreeting, 30000);
 
-document.getElementById("date-range-sub").textContent =
-  `${DATA.meta.totalActivities} aktiviteter registrert, ${fmtDate(DATA.meta.dateRange[0])} – ${fmtDate(DATA.meta.dateRange[1])}`;
+function heroSparkline(values) {
+  const vals = (values || []).filter(v => v !== null && v !== undefined);
+  if (vals.length < 2) return "";
+  const min = Math.min(...vals), max = Math.max(...vals);
+  const range = (max - min) || 1;
+  const w = 50, h = 14;
+  const step = w / (values.length - 1);
+  const pts = [];
+  values.forEach((v, i) => {
+    if (v === null || v === undefined) return;
+    pts.push([i * step, h - ((v - min) / range) * (h - 3) - 1.5]);
+  });
+  const path = pts.map((p, i) => (i === 0 ? "M" : "L") + p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ");
+  return `<svg class="hss-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><path d="${path}" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+function renderHeroStatusStrip() {
+  const el = document.getElementById("hero-status-strip");
+  if (!el) return;
+  const ts = DATA.topStats || {};
+  const items = [
+    ts.sleep ? { icon: "😴", text: `${ts.sleep.hours.toLocaleString("no-NO")}t`, trend: ts.sleep.trend } : null,
+    ts.hrv ? { icon: "❤️", text: `${ts.hrv.value} ms`, trend: ts.hrv.trend } : null,
+    ts.calories ? { icon: "🔥", text: `${ts.calories.value.toLocaleString("no-NO")} kcal`, trend: ts.calories.trend } : null,
+    ts.steps ? { icon: "👣", text: `${ts.steps.value.toLocaleString("no-NO")}`, trend: ts.steps.trend } : null,
+  ].filter(Boolean);
+  el.innerHTML = items.map(i => `
+    <div class="hss-chip">
+      <span class="hss-main">${i.icon} ${i.text}</span>
+      ${heroSparkline(i.trend)}
+    </div>
+  `).join("");
+}
+renderHeroStatusStrip();
 
-const goalChips = document.getElementById("goal-chips");
-const g = DATA.goal;
-function deltaSpan(pct) {
-  if (pct === null || pct === undefined) return "";
-  const cls = pct >= 0 ? "delta-up" : "delta-down";
-  const sign = pct >= 0 ? "+" : "";
-  return ` <span class="${cls}">${sign}${pct}%</span>`;
+// activity-count + weekly goal chips used to live in the header - moved to Fremgang,
+// since they're long-term trend info, not something needed on every screen.
+function renderFremgangMeta() {
+  const metaEl = document.getElementById("fremgang-meta");
+  if (metaEl) {
+    metaEl.textContent = `${DATA.meta.totalActivities} aktiviteter registrert, ${fmtDate(DATA.meta.dateRange[0])} – ${fmtDate(DATA.meta.dateRange[1])}`;
+  }
+  const goalChips = document.getElementById("goal-chips");
+  if (!goalChips) return;
+  const g = DATA.goal;
+  function deltaSpan(pct) {
+    if (pct === null || pct === undefined) return "";
+    const cls = pct >= 0 ? "delta-up" : "delta-down";
+    const sign = pct >= 0 ? "+" : "";
+    return ` <span class="${cls}">${sign}${pct}%</span>`;
+  }
+  let html = "";
+  if (g.recentActiveCaloriesPerWeek) {
+    html += `<div class="goal-chip">Aktive kalorier/uke<b>${g.recentActiveCaloriesPerWeek.toLocaleString()}${deltaSpan(g.caloriesPctChange)}</b></div>`;
+  }
+  if (g.recentSessionsPerWeek) {
+    html += `<div class="goal-chip">Økter/uke<b>${g.recentSessionsPerWeek}</b></div>`;
+  }
+  if (g.recentStepsPerDay) {
+    html += `<div class="goal-chip">Skritt/dag<b>${g.recentStepsPerDay.toLocaleString()}${deltaSpan(g.stepsPctChange)}</b></div>`;
+  }
+  goalChips.innerHTML = html;
 }
-if (g.recentActiveCaloriesPerWeek) {
-  goalChips.innerHTML += `<div class="goal-chip">Aktive kalorier/uke<b>${g.recentActiveCaloriesPerWeek.toLocaleString()}${deltaSpan(g.caloriesPctChange)}</b></div>`;
-}
-if (g.recentSessionsPerWeek) {
-  goalChips.innerHTML += `<div class="goal-chip">Økter/uke<b>${g.recentSessionsPerWeek}</b></div>`;
-}
-if (g.recentStepsPerDay) {
-  goalChips.innerHTML += `<div class="goal-chip">Skritt/dag<b>${g.recentStepsPerDay.toLocaleString()}${deltaSpan(g.stepsPctChange)}</b></div>`;
-}
+renderFremgangMeta();
 
 // ---------------------------------------------------------------- tabs
 const ACTIVE_TAB_KEY = "garminDashboardActiveTab_v1";
@@ -3980,45 +3999,6 @@ renderShopList();
 renderBudget();
 
 // ---------------------------------------------------------------- stat cards
-function sparkline(values) {
-  const vals = values.filter(v => v !== null && v !== undefined);
-  if (vals.length < 2) return "";
-  const min = Math.min(...vals), max = Math.max(...vals);
-  const range = (max - min) || 1;
-  const w = 200, h = 36;
-  const step = w / (values.length - 1);
-  let pts = [];
-  values.forEach((v, i) => {
-    if (v === null || v === undefined) return;
-    const x = i * step;
-    const y = h - ((v - min) / range) * (h - 6) - 3;
-    pts.push([x, y]);
-  });
-  const path = pts.map((p, i) => (i === 0 ? "M" : "L") + p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ");
-  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><path d="${path}" fill="none" stroke="#7a1f3d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-}
-
-const statGrid = document.getElementById("stat-grid");
-const statsDef = [
-  { key: "hrv", label: "HRV (last night)", unit: "ms", from: s => s.value },
-  { key: "sleep", label: "Sleep", unit: "hrs", from: s => s.hours, extra: s => s.score ? `score ${s.score}` : "" },
-  { key: "calories", label: "Calories burned", unit: "kcal", from: s => s.value },
-  { key: "steps", label: "Steps", unit: "", from: s => s.value },
-];
-statsDef.forEach(def => {
-  const s = DATA.topStats[def.key];
-  if (!s) return;
-  const val = def.from(s);
-  const card = document.createElement("div");
-  card.className = "stat-card";
-  card.innerHTML = `
-    <div class="label">${def.label}</div>
-    <div class="value">${val !== null && val !== undefined ? val.toLocaleString() : "-"} <small>${def.unit}</small></div>
-    <div class="asof">as of ${fmtDate(s.date)}${def.extra ? " · " + def.extra(s) : ""}</div>
-    ${sparkline(s.trend)}
-  `;
-  statGrid.appendChild(card);
-});
 
 // ---------------------------------------------------------------- weekly by sport chart
 const SPORT_LABELS_NO = { Strength: "Styrke", Cycling: "Sykling", Running: "Løping", Walking: "Gange", Other: "Annet" };
@@ -4595,16 +4575,6 @@ recordDefs.forEach(def => {
 });
 
 // ---------------------------------------------------------------- hjem dashboard
-function renderHjemGreeting() {
-  const h = new Date().getHours();
-  const greet = h < 10 ? "God morgen" : h < 17 ? "God dag" : "God kveld";
-  document.getElementById("hjem-greeting").textContent = greet;
-  const dt = nowDateTimeLabel();
-  const sub = document.getElementById("hjem-datetime");
-  if (sub) sub.textContent = `${dt.full} · ${dt.time}`;
-}
-setInterval(renderHjemGreeting, 30000);
-
 function renderHjemWhy() {
   const why = loadWhy();
   const el = document.getElementById("hjem-why");
@@ -4933,7 +4903,6 @@ function renderHjemReminder() {
 }
 
 function renderHjem() {
-  renderHjemGreeting();
   renderHjemWhy();
   renderHjemReminder();
   renderHjemSession();
