@@ -1120,7 +1120,7 @@ TEMPLATE = r"""<!DOCTYPE html>
   .savings-goal-card .sg-label { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
   .savings-goal-card .sg-amount { font-size: 19px; font-weight: 700; font-family: "Playfair Display", serif; margin-top: 4px; }
   .savings-goal-card .sg-goal-row { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 12px; color: var(--muted); }
-  .savings-goal-card .sg-goal-row input { width: 80px; border: 1px solid var(--line); border-radius: 8px; padding: 3px 6px; font-family: inherit; font-size: 12px; }
+  .savings-goal-card .sg-goal-row input { width: 92px; border: 1px solid var(--line); border-radius: 8px; padding: 3px 6px; font-family: inherit; font-size: 12px; }
   .savings-goal-card .sg-eta { font-size: 12px; color: var(--muted); margin-top: 8px; }
   .fund-summary-row { display: flex; gap: 22px; flex-wrap: wrap; margin-top: 14px; }
   .fund-summary-row .fs-item { font-size: 13px; }
@@ -2644,6 +2644,16 @@ function setSavingsTarget(key, target) {
   goals[key] = Object.assign({ startSaved: 0 }, goals[key], { target });
   saveSavingsGoals(goals);
 }
+function setSavingsCurrentBalance(key, currentBalance) {
+  // lets you correct the balance to match what's actually on the account right now
+  // (e.g. pension/høyrente accounts that existed before this app tracked them, or that
+  // earn interest/returns beyond what's logged as transactions) - backs out the
+  // startSaved offset needed so savingsBalance() reads exactly currentBalance today.
+  const sum = loadTransactions().filter(t => t.category === key).reduce((s, t) => s + t.amount, 0);
+  const goals = loadSavingsGoals();
+  goals[key] = Object.assign({ target: savingsTarget(key) }, goals[key], { startSaved: currentBalance - sum });
+  saveSavingsGoals(goals);
+}
 function savingsMonthlyRate(key, months) {
   months = months || 3;
   const tx = loadTransactions();
@@ -3774,11 +3784,13 @@ function renderSavingsGoals() {
     if (target > 0 && balance >= target) etaText = "🎉 Målet er nådd!";
     else if (proj) etaText = `Ved nåværende sparetakt (~${Math.round(proj.rate).toLocaleString()} kr/mnd) når du målet rundt ${emShortLabel(proj.emKey)}.`;
     else etaText = "Spar litt i denne kategorien for å se en anslått dato.";
+    const isDogFund = c.key === DATA.dogFund.category;
     return `
     <div class="savings-goal-card">
       <div class="sg-label">${c.icon ? c.icon + " " : ""}${c.label}</div>
       <div class="sg-amount">${Math.round(balance).toLocaleString()} kr</div>
       <div class="cat-bar"><div class="${pct >= 100 ? "good" : ""}" style="width:${pct}%"></div></div>
+      ${isDogFund ? "" : `<div class="sg-goal-row">Saldo nå: <input type="number" step="100" class="sg-balance-input" data-cat="${c.key}" value="${Math.round(balance)}"> kr</div>`}
       <div class="sg-goal-row">Mål: <input type="number" step="500" class="sg-target-input" data-cat="${c.key}" value="${target}"> kr</div>
       <div class="sg-eta">${etaText}</div>
     </div>`;
@@ -3789,6 +3801,12 @@ function renderSavingsGoals() {
       setSavingsTarget(inp.dataset.cat, parseFloat(inp.value) || 0);
       renderSavingsGoals();
       renderFund();
+    });
+  });
+  el.querySelectorAll(".sg-balance-input").forEach(inp => {
+    inp.addEventListener("change", () => {
+      setSavingsCurrentBalance(inp.dataset.cat, parseFloat(inp.value) || 0);
+      renderSavingsGoals();
     });
   });
 }
