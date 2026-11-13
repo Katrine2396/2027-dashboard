@@ -1257,6 +1257,8 @@ TEMPLATE = r"""<!DOCTYPE html>
     font-size: 13px; color: var(--ink); margin-top: 10px; line-height: 1.5;
   }
   .tooltip.ml { white-space: normal; text-align: left; line-height: 1.5; transform: translate(-50%, -108%); }
+  .weight-goal-row { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .weight-goal-row input { width: 70px; border: 1px solid var(--line); border-radius: 8px; padding: 4px 6px; font-family: inherit; font-size: 13px; }
   .savings-goal-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
   .savings-goal-card { background: #fff0f4; border-radius: 14px; padding: 16px; }
   .savings-goal-card .sg-label { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
@@ -1685,6 +1687,7 @@ TEMPLATE = r"""<!DOCTYPE html>
     <div class="fremgang-section card">
       <h3>⚖️ Kropp &amp; mål</h3>
       <div class="section-sub">Vekt (glattet 7-dagers snitt) sammen med et kroppsmål, i samme tidslinje</div>
+      <div class="weight-goal-row">Målvekt: <input type="number" step="0.5" id="weight-goal-input"> kg <button class="btn ghost small" id="weight-goal-save">Lagre</button></div>
       <div class="period-tabs" id="body-period-tabs">
         <button class="period-btn" data-period="1">1 mnd</button>
         <button class="period-btn" data-period="3">3 mnd</button>
@@ -1940,7 +1943,9 @@ const SETTINGS_KEY = "garminDashboardSettings_v1";
 function loadSettings() {
   return Object.assign({
     dailyKcal: DATA.nutritionPlan.dailyKcal,
+    proteinMin: DATA.nutritionPlan.proteinMin,
     savingsTarget: DATA.dogFund.target,
+    weightGoal: null,
     personalityEnabled: true,
   }, loadLS(SETTINGS_KEY, {}));
 }
@@ -1948,6 +1953,7 @@ function saveSettings(s) { saveLS(SETTINGS_KEY, s); }
 (function applySettings() {
   const s = loadSettings();
   DATA.nutritionPlan.dailyKcal = s.dailyKcal;
+  DATA.nutritionPlan.proteinMin = s.proteinMin;
   DATA.dogFund.target = s.savingsTarget;
 })();
 
@@ -2699,7 +2705,11 @@ function renderNutrition() {
     <div class="kcal-chip">Protein<b>${n.proteinMin} g+</b></div>
     <div class="kcal-chip kcal-goal-edit">
       <input type="number" step="50" id="kcal-goal-input" value="${n.dailyKcal}" style="width:70px;">
-      <button class="btn ghost small" id="kcal-goal-save">Lagre mål</button>
+      <button class="btn ghost small" id="kcal-goal-save">Lagre kcal-mål</button>
+    </div>
+    <div class="kcal-chip kcal-goal-edit">
+      <input type="number" step="5" id="protein-goal-input" value="${n.proteinMin}" style="width:70px;">
+      <button class="btn ghost small" id="protein-goal-save">Lagre proteinmål</button>
     </div>
   `;
   document.getElementById("kcal-goal-save").addEventListener("click", () => {
@@ -2712,6 +2722,15 @@ function renderNutrition() {
     renderNutrition();
     renderExtras();
     renderHjemKcalRing();
+  });
+  document.getElementById("protein-goal-save").addEventListener("click", () => {
+    const val = parseInt(document.getElementById("protein-goal-input").value, 10);
+    if (!val) return;
+    const s = loadSettings();
+    s.proteinMin = val;
+    saveSettings(s);
+    DATA.nutritionPlan.proteinMin = val;
+    renderNutrition();
   });
 
   let html = "";
@@ -4124,6 +4143,20 @@ const BODY_MEASURE_LABELS = { waist: "Mage", hips: "Hofte", arm: "Arm", thigh: "
 let bodyChartPeriodMonths = 12;
 let bodyChartMeasure = "waist";
 
+function renderWeightGoalInput() {
+  const inp = document.getElementById("weight-goal-input");
+  if (!inp) return;
+  const goal = loadSettings().weightGoal;
+  inp.value = goal != null ? goal : "";
+  document.getElementById("weight-goal-save").addEventListener("click", () => {
+    const val = parseFloat(inp.value);
+    const s = loadSettings();
+    s.weightGoal = Number.isNaN(val) ? null : val;
+    saveSettings(s);
+    renderBodyGoalChart();
+  });
+}
+
 function renderBodyGoalChart() {
   if (!document.getElementById("chart-body")) return;
   const cutoff = isoAddDays(todayISO(), -bodyChartPeriodMonths * 30);
@@ -4152,8 +4185,19 @@ function renderBodyGoalChart() {
   if (!note) return;
   const wVals = weightVals.filter(v => v != null);
   const mVals = measureVals.filter(v => v != null);
+
+  const weightGoal = loadSettings().weightGoal;
+  let goalPhrase = "";
+  if (weightGoal != null && wVals.length) {
+    const latest = wVals[wVals.length - 1];
+    const gap = latest - weightGoal;
+    goalPhrase = Math.abs(gap) < 0.3
+      ? ` Du er på målvekten din (${weightGoal} kg)! 🎉`
+      : ` Du er ${Math.abs(gap).toFixed(1)} kg ${gap > 0 ? "over" : "under"} målvekten din på ${weightGoal} kg.`;
+  }
+
   if (wVals.length < 2 && mVals.length < 2) {
-    note.textContent = "Ikke nok logget data i denne perioden ennå til å si noe om trenden.";
+    note.textContent = `Ikke nok logget data i denne perioden ennå til å si noe om trenden.${goalPhrase}`;
     return;
   }
   const weightDiff = wVals.length >= 2 ? wVals[wVals.length - 1] - wVals[0] : null;
@@ -4165,7 +4209,7 @@ function renderBodyGoalChart() {
   const measurePhrase = measureDiff == null ? `ingen ${lcLabel}-mål nok ennå i perioden`
     : Math.abs(measureDiff) < 0.5 ? `${lcLabel}en er uendret`
     : measureDiff < 0 ? `${lcLabel}en har krympet ${Math.abs(measureDiff).toFixed(1)} cm` : `${lcLabel}en har økt ${measureDiff.toFixed(1)} cm`;
-  note.textContent = `${weightPhrase}, og ${measurePhrase}.`;
+  note.textContent = `${weightPhrase}, og ${measurePhrase}.${goalPhrase}`;
 }
 
 // ---------------------------------------------------------------- fremgang: aktivitets-trender
@@ -5196,6 +5240,7 @@ document.getElementById("fund-log-add").addEventListener("click", () => {
   renderHjemFinance();
 });
 
+renderWeightGoalInput();
 renderBodyGoalChart();
 renderActivityTrends();
 renderExpenseTrends();
