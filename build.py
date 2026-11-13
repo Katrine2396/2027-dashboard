@@ -2023,7 +2023,16 @@ async function tryLogin() {
     await window.__cloudAuth.signIn(email, password);
     errEl.textContent = "";
   } catch (e) {
-    errEl.textContent = "Feil e-post eller passord";
+    const code = e && e.code || "";
+    const messages = {
+      "auth/user-not-found": "Finner ingen bruker med den e-posten - sjekk at den er skrevet nøyaktig som i Firebase-konsollen (Authentication → Users).",
+      "auth/wrong-password": "Feil passord for denne e-posten.",
+      "auth/invalid-credential": "Feil e-post eller passord.",
+      "auth/invalid-email": "Det ser ikke ut som en gyldig e-postadresse.",
+      "auth/too-many-requests": "For mange forsøk - vent litt og prøv igjen.",
+      "auth/network-request-failed": "Ingen nettverksforbindelse - sjekk internett og prøv igjen.",
+    };
+    errEl.textContent = (messages[code] || "Innlogging feilet") + (code ? ` (${code})` : "");
     overlay.classList.remove("shake");
     void overlay.offsetWidth;
     overlay.classList.add("shake");
