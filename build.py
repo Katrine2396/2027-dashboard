@@ -625,6 +625,7 @@ def main():
         "bodyBatteryCharged": (daily, daily_keys, lambda v: (v.get("bodyBattery") or {}).get("chargedValue")),
         "bodyBatteryLatest": (daily, daily_keys, lambda v: (v.get("bodyBattery") or {}).get("latestValue")),
         "bodyBatteryMin": (daily, daily_keys, lambda v: (v.get("bodyBattery") or {}).get("minValue")),
+        "bodyBatteryMax": (daily, daily_keys, lambda v: (v.get("bodyBattery") or {}).get("maxValue")),
         "restingHR": (daily, daily_keys, lambda v: (v.get("heartRate") or {}).get("restingValue")),
         "hrv": (hrv, hrv_keys, lambda v: v.get("lastNightAvg")),
         "steps": (daily, daily_keys, lambda v: (v.get("movement") or {}).get("steps", {}).get("value")),
@@ -5094,6 +5095,7 @@ function renderMorningReport() {
   const remM = reportMetric("remSleepMin");
   const bbCharged = reportMetric("bodyBatteryCharged");
   const bbLatest = reportMetric("bodyBatteryLatest");
+  const bbMax = reportMetric("bodyBatteryMax");
   const rhrM = reportMetric("restingHR");
   const hrvM = reportMetric("hrv");
 
@@ -5113,11 +5115,19 @@ function renderMorningReport() {
     sleepP = "Ingen søvndata for i natt ennå - sjekk at klokken har synkronisert.";
   }
 
+  // "latestValue" is just the most recent reading - it drains all day, so using it for
+  // "started the day at" made the report say she started at an evening-low number. The
+  // overnight peak (maxValue) is what she actually woke up to.
   let bbP = "";
-  if (bbLatest.today != null) {
-    bbP = `Body Battery startet dagen på <b>${bbLatest.today}/100</b>`;
+  if (bbMax.today != null) {
+    bbP = `Body Battery var oppe i <b>${bbMax.today}/100</b> etter natten`;
     if (bbCharged.today != null) bbP += `, etter å ha ladet ${bbCharged.today} poeng i natt`;
     bbP += ".";
+    if (bbLatest.today != null && Math.abs(bbLatest.today - bbMax.today) >= 10) {
+      bbP += ` Nå står den på ${bbLatest.today}/100.`;
+    }
+  } else if (bbLatest.today != null) {
+    bbP = `Body Battery står nå på <b>${bbLatest.today}/100</b>.`;
   }
 
   const vitalsBits = [];
