@@ -980,10 +980,22 @@ TEMPLATE = r"""<!DOCTYPE html>
     text-align: center;
   }
   .week-day.today { outline: 2px solid var(--accent); outline-offset: -1px; }
-  .week-day .wd { color: var(--muted); text-transform: uppercase; font-size: 11px; letter-spacing: .04em; }
+  .week-day .wd { color: var(--muted); text-transform: uppercase; font-size: 11px; letter-spacing: .04em; display: flex; align-items: center; justify-content: space-between; gap: 4px; }
   .week-day .sess { font-size: 12px; margin: 6px 0; min-height: 30px; color: var(--ink); }
   .week-day .mark { font-size: 15px; color: var(--accent); }
   .week-day .mark.missed { color: var(--muted); font-size: 13px; }
+  .week-day-handle {
+    cursor: grab; color: var(--muted); font-size: 13px; line-height: 1; padding: 2px 4px;
+    touch-action: none; user-select: none; -webkit-user-select: none;
+  }
+  .week-day.dragging { opacity: 0.4; }
+  .week-day.drop-target { outline: 2px dashed var(--accent2); outline-offset: -1px; }
+
+  .missed-day-box {
+    background: #fff0f4; border: 1px solid var(--line); border-radius: 12px;
+    padding: 12px 14px; margin: 10px 0 14px; font-size: 13px; color: var(--ink);
+  }
+  .missed-day-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
 
   .kcal-row { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 14px; }
   .kcal-chip {
@@ -1623,6 +1635,8 @@ TEMPLATE = r"""<!DOCTYPE html>
   <section>
     <h2>Treningsplan</h2>
     <div class="section-sub" id="plan-sub"></div>
+    <div id="missed-day-banner"></div>
+    <div class="section-sub" style="margin-top:-8px;">Dra i ⠿-håndtaket på et kort for å bytte økt med en annen dag denne uken</div>
     <div class="week-row" id="plan-week"></div>
     <div class="plan-card" id="plan-today"></div>
     <div class="card" id="rest-timer-card"></div>
@@ -2072,6 +2086,117 @@ function swapSelectHtml(date, resolvedKey) {
   const opts = SWAP_OPTIONS.map(k => `<option value="${k}" ${k === selKey ? "selected" : ""}>${SWAP_NAMES[k]}</option>`).join("");
   return `<select class="swap" data-date="${date}" aria-label="Bytt økt">${opts}</select>`;
 }
+function normalizeSwapKey(key) { return SWAP_OPTIONS.includes(key) ? key : "rest"; }
+function isDefaultKeyForDay(day, key) {
+  return key === day.defaultKey || (key === "rest" && (day.defaultKey === "rest" || day.defaultKey === "restW"));
+}
+// swaps which session is planned on two days of the current week (drag-and-drop), for
+// this week only - each day's override is set to the other's resolved session, or cleared
+// if that happens to already be that day's own default.
+function swapPlanDays(dateA, dateB) {
+  const p = DATA.program;
+  const dayA = p.week.find(d => d.date === dateA);
+  const dayB = p.week.find(d => d.date === dateB);
+  if (!dayA || !dayB || dateA === dateB) return;
+  const overrides = loadPlanOverrides();
+  const keyA = normalizeSwapKey(resolvePlanDay(dayA, overrides).key);
+  const keyB = normalizeSwapKey(resolvePlanDay(dayB, overrides).key);
+  if (isDefaultKeyForDay(dayA, keyB)) delete overrides[dateA]; else overrides[dateA] = keyB;
+  if (isDefaultKeyForDay(dayB, keyA)) delete overrides[dateB]; else overrides[dateB] = keyA;
+  savePlanOverrides(overrides);
+  renderPlan();
+  renderMissedDayPrompt();
+}
+// touch/mouse-friendly drag via Pointer Events (native HTML5 drag-and-drop doesn't work on
+// iOS touch) - dragging is only initiated from the small ⠿ handle, not the whole card, so
+// the week row's own horizontal swipe-scroll still works everywhere else on the card.
+function setupWeekDrag() {
+  const todayStr = DATA.program.today.date;
+  const isDroppable = dateStr => !!dateStr && dateStr >= todayStr;
+  document.querySelectorAll(".week-day-handle").forEach(handle => {
+    handle.addEventListener("pointerdown", startEvt => {
+      const card = handle.closest(".week-day");
+      const fromDate = card.dataset.date;
+      const startX = startEvt.clientX, startY = startEvt.clientY;
+      let dragging = false;
+
+      function clearTargets() {
+        document.querySelectorAll(".week-day.drop-target").forEach(c => c.classList.remove("drop-target"));
+      }
+      function onMove(ev) {
+        if (!dragging) {
+          if (Math.abs(ev.clientX - startX) < 8 && Math.abs(ev.clientY - startY) < 8) return;
+          dragging = true;
+          card.classList.add("dragging");
+          handle.setPointerCapture(startEvt.pointerId);
+        }
+        ev.preventDefault();
+        clearTargets();
+        const el = document.elementFromPoint(ev.clientX, ev.clientY);
+        const target = el && el.closest(".week-day");
+        if (target && target !== card && isDroppable(target.dataset.date)) target.classList.add("drop-target");
+      }
+      function onUp(ev) {
+        handle.removeEventListener("pointermove", onMove);
+        handle.removeEventListener("pointerup", onUp);
+        handle.removeEventListener("pointercancel", onUp);
+        card.classList.remove("dragging");
+        clearTargets();
+        if (!dragging) return;
+        const el = document.elementFromPoint(ev.clientX, ev.clientY);
+        const target = el && el.closest(".week-day");
+        if (target && target.dataset.date && target.dataset.date !== fromDate && isDroppable(target.dataset.date)) {
+          swapPlanDays(fromDate, target.dataset.date);
+        }
+      }
+      handle.addEventListener("pointermove", onMove, { passive: false });
+      handle.addEventListener("pointerup", onUp);
+      handle.addEventListener("pointercancel", onUp);
+    });
+  });
+}
+
+// ---- "du hoppet over en dag" - offer to move it to tomorrow, or drop it for this week ----
+const MISSED_DAY_ACK_KEY = "garminDashboardMissedDayAck_v1";
+function loadMissedDayAck() { return loadLS(MISSED_DAY_ACK_KEY, []); }
+function ackMissedDay(dateStr) {
+  const a = loadMissedDayAck();
+  if (!a.includes(dateStr)) { a.push(dateStr); saveLS(MISSED_DAY_ACK_KEY, a); }
+}
+function renderMissedDayPrompt() {
+  const el = document.getElementById("missed-day-banner");
+  const p = DATA.program;
+  if (!el || !p) return;
+  const overrides = loadPlanOverrides();
+  const ack = loadMissedDayAck();
+  const missedDay = p.week.slice().reverse().find(d => {
+    if (d.date >= p.today.date || ack.includes(d.date)) return false;
+    const r = resolvePlanDay(d, overrides);
+    return r.type !== "rest" && r.done !== true;
+  });
+  if (!missedDay) { el.innerHTML = ""; return; }
+  const r = resolvePlanDay(missedDay, overrides);
+  el.innerHTML = `<div class="missed-day-box">
+    Du hoppet over <b>${r.label}</b> (${fmtShort(missedDay.date)}) - vil du flytte den til i morgen, eller droppe den denne uken?
+    <div class="missed-day-actions">
+      <button class="btn small" id="missed-day-move">Flytt til i morgen</button>
+      <button class="btn ghost small" id="missed-day-skip">Dropp denne uken</button>
+    </div>
+  </div>`;
+  document.getElementById("missed-day-move").addEventListener("click", () => {
+    const tomorrow = isoAddDays(todayISO(), 1);
+    const current = loadPlanOverrides();
+    current[tomorrow] = normalizeSwapKey(r.key);
+    savePlanOverrides(current);
+    ackMissedDay(missedDay.date);
+    renderPlan();
+    renderMissedDayPrompt();
+  });
+  document.getElementById("missed-day-skip").addEventListener("click", () => {
+    ackMissedDay(missedDay.date);
+    renderMissedDayPrompt();
+  });
+}
 
 const SET_LOG_KEY = "garminDashboardSetLog_v1";
 function loadSetLogAll() { return loadLS(SET_LOG_KEY, []); }
@@ -2358,8 +2483,8 @@ function renderPlan() {
       : r.type === "rest" ? "–"
       : missed ? "○"
       : "";
-    return `<div class="week-day${d.isToday ? " today" : ""}">
-      <div class="wd">${d.weekday}</div>
+    return `<div class="week-day${d.isToday ? " today" : ""}" data-date="${d.date}">
+      <div class="wd"><span>${d.weekday}</span>${d.date >= p.today.date ? `<span class="week-day-handle" title="Dra for å bytte dag">⠿</span>` : ""}</div>
       <div class="sess">${r.label}</div>
       <div class="mark${missed ? " missed" : ""}" ${missed ? `title="Ikke logget - helt greit, fortsett i dag."` : ""}>${mark}</div>
       ${swapSelectHtml(d.date, r.key)}
@@ -2370,9 +2495,7 @@ function renderPlan() {
     sel.addEventListener("change", () => {
       const current = loadPlanOverrides();
       const day = p.week.find(x => x.date === sel.dataset.date);
-      const isDefault = sel.value === day.defaultKey
-        || (sel.value === "rest" && (day.defaultKey === "rest" || day.defaultKey === "restW"));
-      if (isDefault) {
+      if (isDefaultKeyForDay(day, sel.value)) {
         delete current[sel.dataset.date];
       } else {
         current[sel.dataset.date] = sel.value;
@@ -2381,8 +2504,11 @@ function renderPlan() {
       renderPlan();
     });
   });
+
+  setupWeekDrag();
 }
 renderPlan();
+renderMissedDayPrompt();
 renderPrBoard();
 renderRestTimer();
 
