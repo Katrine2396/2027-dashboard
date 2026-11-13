@@ -717,7 +717,7 @@ TEMPLATE = r"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow, noarchive">
 <title>Katrine 2027</title>
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32">
@@ -742,13 +742,16 @@ TEMPLATE = r"""<!DOCTYPE html>
     --shadow: 0 2px 10px rgba(122, 31, 61, 0.07);
   }
   * { box-sizing: border-box; }
+  html { -webkit-tap-highlight-color: transparent; }
   body {
     margin: 0;
     font-family: Nunito, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     background: var(--bg);
     color: var(--ink);
     padding: 0 0 60px;
+    overflow-x: hidden;
   }
+  button, .btn, a { touch-action: manipulation; }
   .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
   h1, h2, h3 { font-family: "Playfair Display", serif; }
 
@@ -967,6 +970,7 @@ TEMPLATE = r"""<!DOCTYPE html>
     z-index: 10;
   }
   .chart-wrap { position: relative; }
+  .chart-wrap svg { display: block; width: 100%; height: auto; }
 
   .records-grid {
     display: grid;
@@ -1350,6 +1354,13 @@ TEMPLATE = r"""<!DOCTYPE html>
     .log-grid { grid-template-columns: 1fr; }
     .budget-summary-grid { grid-template-columns: 1fr; }
     .savings-goal-grid { grid-template-columns: 1fr; }
+
+    /* inputs/selects under 16px make iOS Safari auto-zoom the page on focus */
+    input, select, textarea { font-size: 16px !important; }
+    .cat-row .cat-head { flex-wrap: wrap; row-gap: 4px; }
+    .cat-row input.cap-edit { width: 72px; }
+    .tab-nav { scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+    .tab-nav::-webkit-scrollbar { display: none; }
   }
 </style>
 </head>
