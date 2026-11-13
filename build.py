@@ -697,7 +697,7 @@ def main():
     week_num = gs_week(today)
     prog_week = GS_PROG[week_num]
 
-    hrv_latest, _ = trailing_baseline(hrv, hrv_keys, lambda v: v.get("lastNightAvg"))
+    hrv_latest, hrv_baseline = trailing_baseline(hrv, hrv_keys, lambda v: v.get("lastNightAvg"))
     hrv_status = hrv[hrv_keys[-1]].get("status") if hrv_keys else None
     rhr_latest, rhr_baseline = trailing_baseline(daily, daily_keys, lambda v: (v.get("heartRate") or {}).get("restingValue"))
     sleep_hours_latest, _ = trailing_baseline(sleep, sleep_keys, lambda v: safe_round((v.get("sleepTimeSeconds") or 0) / 3600, 1))
@@ -732,6 +732,44 @@ def main():
 
     readiness = "light" if readiness_score <= -2 else "caution" if readiness_score == -1 else "go"
 
+    # ------------------------------------------------------- recovery / strain scores (Sonar-style)
+    def sub_score(value, baseline, higher_is_better, swing):
+        """0-100, where 50 = exactly at your personal baseline. swing is the fractional
+        deviation from baseline that reaches 0 or 100 (e.g. 0.3 = 30% off baseline)."""
+        if value is None or baseline is None or baseline == 0:
+            return None
+        diff = (value - baseline) / baseline
+        if not higher_is_better:
+            diff = -diff
+        return max(0, min(100, round(50 + diff / swing * 50)))
+
+    hrv_sub = sub_score(hrv_latest, hrv_baseline, higher_is_better=True, swing=0.3)
+    rhr_sub = sub_score(rhr_latest, rhr_baseline, higher_is_better=False, swing=0.12)
+    sleep_sub = round(sleep_score_latest) if sleep_score_latest is not None else None
+    stress_sub = round(100 - stress_latest) if stress_latest is not None else None
+    recovery_parts = [(v, w) for v, w in (
+        (hrv_sub, 0.30), (rhr_sub, 0.20), (sleep_sub, 0.30), (stress_sub, 0.20),
+    ) if v is not None]
+    recovery_score = (
+        round(sum(v * w for v, w in recovery_parts) / sum(w for _, w in recovery_parts))
+        if recovery_parts else None
+    )
+
+    daily_load = defaultdict(float)
+    for a in activities:
+        start = a.get("startTimeLocal")
+        tl = a.get("activityTrainingLoad")
+        if start and tl is not None:
+            daily_load[start.split("T")[0]] += tl
+    today_load = daily_load.get(today.isoformat(), 0)
+    load_window_start = (today - timedelta(days=90)).isoformat()
+    recent_loads = [v for k, v in daily_load.items() if k >= load_window_start and v > 0]
+    load_reference = max(recent_loads) if recent_loads else None
+    if load_reference:
+        strain_score = round(min(100, 100 * today_load / load_reference))
+    else:
+        strain_score = 0 if today_load == 0 else None
+
     week_start = iso_week_start(today)
     week_days_out = []
     for i in range(7):
@@ -757,6 +795,8 @@ def main():
             "date": today.isoformat(),
             "readiness": readiness,
             "reasons": reasons,
+            "recoveryScore": recovery_score,
+            "strainScore": strain_score,
         },
         "week": week_days_out,
     }
@@ -1353,14 +1393,20 @@ TEMPLATE = r"""<!DOCTYPE html>
   @keyframes hjem-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
   .hjem-section-1 .hjem-card { margin-bottom: 10px; }
   .hjem-section-1 .hjem-card:last-child { margin-bottom: 0; }
-  .hjem-session { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .hjem-session { display: flex; flex-direction: column; gap: 12px; }
+  .hs-top { display: flex; align-items: center; gap: 14px; }
+  .hs-info { flex: 1; min-width: 0; }
   .hjem-session .hs-label { font-size: 15px; font-weight: 700; }
-  .hjem-session .hs-sub { font-size: 12px; color: var(--hj-muted); }
-  .hjem-session .hs-badges { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
-  .hjem-session .hs-readiness { font-size: 11px; padding: 3px 9px; border-radius: 12px; background: var(--hj-card2); }
-  .hjem-session .hs-readiness.go { color: #2f8a4e; }
-  .hjem-session .hs-readiness.caution { color: #b8860b; }
-  .hjem-session .hs-readiness.light { color: #c0392b; }
+  .hjem-session .hs-sub { font-size: 12px; color: var(--hj-muted); margin-bottom: 6px; }
+  .score-ring { position: relative; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+  .score-ring svg { display: block; }
+  .score-ring-num { position: absolute; font-family: "Playfair Display", serif; font-weight: 700; line-height: 1; }
+  .hs-score-block { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .hs-score-block .hs-score-label { font-size: 10px; color: var(--hj-muted); text-transform: uppercase; letter-spacing: .04em; }
+  .hs-secondary-scores { display: flex; gap: 18px; }
+  .hs-mini-score { display: flex; align-items: center; gap: 8px; }
+  .hs-mini-score .hs-mini-label { font-size: 11px; color: var(--hj-muted); }
+  .hs-mini-score .hs-mini-label b { display: block; font-size: 13px; color: var(--hj-ink); font-weight: 700; }
   .hjem-session .hs-status { font-size: 11px; padding: 3px 9px; border-radius: 12px; font-weight: 700; }
   .hjem-session .hs-status.notstarted { background: var(--hj-card2); color: var(--hj-muted); }
   .hjem-session .hs-status.inprogress { background: rgba(246,198,103,.18); color: #b8860b; }
@@ -4581,6 +4627,47 @@ document.getElementById("hjem-why").addEventListener("click", () => {
   renderHjemWhy();
 });
 
+// ---- Sonar-style daily scores: a big Recovery ring + small Strain/Nutrition rings ----
+function scoreColor(score) {
+  if (score == null) return "var(--hj-muted)";
+  if (score >= 67) return "#2f8a4e";
+  if (score >= 34) return "#b8860b";
+  return "#c0392b";
+}
+function ringGaugeSvg(score, size, strokeWidth) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const pct = score == null ? 0 : Math.max(0, Math.min(100, score)) / 100;
+  const offset = circumference * (1 - pct);
+  const center = size / 2;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+    <circle cx="${center}" cy="${center}" r="${radius}" fill="none" stroke="var(--hj-line)" stroke-width="${strokeWidth}"/>
+    <circle cx="${center}" cy="${center}" r="${radius}" fill="none" stroke="${scoreColor(score)}" stroke-width="${strokeWidth}"
+      stroke-dasharray="${circumference.toFixed(1)}" stroke-dashoffset="${offset.toFixed(1)}"
+      stroke-linecap="round" transform="rotate(-90 ${center} ${center})"/>
+  </svg>`;
+}
+function scoreRingHtml(score, size, strokeWidth) {
+  return `<div class="score-ring" style="width:${size}px;height:${size}px;">
+    ${ringGaugeSvg(score, size, strokeWidth)}
+    <div class="score-ring-num" style="color:${scoreColor(score)};font-size:${Math.round(size * 0.32)}px;">${score != null ? score : "–"}</div>
+  </div>`;
+}
+// kcal: scores 100 at the goal, falling off the further eaten is from it in either direction.
+// protein: scores by how close you are to your protein floor, capped at 100 once you hit it.
+function nutritionScore() {
+  const n = DATA.nutritionPlan;
+  const totals = dayNutritionTotals(todayISO());
+  const proteinPct = n.proteinMin ? Math.min(100, Math.round(100 * totals.protein / n.proteinMin)) : null;
+  let kcalScore = null;
+  if (n.dailyKcal) {
+    const diffPct = Math.abs(totals.kcal - n.dailyKcal) / n.dailyKcal;
+    kcalScore = Math.max(0, Math.round(100 - diffPct * 150));
+  }
+  const parts = [proteinPct, kcalScore].filter(v => v != null);
+  return parts.length ? Math.round(parts.reduce((s, v) => s + v, 0) / parts.length) : null;
+}
+
 function renderHjemSession() {
   const p = DATA.program;
   const el = document.getElementById("hjem-session");
@@ -4597,7 +4684,6 @@ function renderHjemSession() {
   const overrides = loadPlanOverrides();
   const todayDay = p.week.find(d => d.isToday);
   const resolved = resolvePlanDay(todayDay, overrides);
-  const readinessLabel = { go: "Klar for økta", caution: "Vurder lettere", light: "Prioriter hvile" }[p.today.readiness];
 
   let statusKey = "notstarted", statusLabel = "Ikke startet";
   if (resolved.type === "rest") {
@@ -4608,14 +4694,31 @@ function renderHjemSession() {
     statusKey = "inprogress"; statusLabel = "Pågår";
   }
 
+  const recovery = p.today.recoveryScore;
+  const strain = p.today.strainScore;
+  const nutrition = nutritionScore();
+
   el.innerHTML = `
-    <div>
-      <div class="hs-label">${resolved.type === "rest" ? "Hviledag" : resolved.label}</div>
-      <div class="hs-sub">Uke ${p.currentWeek}${p.weekIsDeload ? " · Deload" : " av 4"} · ${p.weekFocus}</div>
+    <div class="hs-top">
+      <div class="hs-score-block">
+        ${scoreRingHtml(recovery, 72, 7)}
+        <div class="hs-score-label">Recovery</div>
+      </div>
+      <div class="hs-info">
+        <div class="hs-label">${resolved.type === "rest" ? "Hviledag" : resolved.label}</div>
+        <div class="hs-sub">Uke ${p.currentWeek}${p.weekIsDeload ? " · Deload" : " av 4"} · ${p.weekFocus}</div>
+        <span class="hs-status ${statusKey}">${statusLabel}</span>
+      </div>
     </div>
-    <div class="hs-badges">
-      ${resolved.type !== "rest" ? `<span class="hs-readiness ${p.today.readiness}">${readinessLabel}</span>` : ""}
-      <span class="hs-status ${statusKey}">${statusLabel}</span>
+    <div class="hs-secondary-scores">
+      <div class="hs-mini-score">
+        ${scoreRingHtml(strain, 40, 5)}
+        <div class="hs-mini-label">Strain<b>${strain != null ? strain : "–"}</b></div>
+      </div>
+      <div class="hs-mini-score">
+        ${scoreRingHtml(nutrition, 40, 5)}
+        <div class="hs-mini-label">Nutrition<b>${nutrition != null ? nutrition : "–"}</b></div>
+      </div>
     </div>
     <button class="hs-link" id="hjem-session-link">${resolved.type === "rest" ? "Til plan →" : "Til økta →"}</button>
   `;
