@@ -76,27 +76,28 @@ PROG_EXERCISES = {
 # in the meal plan. Values are standard reference estimates (±10%, same spirit as the rest
 # of the nutrition numbers in this app) - she can add her own ingredients or correct these
 # in the app itself (stored in localStorage, layered on top of this list).
+# "dept" groups an ingredient into a shopping-list section (see SHOP_DEPT_ORDER in the JS).
 INGREDIENT_CATALOG = {
-    "kyllingfilet": {"label": "Kyllingfilet", "kcal100": 165, "protein100": 31},
-    "kyllingkjottdeig": {"label": "Kyllingkjøttdeig", "kcal100": 143, "protein100": 18},
-    "karbonadedeig": {"label": "Karbonadedeig", "kcal100": 220, "protein100": 18},
-    "kalkunfilet": {"label": "Kalkunfilet", "kcal100": 135, "protein100": 29},
-    "laksefilet": {"label": "Laksefilet", "kcal100": 208, "protein100": 20},
-    "torsk": {"label": "Torsk/hvit fisk", "kcal100": 82, "protein100": 18},
-    "egg": {"label": "Egg", "kcal100": 155, "protein100": 13},
-    "ris": {"label": "Ris (tørrvekt)", "kcal100": 360, "protein100": 7},
-    "quinoa": {"label": "Quinoa (tørrvekt)", "kcal100": 368, "protein100": 14},
-    "pasta": {"label": "Pasta (tørrvekt)", "kcal100": 350, "protein100": 12},
-    "poteter": {"label": "Poteter", "kcal100": 77, "protein100": 2},
-    "havregryn": {"label": "Havregryn", "kcal100": 375, "protein100": 13},
-    "proteinpulver": {"label": "Proteinpulver", "kcal100": 380, "protein100": 75},
-    "proteinmelk": {"label": "Proteinmelk", "kcal100": 55, "protein100": 8},
-    "gresk_yoghurt": {"label": "Gresk yoghurt", "kcal100": 97, "protein100": 9},
-    "mager_kesam": {"label": "Mager kesam", "kcal100": 70, "protein100": 12},
-    "cottage_cheese": {"label": "Cottage cheese", "kcal100": 98, "protein100": 11},
-    "skyr": {"label": "Høyprotein yoghurt/skyr", "kcal100": 60, "protein100": 10},
-    "kakaogranola": {"label": "Kakaogranola", "kcal100": 450, "protein100": 8},
-    "chiafro": {"label": "Chiafrø", "kcal100": 486, "protein100": 17},
+    "kyllingfilet": {"label": "Kyllingfilet", "kcal100": 165, "protein100": 31, "dept": "Kjøtt og fisk"},
+    "kyllingkjottdeig": {"label": "Kyllingkjøttdeig", "kcal100": 143, "protein100": 18, "dept": "Kjøtt og fisk"},
+    "karbonadedeig": {"label": "Karbonadedeig", "kcal100": 220, "protein100": 18, "dept": "Kjøtt og fisk"},
+    "kalkunfilet": {"label": "Kalkunfilet", "kcal100": 135, "protein100": 29, "dept": "Kjøtt og fisk"},
+    "laksefilet": {"label": "Laksefilet", "kcal100": 208, "protein100": 20, "dept": "Kjøtt og fisk"},
+    "torsk": {"label": "Torsk/hvit fisk", "kcal100": 82, "protein100": 18, "dept": "Kjøtt og fisk"},
+    "egg": {"label": "Egg", "kcal100": 155, "protein100": 13, "dept": "Meieri"},
+    "ris": {"label": "Ris (tørrvekt)", "kcal100": 360, "protein100": 7, "dept": "Tørrvarer"},
+    "quinoa": {"label": "Quinoa (tørrvekt)", "kcal100": 368, "protein100": 14, "dept": "Tørrvarer"},
+    "pasta": {"label": "Pasta (tørrvekt)", "kcal100": 350, "protein100": 12, "dept": "Tørrvarer"},
+    "poteter": {"label": "Poteter", "kcal100": 77, "protein100": 2, "dept": "Frukt og grønt"},
+    "havregryn": {"label": "Havregryn", "kcal100": 375, "protein100": 13, "dept": "Tørrvarer"},
+    "proteinpulver": {"label": "Proteinpulver", "kcal100": 380, "protein100": 75, "dept": "Tørrvarer"},
+    "proteinmelk": {"label": "Proteinmelk", "kcal100": 55, "protein100": 8, "dept": "Meieri"},
+    "gresk_yoghurt": {"label": "Gresk yoghurt", "kcal100": 97, "protein100": 9, "dept": "Meieri"},
+    "mager_kesam": {"label": "Mager kesam", "kcal100": 70, "protein100": 12, "dept": "Meieri"},
+    "cottage_cheese": {"label": "Cottage cheese", "kcal100": 98, "protein100": 11, "dept": "Meieri"},
+    "skyr": {"label": "Høyprotein yoghurt/skyr", "kcal100": 60, "protein100": 10, "dept": "Meieri"},
+    "kakaogranola": {"label": "Kakaogranola", "kcal100": 450, "protein100": 8, "dept": "Tørrvarer"},
+    "chiafro": {"label": "Chiafrø", "kcal100": 486, "protein100": 17, "dept": "Tørrvarer"},
 }
 
 # Each recipe's "items" are either a structured, swappable ingredient line
@@ -1228,6 +1229,15 @@ TEMPLATE = r"""<!DOCTYPE html>
   }
   .shop-list li.checked span { text-decoration: line-through; color: var(--muted); }
   .shop-list li button { margin-left: auto; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; }
+  .shop-list li.shop-dept-head {
+    border-top: none; padding: 14px 4px 4px; font-size: 11px; font-weight: 700; letter-spacing: .03em;
+    text-transform: uppercase; color: var(--accent);
+  }
+  .shop-list li.shop-dept-head:first-child { padding-top: 4px; }
+  .meal-picker-group { margin-bottom: 14px; }
+  .meal-picker-group-title { font-weight: 700; font-size: 13px; margin-bottom: 6px; }
+  .meal-picker-opt { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 13.5px; }
+  .quicklog-drawer .meal-picker-opt input[type="checkbox"] { width: auto; margin: 0; }
 
   /* ---- budsjett ---- */
   .month-nav { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
@@ -1820,6 +1830,7 @@ TEMPLATE = r"""<!DOCTYPE html>
         <button class="btn secondary small" id="shop-quickadd-protein">+ Faste proteinvarer</button>
         <button class="btn secondary small" id="shop-quickadd-meals">+ Fra måltidsideene</button>
         <button class="btn ghost small" id="shop-clear-checked">Fjern det som er kjøpt</button>
+        <button class="btn ghost small" id="shop-clear-all">Tøm listen</button>
       </div>
       <ul class="shop-list" id="shop-list"></ul>
     </div>
@@ -3727,6 +3738,23 @@ document.getElementById("badday-exit").addEventListener("click", () => setBadDay
 if (loadLS(BADDAY_MODE_KEY, false)) setBadDayMode(true);
 
 // ---------------------------------------------------------------- shopping list
+const SHOP_DEPT_ORDER = ["Frukt og grønt", "Meieri", "Kjøtt og fisk", "Tørrvarer", "Frys", "Annet"];
+// Order matters: checked top-to-bottom, first keyword match wins (so "frossen" beats
+// "grønnsak" in "amerikansk grønnsaksblanding (frossen)", and "melk" beats "protein" in "proteinmelk").
+const SHOP_DEPT_KEYWORDS = [
+  ["Frys", ["frossen", "frys"]],
+  ["Frukt og grønt", ["agurk", "paprika", "salat", "tomat", "brokkoli", "bringebær", "banan", "eple", "grønnsak", "frukt", "potet", "løk", "sitron", "avokado", "mais", "bønne"]],
+  ["Meieri", ["melk", "yoghurt", "yogurt", "skyr", "kesam", "rømme", "ost", "egg", "cottage", "smør"]],
+  ["Kjøtt og fisk", ["kylling", "kjøtt", "laks", "torsk", "fisk", "svin", "biff", "kalkun", "pølse", "bacon"]],
+  ["Tørrvarer", ["ris", "pasta", "havregryn", "granola", "protein", "chiafrø", "chiafro", "lefse", "pitabrød", "rundstykke", "chips", "tortilla", "brød", "mel", "sukker", "saus", "soya", "quinoa", "nøtt", "biscoff"]],
+];
+function guessShopDept(name) {
+  const n = name.toLowerCase();
+  for (const [dept, kws] of SHOP_DEPT_KEYWORDS) {
+    if (kws.some(k => n.includes(k))) return dept;
+  }
+  return "Annet";
+}
 function shopKey(name) { return name.trim().toLowerCase(); }
 function addShopItems(names) {
   const list = loadShopList();
@@ -3734,21 +3762,101 @@ function addShopItems(names) {
   names.forEach(n => {
     const k = shopKey(n);
     if (!existing.has(k)) {
-      list.push({ id: k + "-" + Date.now() + Math.random(), name: n, checked: false });
+      list.push({ id: k + "-" + Date.now() + Math.random(), name: n, dept: guessShopDept(n), checked: false, slot: null });
       existing.add(k);
     }
   });
   saveShopList(list);
   renderShopList();
 }
+// Adds/updates one ingredient line. If `slot` matches an item already on the list (the same
+// recipe+ingredient position), that line is updated in place instead of duplicated - this is
+// what makes swapping an ingredient (e.g. kyllingfilet -> kyllingkjøttdeig) replace the old
+// shopping-list line rather than add a second one.
+function upsertShopItem(name, dept, slot) {
+  const list = loadShopList();
+  if (slot) {
+    const idx = list.findIndex(i => i.slot === slot);
+    if (idx !== -1) {
+      list[idx].name = name;
+      list[idx].dept = dept;
+      saveShopList(list);
+      return;
+    }
+  }
+  if (list.some(i => shopKey(i.name) === shopKey(name))) return;
+  list.push({ id: "shop-" + Date.now() + Math.random(), name, dept, checked: false, slot: slot || null });
+  saveShopList(list);
+}
+function addMealIngredientsToShopList(type, optIdx) {
+  const n = DATA.nutritionPlan;
+  const opt = n[type] && n[type].options[optIdx];
+  if (!opt) return;
+  const date = todayISO();
+  opt.items.forEach((item, itemIdx) => {
+    const slot = `meal:${type}:${optIdx}:${itemIdx}`;
+    if (!item.ing) {
+      upsertShopItem(item.text, guessShopDept(item.text), slot);
+      return;
+    }
+    const override = getIngOverride(date, type, optIdx, itemIdx);
+    const ing = override ? override.ing : item.ing;
+    const amount = override ? override.amount : item.amount;
+    const data = getIngredient(ing);
+    const label = data ? data.label : ing;
+    const name = override ? `${amount} g ${label}` : (item.display || `${amount} g ${label}`);
+    const dept = (data && data.dept) || guessShopDept(label);
+    upsertShopItem(name, dept, slot);
+  });
+  renderShopList();
+}
+function openMealPickerDrawer() {
+  const n = DATA.nutritionPlan;
+  const groups = [
+    { key: "breakfast", label: "🥣 Frokost" },
+    { key: "lunch", label: "🥙 Lunsj" },
+    { key: "snack", label: "🍓 Mellommåltid" },
+    { key: "dinner", label: "🍽️ Middag" },
+  ];
+  const bodyHtml = groups.map(g => `
+    <div class="meal-picker-group">
+      <div class="meal-picker-group-title">${g.label}</div>
+      ${n[g.key].options.map((o, i) => `
+        <label class="meal-picker-opt">
+          <input type="checkbox" data-meal-type="${g.key}" data-opt-idx="${i}">
+          <span>${o.name}</span>
+        </label>`).join("")}
+    </div>`).join("") + `<button class="btn" id="meal-picker-add">Legg til valgte</button>`;
+  openQuicklogDrawer("Velg måltider å legge til", bodyHtml);
+  document.getElementById("meal-picker-add").addEventListener("click", () => {
+    document.querySelectorAll("#quicklog-drawer-body input[type=checkbox]:checked").forEach(cb => {
+      addMealIngredientsToShopList(cb.dataset.mealType, parseInt(cb.dataset.optIdx, 10));
+    });
+    closeQuicklogDrawer();
+  });
+}
 function renderShopList() {
   const list = loadShopList();
-  document.getElementById("shop-list").innerHTML = list.map(i => `
-    <li class="${i.checked ? "checked" : ""}" data-id="${i.id}">
-      <input type="checkbox" ${i.checked ? "checked" : ""}>
-      <span>${i.name}</span>
-      <button data-remove="${i.id}">✕</button>
-    </li>`).join("") || `<li style="border-top:none;color:var(--muted);">Listen er tom</li>`;
+  const el = document.getElementById("shop-list");
+  if (!list.length) {
+    el.innerHTML = `<li style="border-top:none;color:var(--muted);">Listen er tom</li>`;
+    return;
+  }
+  const byDept = {};
+  list.forEach(i => { const d = i.dept || "Annet"; (byDept[d] = byDept[d] || []).push(i); });
+  const parts = [];
+  SHOP_DEPT_ORDER.forEach(d => {
+    const items = byDept[d];
+    if (!items || !items.length) return;
+    parts.push(`<li class="shop-dept-head">${d}</li>`);
+    items.forEach(i => parts.push(`
+      <li class="${i.checked ? "checked" : ""}" data-id="${i.id}">
+        <input type="checkbox" ${i.checked ? "checked" : ""}>
+        <span>${i.name}</span>
+        <button data-remove="${i.id}">✕</button>
+      </li>`));
+  });
+  el.innerHTML = parts.join("");
 
   document.querySelectorAll("#shop-list input[type=checkbox]").forEach(cb => {
     cb.addEventListener("change", () => {
@@ -3777,16 +3885,15 @@ document.getElementById("shop-input").addEventListener("keydown", e => {
 document.getElementById("shop-quickadd-protein").addEventListener("click", () => {
   addShopItems(["Havregryn", "Proteinpulver", "Proteinmelk", "Chiafrø", "Gresk yoghurt", "Mager kesam"]);
 });
-document.getElementById("shop-quickadd-meals").addEventListener("click", () => {
-  const n = DATA.nutritionPlan;
-  const items = new Set();
-  ["breakfast", "lunch", "snack", "dinner"].forEach(key => n[key].options.forEach(o => o.items.forEach(i => {
-    items.add(i.text || `${i.display || i.amount + " g"} ${(getIngredient(i.ing) || {}).label || i.ing}`);
-  })));
-  addShopItems(Array.from(items));
-});
+document.getElementById("shop-quickadd-meals").addEventListener("click", openMealPickerDrawer);
 document.getElementById("shop-clear-checked").addEventListener("click", () => {
   saveShopList(loadShopList().filter(i => !i.checked));
+  renderShopList();
+});
+document.getElementById("shop-clear-all").addEventListener("click", () => {
+  if (!loadShopList().length) return;
+  if (!confirm("Tømme hele handlelisten?")) return;
+  saveShopList([]);
   renderShopList();
 });
 
