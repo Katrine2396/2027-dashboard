@@ -4637,12 +4637,31 @@ function recoveryVerdict(score) {
   if (score >= 34) return "Middels recovery - kjør økta, men hold litt igjen hvis du kjenner det.";
   return "Lav recovery - vurder en lettere variant eller prioriter hvile i dag.";
 }
-function strainNote(strain) {
-  if (strain == null) return "Ikke nok data ennå.";
-  if (strain === 0) return "Ingen økt registrert ennå i dag.";
-  if (strain < 34) return "Rolig dag så langt.";
-  if (strain < 67) return "Moderat belastning så langt i dag.";
-  return "Høy belastning i dag - en av dine tyngste økter nylig.";
+// Tells her whether to push harder or ease off tomorrow, based on today's recovery
+// (how ready the body was) against today's strain (how hard it was actually used) -
+// and defers to the plan if tomorrow is already a scheduled rest day.
+function strainNote(strain, recovery, p) {
+  if (strain == null || recovery == null) return "Ikke nok data ennå til å si noe om i morgen.";
+
+  const tomorrowDate = isoAddDays(todayISO(), 1);
+  const tomorrowDay = p.week.find(d => d.date === tomorrowDate);
+  if (tomorrowDay) {
+    const tomorrowResolved = resolvePlanDay(tomorrowDay, loadPlanOverrides());
+    if (tomorrowResolved.type === "rest") {
+      return "I morgen er det uansett hviledag ifølge planen - fin timing uansett dagens belastning.";
+    }
+  }
+
+  const highRecovery = recovery >= 67, lowRecovery = recovery < 34;
+  const highStrain = strain >= 67, lowStrain = strain < 34;
+
+  if (highRecovery && lowStrain) return "God recovery og lite belastning så langt - du kan trygt trene litt hardere i morgen.";
+  if (highRecovery && highStrain) return "Du har alt hatt en tung dag med god recovery i bunn - fortsett som normalt i morgen.";
+  if (lowRecovery && highStrain) return "Høy belastning på en dag med lav recovery - ta det roligere i morgen.";
+  if (lowRecovery && lowStrain) return "Lav recovery selv uten mye belastning - prioriter hvile eller en lett økt i morgen.";
+  if (highRecovery) return "God recovery - du tåler en normal eller litt tyngre økt i morgen.";
+  if (lowRecovery) return "Lav recovery - hold morgendagens økt lett til moderat.";
+  return "Middels recovery og belastning - en vanlig økt i morgen bør gå fint.";
 }
 function nutritionNote(score, totals, n) {
   if (score == null) return "Ikke logget noe i dag ennå.";
@@ -4702,7 +4721,7 @@ function renderHjemSession() {
       <div class="hs-mini-score">
         ${scoreRingHtml(strain, 40, 5)}
         <div class="hs-mini-label">Belastning<b>${strain != null ? strain : "–"}</b>
-          <span class="hs-mini-note">${strainNote(strain)}</span>
+          <span class="hs-mini-note">${strainNote(strain, recovery, p)}</span>
         </div>
       </div>
       <div class="hs-mini-score">
