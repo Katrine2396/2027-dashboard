@@ -1469,23 +1469,17 @@ TEMPLATE = r"""<!DOCTYPE html>
 
   .quicklog-bar {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 90;
-    display: flex; background: var(--card); border-top: 1px solid var(--line);
+    display: flex; justify-content: center; background: var(--card); border-top: 1px solid var(--line);
     box-shadow: 0 -2px 10px rgba(122, 31, 61, 0.07);
     padding: 8px max(8px, env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-right));
-    gap: 6px;
   }
   .quicklog-bar button {
-    flex: 1; background: none; border: none; color: var(--ink); display: flex;
-    flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; border-radius: 12px;
-    cursor: pointer; position: relative; font-family: Nunito, sans-serif;
+    background: none; border: none; color: var(--ink); display: flex;
+    flex-direction: row; align-items: center; gap: 8px; padding: 8px 32px; border-radius: 999px;
+    cursor: pointer; font-family: Nunito, sans-serif; font-weight: 700; font-size: 14px;
   }
   .quicklog-bar button:active { background: var(--line); }
-  .quicklog-bar .ql-icon { font-size: 20px; }
-  .quicklog-bar .ql-label { font-size: 11px; color: var(--muted); }
-  .quicklog-bar .ql-badge {
-    position: absolute; top: 2px; right: 18%; background: #f6c667; color: var(--ink);
-    font-size: 10px; font-weight: 700; border-radius: 10px; padding: 0 5px; min-width: 14px; text-align: center;
-  }
+  .quicklog-bar .ql-icon { font-size: 18px; }
   .quicklog-drawer {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 91; background: var(--card); color: var(--ink);
     border-top: 1px solid var(--line); border-radius: 16px 16px 0 0; padding: 14px 16px;
@@ -1580,12 +1574,12 @@ TEMPLATE = r"""<!DOCTYPE html>
 
   <nav class="tab-nav" id="tab-nav">
     <button data-tab="hjem">Hjem</button>
-    <button data-tab="rapport">Rapport</button>
-    <button data-tab="trening">Treningsplan</button>
     <button data-tab="kosthold">Kosthold</button>
+    <button data-tab="budsjett">Budsjett</button>
+    <button data-tab="trening">Treningsplan</button>
     <button data-tab="fremgang">Fremgang</button>
     <button data-tab="handleliste">Handleliste</button>
-    <button data-tab="budsjett">Budsjett</button>
+    <button data-tab="rapport">Rapport</button>
     <button data-tab="statistikk">Statistikk</button>
     <button data-tab="innstillinger">Innstillinger</button>
   </nav>
@@ -1995,10 +1989,7 @@ TEMPLATE = r"""<!DOCTYPE html>
   <div id="quicklog-drawer-body"></div>
 </div>
 <nav class="quicklog-bar" id="quicklog-bar">
-  <button data-ql="vann"><span class="ql-icon">💧</span><span class="ql-label">Vann</span><span class="ql-badge" id="ql-water-badge"></span></button>
-  <button data-ql="mat"><span class="ql-icon">🍫</span><span class="ql-label">Måltid</span></button>
-  <button data-ql="utgift"><span class="ql-icon">💸</span><span class="ql-label">Utgift</span></button>
-  <button data-ql="okt"><span class="ql-icon">🏋️</span><span class="ql-label">Økt</span></button>
+  <button data-ql="hjem"><span class="ql-icon">🏠</span><span class="ql-label">Hjem</span></button>
 </nav>
 
 <script>
@@ -4963,18 +4954,6 @@ function closeQuicklogDrawer() {
 }
 document.getElementById("quicklog-drawer-close").addEventListener("click", closeQuicklogDrawer);
 
-function renderWaterBadge() {
-  const count = loadLS(WATER_KEY, {})[todayISO()] || 0;
-  document.getElementById("ql-water-badge").textContent = count > 0 ? count : "";
-}
-function logWater() {
-  const water = loadLS(WATER_KEY, {});
-  const today = todayISO();
-  water[today] = (water[today] || 0) + 1;
-  saveLS(WATER_KEY, water);
-  renderWaterBadge();
-}
-
 function openMatDrawer() {
   openQuicklogDrawer("Logg mat/drikke", `
     <div class="ql-presets">
@@ -5001,44 +4980,12 @@ function openMatDrawer() {
   });
 }
 
-function openUtgiftDrawer() {
-  const cfg = loadBudgetConfig();
-  openQuicklogDrawer("Logg utgift", `
-    <input type="number" id="ql-tx-amount" placeholder="Beløp (kr)">
-    <select id="ql-tx-category">${categoryOptionsHtml(cfg)}</select>
-    <input type="text" id="ql-tx-name" placeholder="Navn (valgfritt)">
-    <button class="btn" id="ql-tx-save">Lagre</button>
-  `);
-  document.getElementById("ql-tx-save").addEventListener("click", () => {
-    const amount = parseFloat(document.getElementById("ql-tx-amount").value);
-    if (!amount) return;
-    const category = document.getElementById("ql-tx-category").value;
-    const name = document.getElementById("ql-tx-name").value.trim();
-    addTransactionWithRoundUp(todayISO(), amount, category, name);
-    currentEconMonth = emKeyForDate(todayISO());
-    document.getElementById("em-label").textContent = emLabel(currentEconMonth);
-    renderBudget();
-    closeQuicklogDrawer();
-  });
-}
-
 document.querySelectorAll("#quicklog-bar button[data-ql]").forEach(btn => {
   btn.addEventListener("click", () => {
-    const action = btn.dataset.ql;
-    if (action === "vann") { logWater(); return; }
-    if (action === "mat") { openMatDrawer(); return; }
-    if (action === "utgift") { openUtgiftDrawer(); return; }
-    if (action === "okt") {
-      showTab("trening");
-      setTimeout(() => {
-        const target = document.getElementById("plan-today");
-        if (target) target.scrollIntoView({ behavior: "smooth" });
-      }, 50);
-    }
+    if (btn.dataset.ql === "hjem") showTab("hjem");
   });
 });
 
-renderWaterBadge();
 renderHjem();
 renderNutritionCoach();
 
