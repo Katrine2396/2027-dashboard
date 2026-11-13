@@ -2301,8 +2301,9 @@ function saveRestPrefs(p) { saveLS(REST_PREFS_KEY, p); }
 function restDurationFor(exKey) { return loadRestPrefs()[exKey] || 90; }
 
 let restTimerInterval = null;
-let restTimerRemaining = 0;
-let restTimerPaused = false;
+let restTimerEndsAt = 0; // absolute timestamp (ms) the timer finishes at - not a tick counter,
+                          // since mobile browsers throttle/pause setInterval while backgrounded
+let restTimerPausedRemaining = null; // seconds left, frozen while paused; null while running
 
 function playRestBeep() {
   try {
@@ -2319,19 +2320,24 @@ function playRestBeep() {
     osc.stop(ctx.currentTime + 0.5);
   } catch (e) { /* audio not available, vibration still fires */ }
 }
+function restTimerSecondsLeft() {
+  if (restTimerPausedRemaining != null) return restTimerPausedRemaining;
+  return Math.max(0, Math.ceil((restTimerEndsAt - Date.now()) / 1000));
+}
 function updateRestBubbleDisplay() {
-  document.getElementById("rt-bubble-display").textContent = restTimerRemaining;
+  document.getElementById("rt-bubble-display").textContent = restTimerSecondsLeft();
 }
 function stopRestTimer() {
   if (restTimerInterval) clearInterval(restTimerInterval);
   restTimerInterval = null;
+  restTimerPausedRemaining = null;
   document.getElementById("rest-bubble").classList.remove("active");
 }
 function tickRestTimer() {
-  if (restTimerPaused) return;
-  restTimerRemaining--;
+  if (restTimerPausedRemaining != null) return;
+  const left = restTimerSecondsLeft();
   updateRestBubbleDisplay();
-  if (restTimerRemaining <= 0) {
+  if (left <= 0) {
     if (window.navigator.vibrate) window.navigator.vibrate([200, 100, 200]);
     playRestBeep();
     stopRestTimer();
@@ -2339,8 +2345,8 @@ function tickRestTimer() {
 }
 function startRestTimer(seconds, label) {
   stopRestTimer();
-  restTimerRemaining = seconds;
-  restTimerPaused = false;
+  restTimerEndsAt = Date.now() + seconds * 1000;
+  restTimerPausedRemaining = null;
   document.getElementById("rt-bubble-label").textContent = label || "Hvile";
   document.getElementById("rt-bubble-pause").textContent = "Pause";
   updateRestBubbleDisplay();
@@ -2348,10 +2354,22 @@ function startRestTimer(seconds, label) {
   restTimerInterval = setInterval(tickRestTimer, 1000);
 }
 document.getElementById("rt-bubble-pause").addEventListener("click", () => {
-  restTimerPaused = !restTimerPaused;
-  document.getElementById("rt-bubble-pause").textContent = restTimerPaused ? "Fortsett" : "Pause";
+  if (restTimerPausedRemaining != null) {
+    restTimerEndsAt = Date.now() + restTimerPausedRemaining * 1000;
+    restTimerPausedRemaining = null;
+    document.getElementById("rt-bubble-pause").textContent = "Pause";
+  } else {
+    restTimerPausedRemaining = restTimerSecondsLeft();
+    document.getElementById("rt-bubble-pause").textContent = "Fortsett";
+  }
 });
 document.getElementById("rt-bubble-skip").addEventListener("click", stopRestTimer);
+// background tabs/apps throttle or fully pause setInterval (especially on iOS), so the display
+// can go stale while you're away - catch up the instant you come back instead of waiting for
+// the next (possibly delayed) tick, so a finished rest shows "ferdig" right away, not a frozen number.
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && restTimerInterval) tickRestTimer();
+});
 
 function parseRepTarget(text) {
   const m = text.match(/(\d+)\s*[×x]\s*(\d+)(?:\s*[–\-]\s*(\d+))?/);
