@@ -1510,7 +1510,7 @@ TEMPLATE = r"""<!DOCTYPE html>
   <div class="gate-box">
     <h2>🔒 Logg inn</h2>
     <p>Logg inn for å åpne dashbordet og synkronisere data på tvers av enhetene dine.</p>
-    <input type="email" id="gate-email" placeholder="E-post" autocomplete="username">
+    <input type="email" id="gate-email" placeholder="E-post" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false">
     <input type="password" id="gate-input" placeholder="Passord" autocomplete="current-password">
     <button class="btn" id="gate-submit">Logg inn</button>
     <div class="gate-error" id="gate-error"></div>
