@@ -1381,10 +1381,12 @@ TEMPLATE = r"""<!DOCTYPE html>
   .score-ring-num { position: absolute; font-family: "Playfair Display", serif; font-weight: 700; line-height: 1; }
   .hs-score-block { display: flex; flex-direction: column; align-items: center; gap: 4px; }
   .hs-score-block .hs-score-label { font-size: 10px; color: var(--hj-muted); text-transform: uppercase; letter-spacing: .04em; }
-  .hs-secondary-scores { display: flex; gap: 18px; }
-  .hs-mini-score { display: flex; align-items: center; gap: 8px; }
-  .hs-mini-score .hs-mini-label { font-size: 11px; color: var(--hj-muted); }
+  .hs-recovery-note { font-size: 12px; color: var(--hj-muted); line-height: 1.45; }
+  .hs-secondary-scores { display: flex; flex-direction: column; gap: 10px; }
+  .hs-mini-score { display: flex; align-items: flex-start; gap: 10px; }
+  .hs-mini-score .hs-mini-label { font-size: 11px; color: var(--hj-muted); flex: 1; min-width: 0; padding-top: 3px; }
   .hs-mini-score .hs-mini-label b { display: block; font-size: 13px; color: var(--hj-ink); font-weight: 700; }
+  .hs-mini-note { display: block; font-size: 10.5px; color: var(--hj-muted); margin-top: 2px; line-height: 1.3; }
   .hjem-session .hs-status { font-size: 11px; padding: 3px 9px; border-radius: 12px; font-weight: 700; }
   .hjem-session .hs-status.notstarted { background: var(--hj-card2); color: var(--hj-muted); }
   .hjem-session .hs-status.inprogress { background: rgba(246,198,103,.18); color: #b8860b; }
@@ -4629,6 +4631,28 @@ function nutritionScore() {
   return parts.length ? Math.round(parts.reduce((s, v) => s + v, 0) / parts.length) : null;
 }
 
+function recoveryVerdict(score) {
+  if (score == null) return "Ikke nok data til å beregne recovery ennå.";
+  if (score >= 67) return "God recovery - kroppen er klar for en skikkelig økt i dag.";
+  if (score >= 34) return "Middels recovery - kjør økta, men hold litt igjen hvis du kjenner det.";
+  return "Lav recovery - vurder en lettere variant eller prioriter hvile i dag.";
+}
+function strainNote(strain) {
+  if (strain == null) return "Ikke nok data ennå.";
+  if (strain === 0) return "Ingen økt registrert ennå i dag.";
+  if (strain < 34) return "Rolig dag så langt.";
+  if (strain < 67) return "Moderat belastning så langt i dag.";
+  return "Høy belastning i dag - en av dine tyngste økter nylig.";
+}
+function nutritionNote(score, totals, n) {
+  if (score == null) return "Ikke logget noe i dag ennå.";
+  const proteinPct = n.proteinMin ? Math.round(100 * totals.protein / n.proteinMin) : null;
+  if (proteinPct != null && proteinPct < 70) return `${Math.round(totals.protein)} / ${n.proteinMin} g protein så langt.`;
+  if (score >= 67) return "Bra treff på kalorier og protein i dag.";
+  if (score >= 34) return "Et stykke unna kalorie-/proteinmålet ennå.";
+  return "Langt unna kalorie-/proteinmålet i dag.";
+}
+
 function renderHjemSession() {
   const p = DATA.program;
   const el = document.getElementById("hjem-session");
@@ -4657,7 +4681,9 @@ function renderHjemSession() {
 
   const recovery = p.today.recoveryScore;
   const strain = p.today.strainScore;
+  const nutritionTotals = dayNutritionTotals(todayISO());
   const nutrition = nutritionScore();
+  const recoveryText = [recoveryVerdict(recovery), ...(p.today.reasons || [])].join(" ");
 
   el.innerHTML = `
     <div class="hs-top">
@@ -4671,14 +4697,19 @@ function renderHjemSession() {
         <span class="hs-status ${statusKey}">${statusLabel}</span>
       </div>
     </div>
+    <div class="hs-recovery-note">${recoveryText}</div>
     <div class="hs-secondary-scores">
       <div class="hs-mini-score">
         ${scoreRingHtml(strain, 40, 5)}
-        <div class="hs-mini-label">Strain<b>${strain != null ? strain : "–"}</b></div>
+        <div class="hs-mini-label">Belastning<b>${strain != null ? strain : "–"}</b>
+          <span class="hs-mini-note">${strainNote(strain)}</span>
+        </div>
       </div>
       <div class="hs-mini-score">
         ${scoreRingHtml(nutrition, 40, 5)}
-        <div class="hs-mini-label">Nutrition<b>${nutrition != null ? nutrition : "–"}</b></div>
+        <div class="hs-mini-label">Ernæring<b>${nutrition != null ? nutrition : "–"}</b>
+          <span class="hs-mini-note">${nutritionNote(nutrition, nutritionTotals, DATA.nutritionPlan)}</span>
+        </div>
       </div>
     </div>
     <button class="hs-link" id="hjem-session-link">${resolved.type === "rest" ? "Til plan →" : "Til økta →"}</button>
