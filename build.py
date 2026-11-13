@@ -874,6 +874,7 @@ TEMPLATE = r"""<!DOCTYPE html>
     font-weight: 600;
   }
   header.hero h1 { margin: 2px 0 6px; font-size: 30px; font-weight: 700; font-style: italic; }
+  header.hero .hero-datetime { color: #fff; font-size: 15px; font-weight: 600; margin-bottom: 4px; }
   header.hero .sub { color: #fbe7ed; font-size: 14px; }
 
   .goal-row {
@@ -1328,6 +1329,7 @@ TEMPLATE = r"""<!DOCTYPE html>
   }
   .hjem-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
   .hjem-greeting { font-family: "Playfair Display", serif; font-size: 19px; }
+  .hjem-datetime { font-size: 12px; color: var(--hj-muted); margin-top: 2px; }
   .hjem-badday-toggle {
     background: var(--hj-card2); color: var(--hj-ink); border: 1px solid var(--hj-line);
     border-radius: 20px; padding: 6px 12px; font-size: 12px; cursor: pointer;
@@ -1521,6 +1523,7 @@ TEMPLATE = r"""<!DOCTYPE html>
 <header class="hero">
   <div class="wrap">
     <h1 id="goal-headline">Katrine 2027</h1>
+    <div class="hero-datetime" id="hero-datetime"></div>
     <div class="sub" id="date-range-sub"></div>
     <div class="goal-row" id="goal-chips"></div>
   </div>
@@ -1567,7 +1570,10 @@ TEMPLATE = r"""<!DOCTYPE html>
   <div class="tab-panel" data-tab="hjem">
   <div class="hjem-dash" id="hjem-dash">
     <div class="hjem-topbar">
-      <div class="hjem-greeting" id="hjem-greeting"></div>
+      <div>
+        <div class="hjem-greeting" id="hjem-greeting"></div>
+        <div class="hjem-datetime" id="hjem-datetime"></div>
+      </div>
       <div class="hjem-topbar-btns">
         <button class="hjem-refresh-btn" id="hjem-refresh-btn" title="Oppdater">⟳</button>
         <button class="hjem-badday-toggle" id="hjem-badday-toggle">🌧️ Dårlig dag</button>
@@ -2063,8 +2069,27 @@ function fmtShort(s) {
 }
 
 // ---------------------------------------------------------------- header
+const NO_WEEKDAYS_FULL = ["Søndag", "Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag"];
+const NO_MONTHS_FULL = ["januar", "februar", "mars", "april", "mai", "juni", "juli", "august", "september", "oktober", "november", "desember"];
+function nowDateTimeLabel() {
+  const now = new Date();
+  const weekday = NO_WEEKDAYS_FULL[now.getDay()];
+  const day = now.getDate();
+  const month = NO_MONTHS_FULL[now.getMonth()];
+  const time = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  return { full: `${weekday} ${day}. ${month}`, time };
+}
+function renderHeroDateTime() {
+  const el = document.getElementById("hero-datetime");
+  if (!el) return;
+  const dt = nowDateTimeLabel();
+  el.textContent = `${dt.full} · ${dt.time}`;
+}
+renderHeroDateTime();
+setInterval(renderHeroDateTime, 30000);
+
 document.getElementById("date-range-sub").textContent =
-  `${DATA.meta.totalActivities} activities tracked, ${fmtDate(DATA.meta.dateRange[0])} - ${fmtDate(DATA.meta.dateRange[1])}`;
+  `${DATA.meta.totalActivities} aktiviteter registrert, ${fmtDate(DATA.meta.dateRange[0])} – ${fmtDate(DATA.meta.dateRange[1])}`;
 
 const goalChips = document.getElementById("goal-chips");
 const g = DATA.goal;
@@ -2075,13 +2100,13 @@ function deltaSpan(pct) {
   return ` <span class="${cls}">${sign}${pct}%</span>`;
 }
 if (g.recentActiveCaloriesPerWeek) {
-  goalChips.innerHTML += `<div class="goal-chip">Active calories / week<b>${g.recentActiveCaloriesPerWeek.toLocaleString()}${deltaSpan(g.caloriesPctChange)}</b></div>`;
+  goalChips.innerHTML += `<div class="goal-chip">Aktive kalorier/uke<b>${g.recentActiveCaloriesPerWeek.toLocaleString()}${deltaSpan(g.caloriesPctChange)}</b></div>`;
 }
 if (g.recentSessionsPerWeek) {
-  goalChips.innerHTML += `<div class="goal-chip">Sessions / week<b>${g.recentSessionsPerWeek}</b></div>`;
+  goalChips.innerHTML += `<div class="goal-chip">Økter/uke<b>${g.recentSessionsPerWeek}</b></div>`;
 }
 if (g.recentStepsPerDay) {
-  goalChips.innerHTML += `<div class="goal-chip">Steps / day<b>${g.recentStepsPerDay.toLocaleString()}${deltaSpan(g.stepsPctChange)}</b></div>`;
+  goalChips.innerHTML += `<div class="goal-chip">Skritt/dag<b>${g.recentStepsPerDay.toLocaleString()}${deltaSpan(g.stepsPctChange)}</b></div>`;
 }
 
 // ---------------------------------------------------------------- tabs
@@ -4519,7 +4544,11 @@ function renderHjemGreeting() {
   const h = new Date().getHours();
   const greet = h < 10 ? "God morgen" : h < 17 ? "God dag" : "God kveld";
   document.getElementById("hjem-greeting").textContent = greet;
+  const dt = nowDateTimeLabel();
+  const sub = document.getElementById("hjem-datetime");
+  if (sub) sub.textContent = `${dt.full} · ${dt.time}`;
 }
+setInterval(renderHjemGreeting, 30000);
 
 function renderHjemWhy() {
   const why = loadWhy();
