@@ -870,7 +870,7 @@ TEMPLATE = r"""<!DOCTYPE html>
   header.hero {
     background: linear-gradient(135deg, #7a1f3d 0%, #a8406a 100%);
     color: #fff;
-    padding: 36px 20px 44px;
+    padding: calc(36px + env(safe-area-inset-top)) 20px 44px;
     margin-bottom: -28px;
   }
   header.hero .wrap { display: flex; flex-direction: column; gap: 6px; }
@@ -1284,7 +1284,7 @@ TEMPLATE = r"""<!DOCTYPE html>
     gap: 6px;
     overflow-x: auto;
     background: var(--bg);
-    padding: 14px 0 10px;
+    padding: calc(14px + env(safe-area-inset-top)) 0 10px;
     margin-top: -8px;
     border-bottom: 1px solid var(--line);
   }
