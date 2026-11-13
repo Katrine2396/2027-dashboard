@@ -617,7 +617,7 @@ def main():
         return extractor(d[keys_sorted[-1]]) if keys_sorted else None
 
     REPORT_METRIC_DEFS = {
-        "sleepHours": (sleep, sleep_keys, lambda v: safe_round((v.get("sleepTimeSeconds") or 0) / 3600, 2)),
+        "sleepHours": (sleep, sleep_keys, lambda v: safe_round((v.get("sleepTimeSeconds") or 0) / 3600, 1)),
         "deepSleepMin": (sleep, sleep_keys, lambda v: safe_round((v.get("deepSleepSeconds") or 0) / 60)),
         "remSleepMin": (sleep, sleep_keys, lambda v: safe_round((v.get("remSleepSeconds") or 0) / 60)),
         "lightSleepMin": (sleep, sleep_keys, lambda v: safe_round((v.get("lightSleepSeconds") or 0) / 60)),
@@ -653,7 +653,7 @@ def main():
         daily_history.append({
             "date": hk,
             "weekday": datetime.strptime(hk, "%Y-%m-%d").date().weekday(),
-            "sleepHours": safe_round((s_day.get("sleepTimeSeconds") or 0) / 3600, 2) if s_day else None,
+            "sleepHours": safe_round((s_day.get("sleepTimeSeconds") or 0) / 3600, 1) if s_day else None,
             "deepSleepMin": safe_round((s_day.get("deepSleepSeconds") or 0) / 60) if s_day else None,
             "sleepScore": ((s_day.get("sleepScores") or {}).get("overall") or {}).get("value") if s_day else None,
             "bodyBatteryCharged": bb.get("chargedValue"),
@@ -2078,6 +2078,12 @@ function fmtShort(s) {
   if (!s) return "";
   const d = new Date(s + "T00:00:00");
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+// Norwegian decimal comma instead of JS's default period (e.g. "9,1" not "9.1") -
+// used anywhere a possibly-decimal number from Garmin data gets written into report text.
+function fmtNo(n) {
+  if (n == null) return n;
+  return n.toLocaleString("no-NO");
 }
 
 // ---------------------------------------------------------------- header
@@ -5064,7 +5070,7 @@ function diffPhrase(latest, baseline, unit) {
   const diff = Math.round((latest - baseline) * 10) / 10;
   if (Math.abs(diff) < 0.3) return "på linje med snittet ditt";
   const word = diff > 0 ? "mer enn" : "mindre enn";
-  return `${Math.abs(diff)}${unit} ${word} snittet ditt`;
+  return `${fmtNo(Math.abs(diff))}${unit} ${word} snittet ditt`;
 }
 function prsToday() {
   const log = loadSetLog();
@@ -5100,7 +5106,7 @@ function renderMorningReport() {
     const parts = [];
     if (deepM.today != null) parts.push(`${minToHM(deepM.today)} dyp søvn`);
     if (remM.today != null) parts.push(`${minToHM(remM.today)} REM`);
-    sleepP = `Du sov <b>${sleepM.today} t</b> i natt${parts.length ? ` (${parts.join(", ")})` : ""} - det er ${diffPhrase(sleepM.today, sleepM.avg7, "t")} siste 7 dager`;
+    sleepP = `Du sov <b>${fmtNo(sleepM.today)} t</b> i natt${parts.length ? ` (${parts.join(", ")})` : ""} - det er ${diffPhrase(sleepM.today, sleepM.avg7, "t")} siste 7 dager`;
     if (sleepM.avg30 != null) sleepP += ` og ${diffPhrase(sleepM.today, sleepM.avg30, "t")} siste 30 dager`;
     sleepP += ".";
   } else {
@@ -5115,8 +5121,8 @@ function renderMorningReport() {
   }
 
   const vitalsBits = [];
-  if (hrvM.today != null) vitalsBits.push(`HRV i natt var ${hrvM.today} ms${hrvM.avg7 != null ? ` (snitt 7d: ${hrvM.avg7} ms)` : ""}`);
-  if (rhrM.today != null) vitalsBits.push(`hvilepuls ${rhrM.today} bpm${rhrM.avg7 != null ? ` (snitt 7d: ${rhrM.avg7})` : ""}`);
+  if (hrvM.today != null) vitalsBits.push(`HRV i natt var ${fmtNo(hrvM.today)} ms${hrvM.avg7 != null ? ` (snitt 7d: ${fmtNo(hrvM.avg7)} ms)` : ""}`);
+  if (rhrM.today != null) vitalsBits.push(`hvilepuls ${fmtNo(rhrM.today)} bpm${rhrM.avg7 != null ? ` (snitt 7d: ${fmtNo(rhrM.avg7)})` : ""}`);
   const vitalsP = vitalsBits.length ? vitalsBits.join(", ") + "." : "";
 
   let verdict;
