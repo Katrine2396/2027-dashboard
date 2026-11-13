@@ -2,7 +2,6 @@
 Reads data/*.json and writes dashboard.html - one self-contained file,
 no server needed, charts drawn with inline SVG + vanilla JS.
 """
-import hashlib
 import json
 import os
 import statistics
@@ -11,12 +10,6 @@ from datetime import date, datetime, timedelta
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 OUT_PATH = os.path.join(os.path.dirname(__file__), "dashboard.html")
-
-# ---- access gate (deterrent only, NOT real security - anyone with devtools can bypass it,
-# this just stops casual link-sharing/crawling from exposing your data at a glance).
-# Change this before pushing anywhere public. Can also be overridden via the
-# DASHBOARD_GATE_PASSPHRASE environment variable so the real value never has to live in git.
-GATE_PASSPHRASE = os.environ.get("DASHBOARD_GATE_PASSPHRASE", "endre-meg")
 
 KM_PER_METER = 0.001
 
@@ -811,7 +804,6 @@ def main():
         "pointsConfig": POINTS_CONFIG,
         "trainingHistory": training_history,
         "programStart": GS_START.isoformat(),
-        "gateHash": hashlib.sha256(GATE_PASSPHRASE.encode()).hexdigest(),
     }
 
     html = render_html(dataset)
@@ -1134,6 +1126,7 @@ TEMPLATE = r"""<!DOCTYPE html>
   footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 40px; }
   .settings-card { margin: 24px 0 0; }
   .settings-toggle-row { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-top: 10px; cursor: pointer; }
+  .sync-card { margin: 16px 0 0; }
   .backup-card { margin: 16px 0 0; }
   .backup-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
@@ -1515,10 +1508,11 @@ TEMPLATE = r"""<!DOCTYPE html>
 
 <div id="gate-overlay">
   <div class="gate-box">
-    <h2>🔒 Privat dashboard</h2>
-    <p>Dette er ikke ekte sikkerhet, bare en liten sperre mot tilfeldige besøk.</p>
-    <input type="password" id="gate-input" placeholder="Passord" autocomplete="off">
-    <button class="btn" id="gate-submit">Lås opp</button>
+    <h2>🔒 Logg inn</h2>
+    <p>Logg inn for å åpne dashbordet og synkronisere data på tvers av enhetene dine.</p>
+    <input type="email" id="gate-email" placeholder="E-post" autocomplete="username">
+    <input type="password" id="gate-input" placeholder="Passord" autocomplete="current-password">
+    <button class="btn" id="gate-submit">Logg inn</button>
     <div class="gate-error" id="gate-error"></div>
   </div>
 </div>
@@ -1925,9 +1919,19 @@ TEMPLATE = r"""<!DOCTYPE html>
     </label>
   </div>
 
+  <div class="card sync-card" id="sync-card">
+    <h3 style="margin:0 0 4px;font-size:15px;">Skylagring</h3>
+    <div class="section-sub" style="margin-bottom:10px;">Data synkroniseres automatisk med kontoen din i bakgrunnen. Bruk knappen under om noe virker bakpå, f.eks. rett etter du har gjort endringer på en annen enhet.</div>
+    <div class="backup-actions">
+      <button class="btn secondary small" id="sync-now-btn">Synk nå</button>
+      <button class="btn ghost small" id="sync-logout-btn">Logg ut</button>
+    </div>
+    <div id="sync-status" class="section-sub" style="margin:8px 0 0;"></div>
+  </div>
+
   <div class="card backup-card" id="backup-card">
-    <h3 style="margin:0 0 4px;font-size:15px;">Sikkerhetskopi</h3>
-    <div class="section-sub" style="margin-bottom:10px;">Vekt, mål, treningssett, handleliste og transaksjoner lagres kun i denne nettleseren. Last ned en kopi jevnlig, eller gjenopprett den på en annen enhet.</div>
+    <h3 style="margin:0 0 4px;font-size:15px;">Sikkerhetskopi (fil)</h3>
+    <div class="section-sub" style="margin-bottom:10px;">Et ekstra trygghetsnett i tillegg til skylagringen over - last ned en kopi innimellom, eller bruk den til å gjenopprette data manuelt.</div>
     <div class="backup-actions">
       <button class="btn secondary small" id="backup-export">Last ned kopi</button>
       <button class="btn ghost small" id="backup-import-btn">Gjenopprett fra fil</button>
@@ -1985,34 +1989,52 @@ function inVacationRange(date) {
   return loadVacationRanges().some(r => date >= r.start && date <= (r.end || "9999-99-99"));
 }
 
-// ---------------------------------------------------------------- access gate
-(function () {
-  const GATE_KEY = "garminDashboardUnlocked_v1";
-  const overlay = document.getElementById("gate-overlay");
-  if (localStorage.getItem(GATE_KEY) === "1") { overlay.remove(); return; }
+// ---------------------------------------------------------------- access gate / cloud auth
+// The actual Firebase auth + Firestore sync logic lives in the <script type="module"> at the
+// bottom of the page (modules need their own scope for the Firebase imports) and talks to this
+// classic script through window.__cloudAuth (calls into the module) and the two callbacks below
+// (calls from the module back into here). window.__cloudAuth may not exist yet if this code runs
+// before that module has finished loading, so every call into it is guarded.
+const overlay = document.getElementById("gate-overlay");
 
-  async function sha256Hex(text) {
-    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
-    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+function setSyncStatus(msg) {
+  const el = document.getElementById("sync-status");
+  if (el) el.textContent = msg;
+}
+window.__cloudSyncStatus = setSyncStatus;
+
+window.__onAuthStateChanged = function (user) {
+  if (user) {
+    overlay.style.display = "none";
+    window.__cloudAuth.pullNow();
+    if (location.hash === "#debug") renderDebugPage();
+  } else {
+    overlay.style.display = "flex";
   }
-  async function tryUnlock() {
-    const val = document.getElementById("gate-input").value;
-    const hash = await sha256Hex(val);
-    if (hash === DATA.gateHash) {
-      localStorage.setItem(GATE_KEY, "1");
-      overlay.remove();
-    } else {
-      document.getElementById("gate-error").textContent = "Feil passord";
-      overlay.classList.remove("shake");
-      void overlay.offsetWidth;
-      overlay.classList.add("shake");
-    }
+};
+
+async function tryLogin() {
+  const email = document.getElementById("gate-email").value.trim();
+  const password = document.getElementById("gate-input").value;
+  const errEl = document.getElementById("gate-error");
+  if (!email || !password) return;
+  if (!window.__cloudAuth) { errEl.textContent = "Laster innloggingen ennå - prøv igjen om et par sekunder."; return; }
+  try {
+    await window.__cloudAuth.signIn(email, password);
+    errEl.textContent = "";
+  } catch (e) {
+    errEl.textContent = "Feil e-post eller passord";
+    overlay.classList.remove("shake");
+    void overlay.offsetWidth;
+    overlay.classList.add("shake");
   }
-  document.getElementById("gate-submit").addEventListener("click", tryUnlock);
-  document.getElementById("gate-input").addEventListener("keydown", e => {
-    if (e.key === "Enter") tryUnlock();
+}
+document.getElementById("gate-submit").addEventListener("click", tryLogin);
+["gate-email", "gate-input"].forEach(id => {
+  document.getElementById(id).addEventListener("keydown", e => {
+    if (e.key === "Enter") tryLogin();
   });
-})();
+});
 
 function fmtDate(s) {
   if (!s) return "";
@@ -2968,7 +2990,10 @@ function loadLS(key, fallback) {
     return v === null || v === undefined ? fallback : v;
   } catch (e) { return fallback; }
 }
-function saveLS(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+function saveLS(key, val) {
+  localStorage.setItem(key, JSON.stringify(val));
+  if (window.__cloudAuth) window.__cloudAuth.schedulePush();
+}
 function todayISO() { return new Date().toISOString().slice(0, 10); }
 function isoWeekOf(dateStr) {
   const d = new Date(dateStr + "T00:00:00");
@@ -5354,8 +5379,19 @@ const BACKUP_KEYS = [
   BUDGET_CONFIG_KEY, PLAN_OVERRIDES_KEY, SET_LOG_KEY, SEEN_KEY, REST_PREFS_KEY,
   FORGOTTEN_SAVINGS_KEY, BADDAY_LOG_KEY, EXTRAS_KEY, WATER_KEY, STREAK_BEST_KEY,
   SETTINGS_KEY, WHY_KEY, VACATION_KEY, CUSTOM_MEALS_KEY, MEAL_LOG_KEY, INVEST_FUND_KEY,
-  SAVINGS_GOALS_KEY,
+  SAVINGS_GOALS_KEY, CUSTOM_INGREDIENTS_KEY, MEAL_ING_OVERRIDES_KEY, MISSED_DAY_ACK_KEY,
 ];
+window.BACKUP_KEYS = BACKUP_KEYS;
+
+document.getElementById("sync-now-btn").addEventListener("click", () => {
+  if (!window.__cloudAuth) { setSyncStatus("Skylagring er ikke klar ennå - prøv igjen om et øyeblikk."); return; }
+  setSyncStatus("Synkroniserer...");
+  window.__cloudAuth.pullNow();
+});
+document.getElementById("sync-logout-btn").addEventListener("click", () => {
+  if (!window.__cloudAuth) return;
+  window.__cloudAuth.signOut();
+});
 
 document.getElementById("backup-export").addEventListener("click", () => {
   const dump = {};
@@ -5418,9 +5454,113 @@ function renderDebugPage() {
   pre.textContent = JSON.stringify({ DATA, localStorage: ls }, null, 2);
   document.body.appendChild(pre);
 }
-if (location.hash === "#debug" && localStorage.getItem("garminDashboardUnlocked_v1") === "1") {
-  renderDebugPage();
-}
+</script>
+
+<script type="module">
+  // Firebase needs its own module scope for these imports, so this talks to the classic
+  // script above through window.__cloudAuth (calls into here) and window.__onAuthStateChanged /
+  // window.__cloudSyncStatus (calls back out) rather than sharing scope directly. This script
+  // is deferred (all type="module" scripts are), so the classic script above has always
+  // already finished setting up those callbacks by the time any of this runs.
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-app.js";
+  import {
+    getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut,
+    setPersistence, browserLocalPersistence,
+  } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-auth.js";
+  import {
+    getFirestore, doc, getDoc, setDoc,
+  } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBPzs9R-3fq0yJy9GMGXQS5myayKhJNhNo",
+    authDomain: "katrine-2027-dashboard.firebaseapp.com",
+    projectId: "katrine-2027-dashboard",
+    storageBucket: "katrine-2027-dashboard.firebasestorage.app",
+    messagingSenderId: "208857107478",
+    appId: "1:208857107478:web:d6318f950a993f577a7937",
+  };
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  let currentUser = null;
+  let lastSyncedAt = 0;
+  let pushTimer = null;
+
+  // persisted across page loads (per uid) - without this, every fresh page load would see
+  // remote.updatedAt > 0 and think the cloud always has something newer, reloading forever.
+  function syncMarkerKey(uid) { return "garminDashboardCloudSyncedAt_" + uid; }
+  function loadLastSyncedAt(uid) { return parseInt(localStorage.getItem(syncMarkerKey(uid)) || "0", 10); }
+  function saveLastSyncedAt(uid, ts) { localStorage.setItem(syncMarkerKey(uid), String(ts)); }
+
+  function fmtTime(ms) {
+    return new Date(ms).toLocaleTimeString("no-NO", { hour: "2-digit", minute: "2-digit" });
+  }
+  function dumpBackupData() {
+    const dump = {};
+    (window.BACKUP_KEYS || []).forEach(k => {
+      const v = localStorage.getItem(k);
+      if (v === null) return;
+      try { dump[k] = JSON.parse(v); } catch (e) { /* skip unparsable value */ }
+    });
+    return dump;
+  }
+  function applyBackupData(data) {
+    (window.BACKUP_KEYS || []).forEach(k => {
+      if (data[k] !== undefined) localStorage.setItem(k, JSON.stringify(data[k]));
+    });
+  }
+
+  async function cloudPush() {
+    if (!currentUser) return;
+    const now = Date.now();
+    try {
+      await setDoc(doc(db, "users", currentUser.uid), { updatedAt: now, data: dumpBackupData() });
+      lastSyncedAt = now;
+      saveLastSyncedAt(currentUser.uid, now);
+      window.__cloudSyncStatus(`Synkronisert kl ${fmtTime(now)}`);
+    } catch (e) {
+      window.__cloudSyncStatus("Kunne ikke synke til skyen - sjekk internettforbindelsen");
+    }
+  }
+  function schedulePush() {
+    if (!currentUser) return;
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(cloudPush, 3000);
+  }
+  async function pullIfNewer() {
+    if (!currentUser) return;
+    try {
+      const snap = await getDoc(doc(db, "users", currentUser.uid));
+      if (!snap.exists()) { await cloudPush(); return; }
+      const remote = snap.data();
+      if (remote.updatedAt > lastSyncedAt) {
+        applyBackupData(remote.data || {});
+        lastSyncedAt = remote.updatedAt;
+        saveLastSyncedAt(currentUser.uid, remote.updatedAt);
+        window.__cloudSyncStatus(`Hentet nyere data fra skyen kl ${fmtTime(remote.updatedAt)} - laster siden på nytt...`);
+        setTimeout(() => location.reload(), 1200);
+      } else {
+        window.__cloudSyncStatus(`Oppdatert - sist synket kl ${fmtTime(lastSyncedAt)}`);
+      }
+    } catch (e) {
+      window.__cloudSyncStatus("Kunne ikke hente fra skyen - sjekk internettforbindelsen");
+    }
+  }
+
+  window.__cloudAuth = {
+    signIn: (email, password) => signInWithEmailAndPassword(auth, email, password),
+    signOut: () => signOut(auth),
+    schedulePush,
+    pullNow: pullIfNewer,
+  };
+
+  setPersistence(auth, browserLocalPersistence).catch(() => {});
+  onAuthStateChanged(auth, user => {
+    currentUser = user;
+    lastSyncedAt = user ? loadLastSyncedAt(user.uid) : 0;
+    window.__onAuthStateChanged(user);
+  });
 </script>
 </body>
 </html>
