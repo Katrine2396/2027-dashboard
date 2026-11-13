@@ -84,9 +84,10 @@ NUTRITION_PLAN = {
     "proteinMin": 140,
     "note": "Tallene er grove anslag basert på vanlige produktverdier (±10%) - sjekk egne etiketter (proteinpulver, YT-produkter) for mer nøyaktige tall.",
     "breakfast": {
-        "label": "Frokost (fast)",
-        "items": ["40 g havregryn", "20 g proteinpulver", "1 dl proteinmelk", "10 g chiafrø", "100 g gresk yoghurt"],
-        "kcal": 450, "protein": 32,
+        "label": "Frokost - standard, eller velg et eget forslag",
+        "options": [
+            {"name": "Havregrøt med protein", "items": ["40 g havregryn", "20 g proteinpulver", "1 dl proteinmelk", "10 g chiafrø", "100 g gresk yoghurt"], "kcal": 450, "protein": 32},
+        ],
     },
     "lunch": {
         "label": "Lunsj - velg én, rullér gjennom uken",
@@ -2248,7 +2249,7 @@ renderRestTimer();
 const EXTRAS_KEY = "garminDashboardExtras_v1";
 const CUSTOM_MEALS_KEY = "garminDashboardCustomMeals_v1";
 const MEAL_LOG_KEY = "garminDashboardMealLog_v1";
-function loadCustomMeals() { return Object.assign({ lunch: [], snack: [], dinner: [] }, loadLS(CUSTOM_MEALS_KEY, {})); }
+function loadCustomMeals() { return Object.assign({ breakfast: [], lunch: [], snack: [], dinner: [] }, loadLS(CUSTOM_MEALS_KEY, {})); }
 function saveCustomMeals(m) { saveLS(CUSTOM_MEALS_KEY, m); }
 
 function loadMealLog() { return loadLS(MEAL_LOG_KEY, []); }
@@ -2266,16 +2267,20 @@ function isMealEatenToday(type, name) {
   const m = mealLoggedFor(todayISO(), type);
   return !!m && m.name === name;
 }
-// totals actually eaten on a given date: fixed breakfast + whichever lunch/snack/dinner
-// options were marked eaten that day + anything logged as an "extra"
+// totals actually eaten on a given date: breakfast (the standard one, unless a different
+// breakfast option was marked eaten that day) + whichever lunch/snack/dinner options were
+// marked eaten that day + anything logged as an "extra"
 function dayNutritionTotals(date) {
   const n = DATA.nutritionPlan;
   const meals = loadMealLog().filter(m => m.date === date);
   const extrasForDay = loadExtras().filter(e => e.date === date);
   const extrasTotal = extrasForDay.reduce((s, e) => s + (e.kcal || 0), 0);
+  const loggedBreakfast = meals.find(m => m.type === "breakfast");
+  const breakfast = loggedBreakfast || n.breakfast.options[0];
+  const otherMeals = meals.filter(m => m.type !== "breakfast");
   return {
-    kcal: n.breakfast.kcal + meals.reduce((s, m) => s + (m.kcal || 0), 0) + extrasTotal,
-    protein: n.breakfast.protein + meals.reduce((s, m) => s + (m.protein || 0), 0),
+    kcal: breakfast.kcal + otherMeals.reduce((s, m) => s + (m.kcal || 0), 0) + extrasTotal,
+    protein: breakfast.protein + otherMeals.reduce((s, m) => s + (m.protein || 0), 0),
     mealsLogged: meals,
     extras: extrasForDay,
   };
@@ -2314,15 +2319,15 @@ function renderNutrition() {
     renderHjemKcalRing();
   });
 
-  const b = n.breakfast;
-  let html = `<div class="meal-group"><h4>${b.label}</h4>${mealOptionHtml({ name: b.label, items: b.items, kcal: b.kcal, protein: b.protein })}</div>`;
+  let html = "";
   const custom = loadCustomMeals();
-  ["lunch", "snack", "dinner"].forEach(key => {
+  ["breakfast", "lunch", "snack", "dinner"].forEach(key => {
     const group = n[key];
     const customOpts = custom[key] || [];
     html += `<div class="meal-group"><h4>${group.label}</h4>
       ${group.options.map((o, idx) => mealOptionHtml(o, null, { type: key, idx, eaten: isMealEatenToday(key, o.name) })).join("")}
       ${customOpts.map((o, i) => mealOptionHtml(o, o.id, { type: key, idx: group.options.length + i, eaten: isMealEatenToday(key, o.name) })).join("")}
+      ${key === "breakfast" ? `<div class="section-sub" style="margin:4px 0 10px;">Standardfrokosten over telles automatisk hver dag, med mindre du merker en annen frokost som spist i dag.</div>` : ""}
       <div class="log-form meal-add-form">
         <input type="text" id="meal-add-name-${key}" placeholder="Eget forslag - navn">
         <input type="number" step="10" id="meal-add-kcal-${key}" placeholder="kcal">
@@ -2365,7 +2370,7 @@ function renderNutrition() {
     btn.addEventListener("click", () => {
       const id = btn.dataset.mealRemove;
       const m = loadCustomMeals();
-      ["lunch", "snack", "dinner"].forEach(key => { m[key] = m[key].filter(o => o.id !== id); });
+      ["breakfast", "lunch", "snack", "dinner"].forEach(key => { m[key] = m[key].filter(o => o.id !== id); });
       saveCustomMeals(m);
       renderNutrition();
     });
@@ -3079,8 +3084,7 @@ document.getElementById("shop-quickadd-protein").addEventListener("click", () =>
 document.getElementById("shop-quickadd-meals").addEventListener("click", () => {
   const n = DATA.nutritionPlan;
   const items = new Set();
-  n.breakfast.items.forEach(i => items.add(i));
-  ["lunch", "snack", "dinner"].forEach(key => n[key].options.forEach(o => o.items.forEach(i => items.add(i))));
+  ["breakfast", "lunch", "snack", "dinner"].forEach(key => n[key].options.forEach(o => o.items.forEach(i => items.add(i))));
   addShopItems(Array.from(items));
 });
 document.getElementById("shop-clear-checked").addEventListener("click", () => {
