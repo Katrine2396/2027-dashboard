@@ -2416,6 +2416,13 @@ function renderPlan() {
     body += `<div style="color:var(--muted);font-size:13px">Ingen planlagt økt i dag. Ta en rolig tur hvis du har overskudd.</div>`;
   } else {
     if (resolved.exercises) {
+      const hasRepeatable = resolved.exercises.some((e, idx) => {
+        const exKey = resolved.key + "::" + idx;
+        return lastSetFor(exKey, todayDay.date) && setsFor(exKey, todayDay.date).length === 0;
+      });
+      if (hasRepeatable) {
+        body += `<button class="btn ghost small repeat-session-btn" style="margin-bottom:10px;">🔁 Gjenta forrige økt</button>`;
+      }
       body += `<div class="exercises">${resolved.exercises.map((e, idx) => exerciseRowHtml(resolved.key, idx, e, todayDay.date, p.today.readiness)).join("")}</div>`;
     }
     if (resolved.cycleNote) {
@@ -2428,6 +2435,26 @@ function renderPlan() {
 
   body += `<ul class="plan-reasons">${p.today.reasons.map(r => `<li>${r}</li>`).join("")}</ul>`;
   card.innerHTML = body;
+
+  const repeatBtn = card.querySelector(".repeat-session-btn");
+  if (repeatBtn) {
+    repeatBtn.addEventListener("click", () => {
+      let anyPR = false;
+      resolved.exercises.forEach((e, idx) => {
+        const exKey = resolved.key + "::" + idx;
+        if (setsFor(exKey, todayDay.date).length > 0) return;
+        const last = lastSetFor(exKey, todayDay.date);
+        if (!last) return;
+        const prevBest = bestSetFor(exKey);
+        addSet(exKey, e, todayDay.date, last.weight, last.reps);
+        if (isBetterSet({ weight: last.weight, reps: last.reps }, prevBest)) anyPR = true;
+      });
+      if (anyPR && loadSettings().personalityEnabled) triggerConfetti();
+      renderPlan();
+      renderPrBoard();
+      renderHjemSession();
+    });
+  }
 
   card.querySelectorAll(".exercise-row").forEach(row => {
     const exKey = row.dataset.ex;
@@ -2689,10 +2716,16 @@ function renderNutrition() {
 
   let html = "";
   const custom = loadCustomMeals();
+  const yesterday = isoAddDays(today, -1);
   ["breakfast", "lunch", "snack", "dinner"].forEach(key => {
     const group = n[key];
     const customOpts = custom[key] || [];
+    const yesterdayMeal = mealLoggedFor(yesterday, key);
+    const repeatHtml = (yesterdayMeal && !mealLoggedFor(today, key))
+      ? `<button class="btn ghost small meal-repeat-btn" data-repeat-type="${key}" style="margin-bottom:8px;">🔁 Gjenta ${yesterdayMeal.name} fra i går</button>`
+      : "";
     html += `<div class="meal-group"><h4>${group.label}</h4>
+      ${repeatHtml}
       ${group.options.map((o, idx) => mealOptionHtml(effectiveMealOption(key, idx, o, today), null, { type: key, idx, eaten: isMealEatenToday(key, o.name) }, { type: key, optIdx: idx })).join("")}
       ${customOpts.map((o, i) => mealOptionHtml(effectiveMealOption(key, group.options.length + i, o, today), o.id, { type: key, idx: group.options.length + i, eaten: isMealEatenToday(key, o.name) }, null)).join("")}
       ${key === "breakfast" ? `<div class="section-sub" style="margin:4px 0 10px;">Standardfrokosten over telles automatisk hver dag, med mindre du merker en annen frokost som spist i dag.</div>` : ""}
@@ -2716,6 +2749,18 @@ function renderNutrition() {
       if (!raw) return;
       const opt = idx < n[type].options.length ? effectiveMealOption(type, idx, raw, today) : raw;
       if (isMealEatenToday(type, opt.name)) unlogMeal(type); else logMealEaten(type, opt);
+      renderNutrition();
+      renderNutritionCoach();
+      renderHjemKcalRing();
+    });
+  });
+
+  document.querySelectorAll(".meal-repeat-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const type = btn.dataset.repeatType;
+      const y = mealLoggedFor(isoAddDays(today, -1), type);
+      if (!y) return;
+      logMealEaten(type, y);
       renderNutrition();
       renderNutritionCoach();
       renderHjemKcalRing();
