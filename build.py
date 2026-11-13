@@ -1380,6 +1380,9 @@ TEMPLATE = r"""<!DOCTYPE html>
   .hjem-nutri-quick .hnq-val { font-size: 17px; font-weight: 700; margin-top: 2px; }
   .hjem-nutri-quick .hnq-val.over { color: #e37878; }
   .hjem-nutri-quick .hnq-macro { font-size: 11px; color: var(--hj-muted); margin-top: 2px; }
+  .hjem-nutri-quick .hnq-balance { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--hj-line); font-size: 11px; color: var(--hj-muted); display: flex; flex-direction: column; gap: 2px; }
+  .hjem-nutri-quick .hnq-balance-diff { font-size: 13px; font-weight: 700; color: #7bd88f; }
+  .hjem-nutri-quick .hnq-balance-diff.over { color: #e37878; }
   .hjem-nutri-quick button {
     background: var(--hj-accent); color: #14151a; border: none; border-radius: 10px;
     padding: 8px 12px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: Nunito, sans-serif; white-space: nowrap;
@@ -4474,11 +4477,25 @@ function renderHjemKcalRing() {
   if (!n || !el) return;
   const totals = dayNutritionTotals(todayISO());
   const over = totals.kcal > n.dailyKcal;
+
+  const burned = reportMetric("calories").today;
+  let balanceHtml = "";
+  if (burned != null) {
+    const diff = burned - totals.kcal;
+    const diffLabel = diff >= 0 ? `${diff} kcal underskudd så langt` : `${Math.abs(diff)} kcal overskudd så langt`;
+    balanceHtml = `
+      <div class="hnq-balance">
+        <span>Forbrent så langt i dag (Garmin): ${burned} kcal</span>
+        <span class="hnq-balance-diff${diff >= 0 ? "" : " over"}">${diffLabel}</span>
+      </div>`;
+  }
+
   el.innerHTML = `
     <div>
       <div class="hnq-label">Spist / Budsjett</div>
       <div class="hnq-val${over ? " over" : ""}">${totals.kcal} / ${n.dailyKcal} kcal</div>
       <div class="hnq-macro">${totals.protein} / ${n.proteinMin} g protein</div>
+      ${balanceHtml}
     </div>
     <button id="hjem-logg-maltid-btn">+ Logg måltid</button>
   `;
