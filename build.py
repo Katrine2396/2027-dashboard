@@ -1456,11 +1456,6 @@ TEMPLATE = r"""<!DOCTYPE html>
   .hjem-finance-bar { background: var(--hj-line); border-radius: 8px; height: 8px; overflow: hidden; margin-top: 6px; }
   .hjem-finance-bar > div { background: var(--hj-accent); height: 100%; }
   .hjem-finance-bar > div.over { background: #e37878; }
-  .hjem-invest-change { font-size: 12px; font-weight: 700; }
-  .hjem-invest-change.pos { color: #2f8a4e; }
-  .hjem-invest-change.neg { color: #c0392b; }
-  .hjem-invest-main { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 2px; }
-  .hjem-fund-spark { flex-shrink: 0; }
   .hjem-tx-nudge {
     display: block; width: 100%; margin-top: 8px; padding: 9px 12px; border: none; border-radius: 10px;
     background: var(--hj-card2); color: var(--hj-ink); font-family: Nunito, sans-serif; font-size: 12.5px;
@@ -1475,6 +1470,39 @@ TEMPLATE = r"""<!DOCTYPE html>
   .hjem-reminder-banner button {
     background: var(--hj-accent); color: var(--ink); border: none; border-radius: 8px;
     padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: Nunito, sans-serif;
+  }
+  .hjem-main-grid { display: flex; flex-direction: column; gap: 18px; }
+  @media (min-width: 900px) {
+    .hjem-main-grid { display: grid; grid-template-columns: 1fr 300px; gap: 20px; align-items: start; }
+  }
+  .hjem-rail { position: relative; padding-left: 30px; }
+  .hjem-rail::before {
+    content: ""; position: absolute; left: 8px; top: 8px; bottom: 8px; width: 3px;
+    background: var(--hj-line); border-radius: 2px;
+  }
+  .hjem-rail-item { position: relative; margin-bottom: 18px; }
+  .hjem-rail-item:last-child { margin-bottom: 0; }
+  .hjem-rail-dot {
+    position: absolute; left: -30px; top: 1px; width: 16px; height: 16px; border-radius: 50%;
+    background: var(--hj-accent2); border: 4px solid var(--hj-bg);
+  }
+  .hjem-rail-label {
+    font-size: 11.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase;
+    color: var(--hj-muted); margin-bottom: 7px;
+  }
+  .hjem-rail-item .hjem-card { margin-bottom: 10px; }
+  .hjem-rail-item .hjem-card:last-child { margin-bottom: 0; }
+  .hjem-siderail { display: flex; flex-direction: column; gap: 14px; }
+  .hjem-siderail-card .hjem-zone-title { margin: 0 0 10px; }
+  .hjem-shortcut-list { display: flex; flex-direction: column; gap: 8px; }
+  .hjem-shortcut-btn {
+    display: flex; align-items: center; justify-content: space-between; width: 100%;
+    background: var(--hj-card2); color: var(--hj-ink); border: none; border-radius: 10px;
+    padding: 10px 12px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: Nunito, sans-serif;
+  }
+  .hjem-week-charts { display: flex; flex-direction: column; gap: 14px; }
+  @media (min-width: 700px) {
+    .hjem-week-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   }
 
   .quicklog-bar {
@@ -1624,29 +1652,66 @@ TEMPLATE = r"""<!DOCTYPE html>
 
     <div id="hjem-reminder"></div>
 
-    <section class="hjem-zone hjem-section-1">
-      <h3 class="hjem-zone-title">Dagens Plan &amp; Handling</h3>
-      <div class="hjem-card hjem-session" id="hjem-session"></div>
-      <div class="hjem-card hjem-nutri-quick" id="hjem-kcal-ring"></div>
-      <div class="hjem-card" id="hjem-tx-today"></div>
-    </section>
+    <div class="hjem-main-grid">
+      <div class="hjem-rail">
+        <div class="hjem-rail-item">
+          <div class="hjem-rail-dot"></div>
+          <div class="hjem-rail-label">Kropp</div>
+          <div id="hjem-body-today"></div>
+        </div>
+        <div class="hjem-rail-item">
+          <div class="hjem-rail-dot"></div>
+          <div class="hjem-rail-label">Trening</div>
+          <div class="hjem-card hjem-session" id="hjem-session"></div>
+        </div>
+        <div class="hjem-rail-item">
+          <div class="hjem-rail-dot"></div>
+          <div class="hjem-rail-label">Måltid</div>
+          <div class="hjem-card hjem-nutri-quick" id="hjem-kcal-ring"></div>
+        </div>
+        <div class="hjem-rail-item">
+          <div class="hjem-rail-dot"></div>
+          <div class="hjem-rail-label">Budsjett</div>
+          <div class="hjem-card" id="hjem-tx-today"></div>
+          <div class="hjem-card" id="hjem-finance"></div>
+        </div>
+      </div>
 
-    <section class="hjem-zone hjem-section-2">
-      <h3 class="hjem-zone-title">Dagens Kropp</h3>
-      <div id="hjem-body-today"></div>
-    </section>
-
-    <section class="hjem-zone hjem-section-3">
-      <h3 class="hjem-zone-title">Månedens Økonomi</h3>
-      <div class="hjem-card" id="hjem-finance"></div>
-    </section>
+      <div class="hjem-siderail">
+        <div class="hjem-card hjem-siderail-card">
+          <h3 class="hjem-zone-title">Denne uken</h3>
+          <div class="snapshot-row" id="weekly-snapshot"></div>
+        </div>
+        <div class="hjem-card hjem-siderail-card">
+          <h3 class="hjem-zone-title">Raskt videre</h3>
+          <div class="hjem-shortcut-list">
+            <button class="hjem-shortcut-btn" data-goto-tab="trening">Treningsplan →</button>
+            <button class="hjem-shortcut-btn" data-goto-tab="kosthold">Kosthold →</button>
+            <button class="hjem-shortcut-btn" data-goto-tab="budsjett">Budsjett →</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <section class="hjem-zone hjem-section-4">
       <h3 class="hjem-zone-title">Poeng &amp; Nivå</h3>
       <div id="celebrate-banner"></div>
       <div class="card level-card" id="level-card"></div>
-      <div class="snapshot-row" id="weekly-snapshot"></div>
       <div class="card" id="plateau-card"></div>
+    </section>
+
+    <section class="hjem-zone hjem-section-5">
+      <h3 class="hjem-zone-title">Siste 7 dager</h3>
+      <div class="hjem-week-charts">
+        <div class="hjem-card">
+          <div class="hjem-card-title">👣 Skritt per dag</div>
+          <div class="chart-wrap"><svg id="hjem-chart-steps"></svg><div class="tooltip" id="tt-hjem-steps"></div></div>
+        </div>
+        <div class="hjem-card">
+          <div class="hjem-card-title">😴 Søvn per natt</div>
+          <div class="chart-wrap"><svg id="hjem-chart-sleep"></svg><div class="tooltip" id="tt-hjem-sleep"></div></div>
+        </div>
+      </div>
     </section>
 
   </div>
@@ -4283,11 +4348,65 @@ function renderLineChart(svgId, ttId, weeks, values, color, unit) {
   });
 }
 
+// single-series bar chart, styled like renderLineChart above (used for the Hjem "siste 7 dager" steps chart)
+function renderSimpleBarChart(svgId, ttId, labels, values, color, unit) {
+  const svg = document.getElementById(svgId);
+  const tooltip = document.getElementById(ttId);
+  if (!labels || !labels.length) { svg.outerHTML = '<div style="color:#8a8580;font-size:13px;">Ingen data ennå</div>'; return; }
+
+  const w = 480, h = 180, padLeft = 36, padBottom = 20, padTop = 10, padRight = 10;
+  svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  const plotW = w - padLeft - padRight;
+  const plotH = h - padBottom - padTop;
+
+  const present = values.filter(v => v !== null && v !== undefined);
+  const max = present.length ? Math.max(...present) : 0;
+  const scale = max || 1;
+  const groupW = plotW / labels.length;
+  const barW = Math.min(36, groupW * 0.6);
+
+  for (let i = 0; i <= 3; i++) {
+    const y = padTop + plotH - (i / 3) * plotH;
+    svg.innerHTML += `<line x1="${padLeft}" y1="${y}" x2="${w - padRight}" y2="${y}" stroke="#ece7e0" stroke-width="1"/>`;
+    svg.innerHTML += `<text x="${padLeft - 6}" y="${y + 3}" font-size="9" fill="#8a8580" text-anchor="end">${Math.round((i / 3) * scale)}</text>`;
+  }
+
+  values.forEach((v, i) => {
+    const groupX = padLeft + i * groupW + groupW / 2;
+    svg.innerHTML += `<text x="${groupX}" y="${h - 4}" font-size="9" fill="#8a8580" text-anchor="middle">${fmtShort(labels[i])}</text>`;
+    if (v === null || v === undefined) return;
+    const bh = (v / scale) * plotH;
+    const x = groupX - barW / 2;
+    const y = padTop + plotH - bh;
+    svg.innerHTML += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${bh.toFixed(1)}" fill="${color}" rx="4"
+      data-label="${labels[i]}" data-val="${v}" class="bar"/>`;
+  });
+
+  svg.querySelectorAll(".bar").forEach(bar => {
+    bar.addEventListener("mousemove", e => {
+      const r = svg.getBoundingClientRect();
+      tooltip.style.opacity = 1;
+      tooltip.style.left = (e.clientX - r.left) + "px";
+      tooltip.style.top = (e.clientY - r.top) + "px";
+      tooltip.textContent = `${fmtDate(bar.dataset.label)}: ${bar.dataset.val} ${unit}`;
+    });
+    bar.addEventListener("mouseleave", () => tooltip.style.opacity = 0);
+  });
+}
+
 const TREND_WEEKS_SHOWN = 26; // ~6 months - full history is overkill for these charts
 renderLineChart("chart-load", "tt-load", DATA.trends.trainingLoad.weeks.slice(-TREND_WEEKS_SHOWN), DATA.trends.trainingLoad.values.slice(-TREND_WEEKS_SHOWN), "#7a1f3d", "load");
 renderLineChart("chart-rhr", "tt-rhr", DATA.trends.restingHR.weeks.slice(-TREND_WEEKS_SHOWN), DATA.trends.restingHR.values.slice(-TREND_WEEKS_SHOWN), "#9b3456", "bpm");
 renderLineChart("chart-hrv", "tt-hrv", DATA.trends.hrv.weeks.slice(-TREND_WEEKS_SHOWN), DATA.trends.hrv.values.slice(-TREND_WEEKS_SHOWN), "#a46cc0", "ms");
 renderLineChart("chart-sleep", "tt-sleep", DATA.trends.sleepHours.weeks.slice(-TREND_WEEKS_SHOWN), DATA.trends.sleepHours.values.slice(-TREND_WEEKS_SHOWN), "#e8a3b6", "hrs");
+
+// ---- Hjem "siste 7 dager" mini-trends ----
+(function renderHjemWeekTrends() {
+  const history = (DATA.dailyHistory || []).slice(-7);
+  const labels = history.map(d => d.date);
+  renderSimpleBarChart("hjem-chart-steps", "tt-hjem-steps", labels, history.map(d => d.steps), "#f6c667", "skritt");
+  renderLineChart("hjem-chart-sleep", "tt-hjem-sleep", labels, history.map(d => d.sleepHours), "#8b668e", "t");
+})();
 
 // ---------------------------------------------------------------- generic multi-series trend chart (Fremgang)
 // series: [{ name, color, values, unit, axis: "left"|"right", decimals }], shared x-axis labels.
@@ -4956,10 +5075,19 @@ function renderHjemKcalRing() {
   document.getElementById("hjem-logg-maltid-btn").addEventListener("click", openMatDrawer);
 }
 
-function quickSaveToDogFund(amount, name) {
+function quickSaveToCategory(category, amount, name) {
   const tx = loadTransactions();
-  tx.push({ id: "save-" + Date.now() + Math.random(), date: todayISO(), amount, category: DATA.dogFund.category, name: name || "Spar i stedet" });
+  tx.push({ id: "save-" + Date.now() + Math.random(), date: todayISO(), amount, category, name: name || "Spar i stedet" });
   saveTransactions(tx);
+}
+
+// Alternates the empty-day savings nudge between the dog fund and the high-interest
+// account by day-of-month parity, so it's not always pushing the same goal.
+function savingsNudgeTarget() {
+  const day = parseInt(todayISO().slice(8, 10), 10);
+  return day % 2 === 0
+    ? { key: "sparing_hoyrente", label: "høyrentekontoen", icon: "💰" }
+    : { key: DATA.dogFund.category, label: "hundefondet", icon: "🐶" };
 }
 
 function renderHjemTodayTx() {
@@ -4969,6 +5097,7 @@ function renderHjemTodayTx() {
   const catLabel = key => (cfg.categories.find(c => c.key === key) || {}).label || key;
   const tx = loadTransactions().filter(t => t.date === todayISO());
   const total = tx.reduce((s, t) => s + t.amount, 0);
+  const nudge = savingsNudgeTarget();
   el.innerHTML = `
     <div class="hjem-card-title">Dagens transaksjoner</div>
     <ul class="hjem-tx-list">
@@ -4978,12 +5107,12 @@ function renderHjemTodayTx() {
     </ul>
     ${tx.length
       ? `<div class="hjem-tx-total"><span>Totalt i dag</span><span>${total.toLocaleString()} kr</span></div>`
-      : `<button class="hjem-tx-nudge" id="hjem-tx-nudge-btn">Kanskje du skal sette inn 50 kr på hundefondet i stedet? 🐶</button>`}
+      : `<button class="hjem-tx-nudge" id="hjem-tx-nudge-btn">Kanskje du skal sette inn 50 kr på ${nudge.label} i stedet? ${nudge.icon}</button>`}
   `;
   const nudgeBtn = document.getElementById("hjem-tx-nudge-btn");
   if (nudgeBtn) {
     nudgeBtn.addEventListener("click", () => {
-      quickSaveToDogFund(50, "Ingen utgifter i dag");
+      quickSaveToCategory(nudge.key, 50, "Ingen utgifter i dag");
       renderHjemTodayTx();
       renderHjemFinance();
       renderBudget();
@@ -5083,28 +5212,6 @@ function investFundStatus() {
   return { value: latest.value, date: latest.date, changeKr, changePct };
 }
 
-function fundSparklineSvg(log, width, height) {
-  const recent = log.slice(-14).filter(e => e.value != null);
-  if (recent.length < 2) return "";
-  const vals = recent.map(e => e.value);
-  const min = Math.min(...vals), max = Math.max(...vals);
-  const range = max - min || 1;
-  const pad = 3;
-  const pts = vals.map((v, i) => {
-    const x = pad + (i / (vals.length - 1)) * (width - pad * 2);
-    const y = pad + (1 - (v - min) / range) * (height - pad * 2);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  });
-  const up = vals[vals.length - 1] >= vals[0];
-  const color = up ? "#2f8a4e" : "#c0392b";
-  const lastX = pad + (width - pad * 2);
-  const lastY = pad + (1 - (vals[vals.length - 1] - min) / range) * (height - pad * 2);
-  return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" class="hjem-fund-spark">
-    <polyline points="${pts.join(" ")}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    <circle cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="2.5" fill="${color}"/>
-  </svg>`;
-}
-
 function renderHjemFinance() {
   const el = document.getElementById("hjem-finance");
   if (!el) return;
@@ -5118,38 +5225,12 @@ function renderHjemFinance() {
   const pct = totalBudget ? Math.min(100, Math.round(100 * spent / totalBudget)) : 0;
   const over = spent > totalBudget;
 
-  const inv = investFundStatus();
-  const changeClass = inv.changeKr == null ? "" : inv.changeKr >= 0 ? "pos" : "neg";
-  const changeSign = inv.changeKr == null ? "" : inv.changeKr >= 0 ? "+" : "";
-  const changeHtml = inv.changeKr != null
-    ? `<span class="hjem-invest-change ${changeClass}">${changeSign}${Math.round(inv.changeKr).toLocaleString()} kr / ${changeSign}${inv.changePct.toFixed(1)}%</span>`
-    : "";
-  const fundLog = loadInvestFundLog();
-  const sparkHtml = fundSparklineSvg(fundLog, 60, 26);
-  const growthIcon = inv.changeKr != null ? (inv.changeKr >= 0 ? "📈" : "📉") : "💰";
-
   el.innerHTML = `
     <div class="hjem-finance-row">
       <div class="hf-label"><span>Brukt denne måneden</span><span>${spent.toLocaleString()} / ${totalBudget.toLocaleString()} kr</span></div>
       <div class="hjem-finance-bar"><div class="${over ? "over" : ""}" style="width:${pct}%"></div></div>
     </div>
-    <div class="hjem-finance-row hjem-invest-row" id="hjem-invest-row" style="cursor:pointer;">
-      <div class="hf-label"><span>Fond</span><span>${inv.date ? "Oppdatert " + fmtShort(inv.date) : "Ikke satt"}</span></div>
-      <div class="hjem-invest-main">
-        <div class="hf-val">${growthIcon} ${inv.value != null ? inv.value.toLocaleString() + " kr" : "– kr"}<br>${changeHtml}</div>
-        ${sparkHtml}
-      </div>
-    </div>
   `;
-  document.getElementById("hjem-invest-row").addEventListener("click", () => {
-    const next = prompt("Fondsverdi i dag (kr):", inv.value != null ? inv.value : "");
-    if (next === null) return;
-    const val = parseFloat(next.replace(",", "."));
-    if (Number.isNaN(val)) return;
-    setInvestFundValue(todayISO(), val);
-    renderHjemFinance();
-    renderFundTrend();
-  });
 }
 
 function renderHjemReminder() {
@@ -5189,6 +5270,10 @@ function renderHjem() {
   renderHjemBodyToday();
   renderHjemFinance();
 }
+
+document.querySelectorAll(".hjem-shortcut-btn[data-goto-tab]").forEach(btn => {
+  btn.addEventListener("click", () => showTab(btn.dataset.gotoTab));
+});
 
 // ---- quick-log bottom bar & drawer ----
 function openQuicklogDrawer(title, bodyHtml) {
