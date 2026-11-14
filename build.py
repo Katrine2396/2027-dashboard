@@ -5407,15 +5407,19 @@ const SOCIAL_BUDGET_KEY = "garminDashboardSocialBudget_v1";
 function loadSocialBudget() { return loadLS(SOCIAL_BUDGET_KEY, {}); }
 function socialBudgetToday() { return loadSocialBudget()[todayISO()] || null; }
 function openSocialBudgetSetDrawer() {
-  openQuicklogDrawer("Sosialt i kveld", `
+  openQuicklogDrawer("Planlegg sosialt", `
+    <input type="date" id="ql-social-date" value="${todayISO()}">
     <input type="number" step="50" id="ql-social-amount" placeholder="Kcal å sette av">
+    <input type="text" id="ql-social-name" placeholder="Hva skjer? (valgfritt)">
     <button class="btn" id="ql-social-save">Sett av</button>
   `);
   document.getElementById("ql-social-save").addEventListener("click", () => {
+    const date = document.getElementById("ql-social-date").value || todayISO();
     const amount = parseInt(document.getElementById("ql-social-amount").value, 10);
     if (!amount) return;
+    const name = document.getElementById("ql-social-name").value.trim();
     const b = loadSocialBudget();
-    b[todayISO()] = { amount, loggedKcal: null };
+    b[date] = { amount, loggedKcal: null, name: name || null };
     saveLS(SOCIAL_BUDGET_KEY, b);
     closeQuicklogDrawer();
     renderHjemSocialBudget();
@@ -5445,14 +5449,14 @@ function renderHjemSocialBudget() {
   if (!el) return;
   const entry = socialBudgetToday();
   if (!entry) {
-    el.innerHTML = `<button class="hjem-tx-nudge" id="hjem-social-set-btn">🎉 Sett av kalorier til sosialt i kveld</button>`;
+    el.innerHTML = `<button class="hjem-tx-nudge" id="hjem-social-set-btn">🎉 Planlegg sosialt</button>`;
     document.getElementById("hjem-social-set-btn").addEventListener("click", openSocialBudgetSetDrawer);
     return;
   }
   if (entry.loggedKcal == null) {
     el.innerHTML = `
       <div class="hjem-reminder-banner">
-        <span>🎉 Du har ${entry.amount.toLocaleString()} kcal til overs til i kveld. Kos deg!</span>
+        <span>🎉 ${entry.name ? `${entry.name}: ` : ""}Du har ${entry.amount.toLocaleString()} kcal til overs i kveld. Kos deg!</span>
         <button id="hjem-social-log-btn">Logg anslag</button>
       </div>`;
     document.getElementById("hjem-social-log-btn").addEventListener("click", openSocialBudgetLogDrawer);
