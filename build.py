@@ -49,7 +49,7 @@ PROGRAM = {
     2: {"key": "gsB", "label": "Styrke B: helkropp og kjerne", "type": "strength"},
     3: {"key": "restW", "label": "Hvile eller rolig gåtur", "type": "rest"},
     4: {"key": "gsC", "label": "Styrke C: helkropp og kjerne", "type": "strength"},
-    5: {"key": "cyc", "label": "Kondisjon", "type": "cardio"},
+    5: {"key": "cycHard", "label": "Kondisjon - intervaller", "type": "cardio"},
     6: {"key": "rest", "label": "Hvile eller lett aktivitet", "type": "rest"},
 }
 GS_PROG = {
@@ -292,6 +292,7 @@ SESSION_CATALOG = {
     "gsB": {"label": PROGRAM[2]["label"], "type": "strength", "exercises": PROG_EXERCISES["gsB"]},
     "gsC": {"label": PROGRAM[4]["label"], "type": "strength", "exercises": PROG_EXERCISES["gsC"]},
     "cyc": {"label": "Kondisjon", "type": "cardio", "note": "Egen takt - du skal kunne prate i hele setninger"},
+    "cycHard": {"label": "Kondisjon - intervaller", "type": "cardio", "note": "4×4-intervaller: 4 min hardt (du skal IKKE kunne prate i hele setninger), 3 min rolig aktiv pause, gjenta 4 ganger. Sykkel, ellipse eller rask gange i bakke er skånsomt for kneet."},
     "walk": {"label": "Gåtur", "type": "cardio"},
     "rest": {"label": "Hvile", "type": "rest"},
 }
@@ -306,8 +307,8 @@ def gs_week(d):
 def session_for(d):
     sess = dict(PROGRAM[d.weekday()])
     week = gs_week(d)
-    if sess["key"] == "cyc":
-        sess["label"] = f"Kondisjon ({GS_PROG[week]['cycle']})"
+    if sess["key"] in ("cyc", "cycHard"):
+        sess["label"] = f"{SESSION_CATALOG[sess['key']]['label']} ({GS_PROG[week]['cycle']})"
     return sess
 
 
@@ -2408,8 +2409,8 @@ document.getElementById("footer-settings-link").addEventListener("click", () => 
 
 // ---------------------------------------------------------------- training plan
 const PLAN_OVERRIDES_KEY = "garminDashboardPlanOverrides_v1";
-const SWAP_OPTIONS = ["gsA", "gsB", "gsC", "cyc", "walk", "rest"];
-const SWAP_NAMES = { gsA: "Styrke A", gsB: "Styrke B", gsC: "Styrke C", cyc: "Kondisjon", walk: "Gåtur", rest: "Hvile" };
+const SWAP_OPTIONS = ["gsA", "gsB", "gsC", "cyc", "cycHard", "walk", "rest"];
+const SWAP_NAMES = { gsA: "Styrke A", gsB: "Styrke B", gsC: "Styrke C", cyc: "Kondisjon", cycHard: "Kondisjon (intervaller)", walk: "Gåtur", rest: "Hvile" };
 
 function loadPlanOverrides() {
   try { return JSON.parse(localStorage.getItem(PLAN_OVERRIDES_KEY) || "{}"); } catch (e) { return {}; }
@@ -2422,16 +2423,16 @@ function resolvePlanDay(d, overrides) {
   let key, label, type, exercises, cycleNote;
   if (ov && cat[ov]) {
     key = ov;
-    label = cat[ov].label + (ov === "cyc" ? ` (${DATA.program.weekCycleNote})` : "");
+    label = cat[ov].label + ((ov === "cyc" || ov === "cycHard") ? ` (${DATA.program.weekCycleNote})` : "");
     type = cat[ov].type;
     exercises = cat[ov].exercises || null;
-    cycleNote = ov === "cyc" ? cat[ov].note : null;
+    cycleNote = cat[ov].note || null;
   } else {
     key = d.defaultKey;
     label = d.sessionLabel;
     type = d.sessionType;
     exercises = (cat[d.defaultKey] || {}).exercises || null;
-    cycleNote = type === "cardio" ? cat.cyc.note : null;
+    cycleNote = (cat[d.defaultKey] || {}).note || null;
   }
   const matched = type === "rest" ? null : (d.loggedActivities || []).find(a => a.type === type) || null;
   return { key, label, type, exercises, cycleNote, done: type === "rest" ? null : !!matched, matchedActivity: matched };
