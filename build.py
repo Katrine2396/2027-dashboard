@@ -232,18 +232,19 @@ BUDGET_DEFAULTS = {
     "categories": [
         # faste utgifter
         {"key": "husleie", "label": "Husleie", "type": "fixed", "icon": "🏠", "cap": 13500},
-        {"key": "strom", "label": "Strøm", "type": "fixed", "icon": "⚡", "cap": 1200},
-        {"key": "forsikring", "label": "Forsikring", "type": "fixed", "icon": "🛡️", "cap": 400},
-        {"key": "mobil_internett", "label": "Mobil og internett", "type": "fixed", "icon": "📱", "cap": 500},
-        {"key": "abonnementer", "label": "Abonnementer", "type": "fixed", "icon": "🔁", "cap": 400},
-        {"key": "treningssenter", "label": "Treningssenter", "type": "fixed", "icon": "🏋️", "cap": 500},
-        {"key": "studielan", "label": "Studielån", "type": "fixed", "icon": "🎓", "cap": 2000},
-        {"key": "ruter", "label": "Ruter", "type": "fixed", "icon": "🚌", "cap": 800},
+        {"key": "strom", "label": "Strøm", "type": "fixed", "icon": "⚡", "cap": 1000},
+        {"key": "forsikring", "label": "Forsikring", "type": "fixed", "icon": "🛡️", "cap": 764},
+        {"key": "mobil_internett", "label": "Mobil og internett", "type": "fixed", "icon": "📱", "cap": 299},
+        {"key": "abonnementer", "label": "Abonnementer", "type": "fixed", "icon": "🔁", "cap": 496},
+        {"key": "treningssenter", "label": "Treningssenter", "type": "fixed", "icon": "🏋️", "cap": 449},
+        {"key": "studielan", "label": "Studielån", "type": "fixed", "icon": "🎓", "cap": 3730},
+        {"key": "ruter", "label": "Ruter", "type": "fixed", "icon": "🚌", "cap": 495},
         # variable utgifter
         {"key": "mat", "label": "Mat og dagligvarer", "type": "variable", "icon": "🛒", "cap": 3800},
         {"key": "transport", "label": "Transport", "type": "variable", "icon": "🚗", "cap": 900},
         {"key": "klaer_velvare", "label": "Klær og velvære", "type": "variable", "icon": "👗", "cap": 700},
         {"key": "fritid_sosialt", "label": "Fritid og sosialt", "type": "variable", "icon": "🎉", "cap": 800},
+        {"key": "gaver", "label": "Gaver", "type": "variable", "icon": "🎁", "cap": 500},
         {"key": "annet", "label": "Annet", "type": "variable", "icon": "📦", "cap": 500},
         # sparing (egne linjer, men regnes som variable utgifter)
         {"key": "hundefond", "label": "Sparing: Hund", "type": "variable", "savings": True, "icon": "🐶", "cap": 1000},
@@ -3520,6 +3521,16 @@ function loadBudgetConfig() {
       delete c.cap;
       changed = true;
     }
+  });
+  // pick up any category added to the built-in defaults since she last loaded (e.g. a new
+  // seasonal category) - never touches a category she already has, so her own cap edits stay put
+  const existingKeys = new Set(stored.categories.map(c => c.key));
+  (DATA.budgetDefaults.categories || []).forEach(def => {
+    if (existingKeys.has(def.key)) return;
+    const added = Object.assign({}, def, { capHistory: [{ from: "2000-01-01", amount: def.cap != null ? def.cap : 0 }] });
+    delete added.cap;
+    stored.categories.push(added);
+    changed = true;
   });
   if (changed) saveBudgetConfig(stored);
   return stored;
