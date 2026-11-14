@@ -1198,6 +1198,8 @@ TEMPLATE = r"""<!DOCTYPE html>
   .log-form input[type="number"] { width: 100px; }
   .log-form input[type="date"] { width: 150px; }
   .log-form input[type="text"] { flex: 1; min-width: 120px; }
+  .mvd-settings-field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+  .mvd-settings-field input { margin-top: 0; }
   .btn {
     font-family: Nunito, sans-serif; font-size: 14px; font-weight: 700; color: #fff;
     background: var(--accent); border: none; border-radius: 10px; padding: 12px 20px;
@@ -1372,6 +1374,14 @@ TEMPLATE = r"""<!DOCTYPE html>
   .badday-expense-row input { flex: 1; min-width: 0; padding: 12px; font-size: 15px; border: 1px solid var(--line); border-radius: 10px; font-family: Nunito, sans-serif; box-sizing: border-box; }
   .badday-expense-row button { flex: 1; padding: 12px; font-size: 15px; }
   .badday-saved-msg { font-size: 12px; color: var(--muted); min-height: 16px; margin-top: 4px; }
+  .mvd-box { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; text-align: left; }
+  .mvd-title { font-family: "Playfair Display", serif; font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+  .mvd-list { list-style: none; margin: 0; padding: 0; font-size: 14px; }
+  .mvd-list li { padding: 4px 0; color: var(--muted); }
+  .mvd-list li.done { color: var(--ink); font-weight: 700; }
+  .mvd-sub { font-weight: 400; color: var(--muted); font-size: 12px; }
+  .mvd-note { font-size: 12.5px; color: var(--muted); margin-top: 8px; }
+  .mvd-complete { font-size: 13px; color: #2f8a4e; font-weight: 700; margin-top: 8px; }
 
   /* ---- Hjem dashboard (light, mobile-first start page) ---- */
   .hjem-dash {
@@ -1447,12 +1457,12 @@ TEMPLATE = r"""<!DOCTYPE html>
   .hjem-nutri-quick { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
   .hjem-nutri-quick .hnq-label { font-size: 12px; color: var(--hj-muted); }
   .hjem-nutri-quick .hnq-val { font-size: 17px; font-weight: 700; margin-top: 2px; }
-  .hjem-nutri-quick .hnq-val.over { color: #c0392b; }
+  .hjem-nutri-quick .hnq-val.over { color: #b8860b; }
   .hjem-nutri-quick .hnq-macro { font-size: 11px; color: var(--hj-muted); margin-top: 2px; }
-  .hjem-nutri-quick .hnq-macro.over { color: #c0392b; font-weight: 700; }
+  .hjem-nutri-quick .hnq-macro.over { color: #b8860b; }
   .hjem-nutri-quick .hnq-balance { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--hj-line); font-size: 11px; color: var(--hj-muted); display: flex; flex-direction: column; gap: 2px; }
   .hjem-nutri-quick .hnq-balance-diff { font-size: 13px; font-weight: 700; color: #2f8a4e; }
-  .hjem-nutri-quick .hnq-balance-diff.over { color: #c0392b; }
+  .hjem-nutri-quick .hnq-balance-diff.over { color: #b8860b; }
   .hjem-nutri-quick button {
     background: var(--hj-accent); color: var(--ink); border: none; border-radius: 10px;
     padding: 8px 12px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: Nunito, sans-serif; white-space: nowrap;
@@ -1656,8 +1666,9 @@ TEMPLATE = r"""<!DOCTYPE html>
   </div>
 
   <div class="badday-panel" id="badday-panel">
-    <h2 style="margin-top:0;">Dårlig dag</h2>
+    <h2 style="margin-top:0;">Minimumsdag</h2>
     <div class="section-sub">Bare det viktigste i dag. Trykk en knapp for å logge, gå tilbake når du vil.</div>
+    <div id="badday-mvd"></div>
     <div class="badday-quickbtns" id="badday-quickbtns"></div>
     <div class="badday-saved-msg" id="badday-saved-msg"></div>
     <button class="btn ghost" id="badday-exit" style="display:block;margin-top:24px;">Tilbake til vanlig visning</button>
@@ -1668,7 +1679,7 @@ TEMPLATE = r"""<!DOCTYPE html>
     <div class="hjem-topbar">
       <div class="hjem-topbar-btns">
         <button class="hjem-refresh-btn" id="hjem-refresh-btn" title="Oppdater">⟳</button>
-        <button class="hjem-badday-toggle" id="hjem-badday-toggle">🌧️ Dårlig dag</button>
+        <button class="hjem-badday-toggle" id="hjem-badday-toggle">🌱 Minimumsdag</button>
       </div>
     </div>
     <div class="hjem-why" id="hjem-why"></div>
@@ -1677,6 +1688,9 @@ TEMPLATE = r"""<!DOCTYPE html>
     <div id="hjem-unplanned-cardio"></div>
     <div id="hjem-weight-reminder"></div>
     <div id="hjem-backup-reminder"></div>
+    <div id="hjem-aon-banner"></div>
+    <div id="hjem-mvd-sunday"></div>
+    <div id="hjem-freeze-notice"></div>
 
     <div class="hjem-main-grid">
       <div class="hjem-rail">
@@ -1694,6 +1708,7 @@ TEMPLATE = r"""<!DOCTYPE html>
           <div class="hjem-rail-dot"></div>
           <div class="hjem-rail-label">Måltid</div>
           <div class="hjem-card hjem-nutri-quick" id="hjem-kcal-ring"></div>
+          <div id="hjem-social-budget"></div>
         </div>
         <div class="hjem-rail-item">
           <div class="hjem-rail-dot"></div>
@@ -2053,6 +2068,17 @@ TEMPLATE = r"""<!DOCTYPE html>
       </label>
     </div>
 
+    <div class="card" id="mvd-settings-card">
+      <h3 style="margin:0 0 4px;font-size:15px;">Minimum Viable Day (MVD)</h3>
+      <div class="section-sub" style="margin-bottom:10px;">De tre tersklene som teller som en fullført minimumsdag - vises på Minimumsdag-knappen og automatisk på søndager.</div>
+      <div class="log-form">
+        <label class="mvd-settings-field">Protein per måltid (g)<input type="number" step="1" id="mvd-protein-input"></label>
+        <label class="mvd-settings-field">Skritt<input type="number" step="500" id="mvd-steps-input"></label>
+        <label class="mvd-settings-field">Minutter bevegelse<input type="number" step="5" id="mvd-minutes-input"></label>
+        <button class="btn ghost small" id="mvd-settings-save">Lagre MVD</button>
+      </div>
+    </div>
+
     <div class="card sync-card" id="sync-card">
       <h3 style="margin:0 0 4px;font-size:15px;">Skylagring</h3>
       <div class="section-sub" style="margin-bottom:10px;">Data synkroniseres automatisk med kontoen din i bakgrunnen. Bruk knappen under om noe virker bakpå, f.eks. rett etter du har gjort endringer på en annen enhet.</div>
@@ -2078,7 +2104,7 @@ TEMPLATE = r"""<!DOCTYPE html>
 
   <div class="quiet-actions-bottom">
     <button class="btn ghost overwhelm-btn" id="overwhelm-btn">🫧 Jeg er overveldet</button>
-    <button class="btn ghost badday-btn" id="badday-btn">🌧️ Dårlig dag</button>
+    <button class="btn ghost badday-btn" id="badday-btn">🌱 Minimumsdag</button>
   </div>
   <div id="overwhelm-out"></div>
 
@@ -2108,6 +2134,9 @@ function loadSettings() {
     savingsTarget: DATA.dogFund.target,
     weightGoal: null,
     personalityEnabled: true,
+    mvdProtein: 15,
+    mvdSteps: 5000,
+    mvdMinutes: 15,
   }, loadLS(SETTINGS_KEY, {}));
 }
 function saveSettings(s) { saveLS(SETTINGS_KEY, s); }
@@ -2486,6 +2515,40 @@ function renderHjemUnplannedCardio() {
 function daysSinceDate(dateStr) {
   if (!dateStr) return null;
   return Math.round((new Date(todayISO() + "T00:00:00") - new Date(dateStr + "T00:00:00")) / 86400000);
+}
+
+// ---- "all-or-nothing" detector: a deviation day followed by 2 days of no logging at all
+// tends to mean she's given up rather than just having had an off day - greet her warmly
+// instead of silence when she comes back, rather than letting it go unnoticed ----
+function isDeviationDay(date) {
+  const totals = dayNutritionTotals(date);
+  const goal = DATA.nutritionPlan.dailyKcal;
+  return (goal && totals.kcal > goal * 1.15) || (totals.extras || []).length >= 2;
+}
+function isEmptyLoggingDay(date) {
+  const totals = dayNutritionTotals(date);
+  return totals.kcal === 0 && (totals.mealsLogged || []).length === 0 && (totals.extras || []).length === 0;
+}
+function renderHjemAllOrNothing() {
+  const el = document.getElementById("hjem-aon-banner");
+  if (!el) return;
+  const today = todayISO();
+  const d1 = isoAddDays(today, -1), d2 = isoAddDays(today, -2), d3 = isoAddDays(today, -3);
+  const triggered = isEmptyLoggingDay(d1) && isEmptyLoggingDay(d2) && isDeviationDay(d3);
+  if (!triggered) { el.innerHTML = ""; return; }
+  el.innerHTML = `
+    <div class="hjem-reminder-banner">
+      <span>🌱 Jeg ser at du har hatt noen dager med avvik. Det er helt normalt. Ikke la det stoppe deg. Skal vi gjøre en mini-økt eller bare logge et måltid i dag for å komme i gang igjen?</span>
+      <div class="hjem-topbar-btns">
+        <button id="hjem-aon-session">Mini-økt</button>
+        <button id="hjem-aon-meal">Logg et måltid</button>
+        <button class="hjem-badday-toggle" id="hjem-aon-dismiss">Skjul</button>
+      </div>
+    </div>
+  `;
+  document.getElementById("hjem-aon-session").addEventListener("click", () => showTab("trening"));
+  document.getElementById("hjem-aon-meal").addEventListener("click", openMatDrawer);
+  document.getElementById("hjem-aon-dismiss").addEventListener("click", () => { el.innerHTML = ""; });
 }
 
 // ---- weight/measurement logging reminder (points reward weekly weigh-ins and monthly
@@ -3675,6 +3738,25 @@ function renderLevel() {
 }
 
 // ---------------------------------------------------------------- streak / latest PR
+// ---- streak freeze cards ("frikort") - 2 missed training days per calendar month are
+// forgiven automatically, so one off day doesn't erase the whole streak. Usage is recorded
+// per date (not just a counter) so repeated renders never consume more than were actually
+// missed, and so the Hjem notice can say exactly which day got covered. ----
+const FREEZE_CARDS_PER_MONTH = 2;
+const FREEZE_CARDS_USED_KEY = "garminDashboardFreezeCardsUsed_v1";
+function loadFreezeCardsUsed() { return loadLS(FREEZE_CARDS_USED_KEY, []); }
+function freezeCardsLeftForMonth(monthKey) {
+  const usedThisMonth = loadFreezeCardsUsed().filter(d => d.slice(0, 7) === monthKey).length;
+  return Math.max(0, FREEZE_CARDS_PER_MONTH - usedThisMonth);
+}
+function tryUseFreezeCard(dateStr) {
+  const used = loadFreezeCardsUsed();
+  if (used.includes(dateStr)) return true;
+  if (freezeCardsLeftForMonth(dateStr.slice(0, 7)) <= 0) return false;
+  used.push(dateStr);
+  saveLS(FREEZE_CARDS_USED_KEY, used);
+  return true;
+}
 function computeStreak() {
   const th = DATA.trainingHistory || [];
   if (!th.length) return 0;
@@ -3686,11 +3768,35 @@ function computeStreak() {
   for (; i >= 0; i--) {
     const day = th[i];
     if (inVacationRange(day.date)) continue;
-    const kept = day.sessionType === "rest" || day.loggedTypes.includes(day.sessionType);
+    let kept = day.sessionType === "rest" || day.loggedTypes.includes(day.sessionType);
+    if (!kept && day.date < todayISO() && tryUseFreezeCard(day.date)) kept = true;
     if (!kept) break;
     streak++;
   }
   return streak;
+}
+
+const FREEZE_NOTICE_ACK_KEY = "garminDashboardFreezeNoticeAck_v1";
+const freezeCardsUsedBeforeLoad = loadFreezeCardsUsed();
+computeStreak(); // run once eagerly so a newly-missed day gets its freeze card applied right away
+function renderHjemFreezeNotice() {
+  const el = document.getElementById("hjem-freeze-notice");
+  if (!el) return;
+  const newlyUsed = loadFreezeCardsUsed().filter(d => !freezeCardsUsedBeforeLoad.includes(d));
+  const ack = loadLS(FREEZE_NOTICE_ACK_KEY, []);
+  const unacked = newlyUsed.filter(d => !ack.includes(d));
+  if (!unacked.length) { el.innerHTML = ""; return; }
+  const left = freezeCardsLeftForMonth(todayISO().slice(0, 7));
+  el.innerHTML = `
+    <div class="hjem-reminder-banner">
+      <span>🧊 Streaken din er intakt - du brukte et frikort for ${unacked.map(fmtShort).join(" og ")}. ${left} frikort igjen denne måneden.</span>
+      <button id="hjem-freeze-notice-dismiss">OK</button>
+    </div>
+  `;
+  document.getElementById("hjem-freeze-notice-dismiss").addEventListener("click", () => {
+    saveLS(FREEZE_NOTICE_ACK_KEY, ack.concat(unacked));
+    el.innerHTML = "";
+  });
 }
 
 function latestPR() {
@@ -3949,13 +4055,50 @@ function badDayLogExpense() {
   const input = document.getElementById("badday-expense-amount");
   const amount = parseFloat(input.value);
   if (!amount) return;
-  addTransactionWithRoundUp(todayISO(), amount, "annet", "Dårlig dag");
+  addTransactionWithRoundUp(todayISO(), amount, "annet", "Minimumsdag");
   input.value = "";
   flashBadDaySaved("Utgift logget ✓");
 }
 
+// ---- Minimum Viable Day (MVD) - auto-verified against real data, not self-reported,
+// so it actually holds her accountable instead of just letting her tick a box ----
+function mvdStatusToday() {
+  const s = loadSettings();
+  const totals = dayNutritionTotals(todayISO());
+  const proteinOk = (totals.mealsLogged || []).some(m => (m.protein || 0) >= s.mvdProtein);
+  const steps = ((DATA.topStats || {}).steps || {}).value || 0;
+  const stepsOk = steps >= s.mvdSteps;
+  const todayDay = (DATA.program.week || []).find(d => d.isToday);
+  const minutesLogged = ((todayDay && todayDay.loggedActivities) || []).reduce((sum, a) => sum + (a.minutes || 0), 0);
+  const minutesOk = minutesLogged >= s.mvdMinutes;
+  return { s, proteinOk, stepsOk, minutesOk, steps, minutesLogged, allDone: proteinOk && stepsOk && minutesOk };
+}
+function mvdSectionHtml() {
+  const { s, proteinOk, stepsOk, minutesOk, steps, minutesLogged, allDone } = mvdStatusToday();
+  return `
+    <div class="mvd-box">
+      <div class="mvd-title">🎯 Minimum Viable Day</div>
+      <ul class="mvd-list">
+        <li class="${proteinOk ? "done" : ""}">${proteinOk ? "✓" : "○"} Et måltid med ${s.mvdProtein} g+ protein</li>
+        <li class="${stepsOk ? "done" : ""}">${stepsOk ? "✓" : "○"} ${s.mvdSteps.toLocaleString()} skritt <span class="mvd-sub">(${steps.toLocaleString()} så langt)</span></li>
+        <li class="${minutesOk ? "done" : ""}">${minutesOk ? "✓" : "○"} ${s.mvdMinutes} min bevegelse <span class="mvd-sub">(${minutesLogged} min i dag)</span></li>
+      </ul>
+      ${allDone
+        ? `<div class="mvd-complete">🎉 MVD fullført - det er nok for i dag.</div>`
+        : `<div class="mvd-note">I dag er målet bare å fullføre MVD. Det er nok.</div>`}
+    </div>
+  `;
+}
+function renderHjemMvdSunday() {
+  const el = document.getElementById("hjem-mvd-sunday");
+  if (!el) return;
+  if (new Date().getDay() !== 0 || isVacationActive()) { el.innerHTML = ""; return; }
+  el.innerHTML = `<div class="hjem-card">${mvdSectionHtml()}</div>`;
+}
+
 function renderBadDayPanel() {
   const entry = loadBadDayLog()[todayISO()] || {};
+  document.getElementById("badday-mvd").innerHTML = mvdSectionHtml();
   document.getElementById("badday-quickbtns").innerHTML = `
     <button class="btn ${entry.trained ? "active" : ""}" id="badday-trained-btn">🏋️ ${entry.trained ? "Trent i dag ✓" : "Trente i dag"}</button>
     <button class="btn secondary" id="badday-food-btn">🍫 Logg mat/drikke</button>
@@ -5253,6 +5396,69 @@ function renderHjemSession() {
   }
 }
 
+// ---- social budget: set aside kcal for a planned social evening, then log a rough
+// estimate afterward without any pass/fail judgment against the number ----
+const SOCIAL_BUDGET_KEY = "garminDashboardSocialBudget_v1";
+function loadSocialBudget() { return loadLS(SOCIAL_BUDGET_KEY, {}); }
+function socialBudgetToday() { return loadSocialBudget()[todayISO()] || null; }
+function openSocialBudgetSetDrawer() {
+  openQuicklogDrawer("Sosialt i kveld", `
+    <input type="number" step="50" id="ql-social-amount" placeholder="Kcal å sette av">
+    <button class="btn" id="ql-social-save">Sett av</button>
+  `);
+  document.getElementById("ql-social-save").addEventListener("click", () => {
+    const amount = parseInt(document.getElementById("ql-social-amount").value, 10);
+    if (!amount) return;
+    const b = loadSocialBudget();
+    b[todayISO()] = { amount, loggedKcal: null };
+    saveLS(SOCIAL_BUDGET_KEY, b);
+    closeQuicklogDrawer();
+    renderHjemSocialBudget();
+  });
+}
+function openSocialBudgetLogDrawer() {
+  openQuicklogDrawer("Logg et anslag for i kveld", `
+    <input type="number" step="50" id="ql-social-log-kcal" placeholder="Anslag kcal">
+    <button class="btn" id="ql-social-log-save">Logg</button>
+  `);
+  document.getElementById("ql-social-log-save").addEventListener("click", () => {
+    const kcal = parseInt(document.getElementById("ql-social-log-kcal").value, 10);
+    if (!kcal) return;
+    const b = loadSocialBudget();
+    const entry = b[todayISO()] || { amount: 0, loggedKcal: null };
+    entry.loggedKcal = kcal;
+    b[todayISO()] = entry;
+    saveLS(SOCIAL_BUDGET_KEY, b);
+    addExtra("Sosialt i kveld", kcal);
+    closeQuicklogDrawer();
+    renderHjemSocialBudget();
+    renderHjemKcalRing();
+  });
+}
+function renderHjemSocialBudget() {
+  const el = document.getElementById("hjem-social-budget");
+  if (!el) return;
+  const entry = socialBudgetToday();
+  if (!entry) {
+    el.innerHTML = `<button class="hjem-tx-nudge" id="hjem-social-set-btn">🎉 Sett av kalorier til sosialt i kveld</button>`;
+    document.getElementById("hjem-social-set-btn").addEventListener("click", openSocialBudgetSetDrawer);
+    return;
+  }
+  if (entry.loggedKcal == null) {
+    el.innerHTML = `
+      <div class="hjem-reminder-banner">
+        <span>🎉 Du har ${entry.amount.toLocaleString()} kcal til overs til i kveld. Kos deg!</span>
+        <button id="hjem-social-log-btn">Logg anslag</button>
+      </div>`;
+    document.getElementById("hjem-social-log-btn").addEventListener("click", openSocialBudgetLogDrawer);
+    return;
+  }
+  el.innerHTML = `
+    <div class="hjem-reminder-banner">
+      <span>✅ Perfekt, du traff budsjettet.</span>
+    </div>`;
+}
+
 function renderHjemKcalRing() {
   const n = DATA.nutritionPlan;
   const el = document.getElementById("hjem-kcal-ring");
@@ -5481,6 +5687,10 @@ function renderHjem() {
   renderHjemUnplannedCardio();
   renderHjemWeightReminder();
   renderHjemBackupReminder();
+  renderHjemAllOrNothing();
+  renderHjemMvdSunday();
+  renderHjemFreezeNotice();
+  renderHjemSocialBudget();
   renderHjemSession();
   renderHjemKcalRing();
   renderHjemTodayTx();
@@ -5503,6 +5713,24 @@ function closeQuicklogDrawer() {
 }
 document.getElementById("quicklog-drawer-close").addEventListener("click", closeQuicklogDrawer);
 
+// Logs the extra, then - instead of just closing - offers a non-judgmental "what's next"
+// choice if today ended up over the kcal goal, rather than a silent/implicit "you failed".
+function logExtraWithNudge(name, kcal) {
+  addExtra(name, kcal);
+  renderHjemKcalRing();
+  const totals = dayNutritionTotals(todayISO());
+  if (totals.kcal <= DATA.nutritionPlan.dailyKcal) { closeQuicklogDrawer(); return; }
+  document.getElementById("quicklog-drawer-body").innerHTML = `
+    <div style="font-size:14px;line-height:1.5;margin-bottom:10px;">Logget. Neste valg: vil du ha en lett middag for å balansere, eller kjøre på som normalt?</div>
+    <div class="ql-presets">
+      <button id="ql-aon-light">🥗 Lett middag</button>
+      <button id="ql-aon-normal">👍 Som normalt</button>
+    </div>
+  `;
+  document.getElementById("ql-aon-light").addEventListener("click", () => { closeQuicklogDrawer(); showTab("kosthold"); });
+  document.getElementById("ql-aon-normal").addEventListener("click", closeQuicklogDrawer);
+}
+
 function openMatDrawer() {
   openQuicklogDrawer("Logg mat/drikke", `
     <div class="ql-presets">
@@ -5516,16 +5744,14 @@ function openMatDrawer() {
   `);
   document.querySelectorAll("#quicklog-drawer-body [data-extra-preset]").forEach(btn => {
     btn.addEventListener("click", () => {
-      addExtra(btn.dataset.extraPreset, parseInt(btn.dataset.extraKcal, 10));
-      closeQuicklogDrawer();
+      logExtraWithNudge(btn.dataset.extraPreset, parseInt(btn.dataset.extraKcal, 10));
     });
   });
   document.getElementById("ql-mat-save").addEventListener("click", () => {
     const name = document.getElementById("ql-mat-name").value.trim();
     if (!name) return;
     const kcal = parseInt(document.getElementById("ql-mat-kcal").value, 10) || null;
-    addExtra(name, kcal);
-    closeQuicklogDrawer();
+    logExtraWithNudge(name, kcal);
   });
 }
 
@@ -5937,6 +6163,17 @@ function renderWeeklyReport(targetId) {
   if (bestSleepDay) highlights.push(`😴 Beste natt denne uken: ${fmtShort(bestSleepDay.date)} med søvnscore ${bestSleepDay.sleepScore}.`);
   const streak = computeStreak();
   if (streak >= 3) highlights.push(`🔥 Du har en streak på ${streak} dager akkurat nå.`);
+  const weekDates = [];
+  for (let d = weekStart; d <= todayStr; d = isoAddDays(d, 1)) weekDates.push(d);
+  // uken totalt teller mer enn noen enkeltdag - vis snittet, ikke bare dagsfasiten på Hjem
+  const weekKcalTotals = weekDates.map(d => dayNutritionTotals(d).kcal).filter(k => k > 0);
+  if (weekKcalTotals.length) {
+    const avgKcal = Math.round(weekKcalTotals.reduce((s, k) => s + k, 0) / weekKcalTotals.length);
+    const diff = avgKcal - DATA.nutritionPlan.dailyKcal;
+    highlights.push(diff > 0
+      ? `🍽️ Snitt denne uken: ${avgKcal} kcal/dag (mål ${DATA.nutritionPlan.dailyKcal}) - ${diff} over i snitt, men det er uken totalt som teller, ikke enkeltdager.`
+      : `🍽️ Snitt denne uken: ${avgKcal} kcal/dag (mål ${DATA.nutritionPlan.dailyKcal}) - i snitt innenfor målet.`);
+  }
   if (!highlights.length) highlights.push("En stille uke uten de store toppene - det er også en uke som teller.");
 
   const highlightsHtml = `
@@ -6048,6 +6285,26 @@ vacationToggle.addEventListener("change", () => {
   renderHjem();
 });
 
+(function initMvdSettingsForm() {
+  const s = loadSettings();
+  document.getElementById("mvd-protein-input").value = s.mvdProtein;
+  document.getElementById("mvd-steps-input").value = s.mvdSteps;
+  document.getElementById("mvd-minutes-input").value = s.mvdMinutes;
+})();
+document.getElementById("mvd-settings-save").addEventListener("click", () => {
+  const protein = parseInt(document.getElementById("mvd-protein-input").value, 10);
+  const steps = parseInt(document.getElementById("mvd-steps-input").value, 10);
+  const minutes = parseInt(document.getElementById("mvd-minutes-input").value, 10);
+  if (!protein || !steps || !minutes) return;
+  const s = loadSettings();
+  s.mvdProtein = protein;
+  s.mvdSteps = steps;
+  s.mvdMinutes = minutes;
+  saveSettings(s);
+  renderBadDayPanel();
+  renderHjemMvdSunday();
+});
+
 // ---------------------------------------------------------------- backup / export / import
 const BACKUP_KEYS = [
   WEIGHT_LOG_KEY, MEASURE_LOG_KEY, SHOP_LIST_KEY, TX_KEY,
@@ -6055,7 +6312,7 @@ const BACKUP_KEYS = [
   FORGOTTEN_SAVINGS_KEY, BADDAY_LOG_KEY, EXTRAS_KEY, WATER_KEY, STREAK_BEST_KEY,
   SETTINGS_KEY, WHY_KEY, VACATION_KEY, CUSTOM_MEALS_KEY, MEAL_LOG_KEY, INVEST_FUND_KEY,
   SAVINGS_GOALS_KEY, CUSTOM_INGREDIENTS_KEY, MEAL_ING_OVERRIDES_KEY, MISSED_DAY_ACK_KEY, RPE_LOG_KEY,
-  UNPLANNED_CARDIO_ACK_KEY, FIXED_AUTOLOG_KEY,
+  UNPLANNED_CARDIO_ACK_KEY, FIXED_AUTOLOG_KEY, SOCIAL_BUDGET_KEY, FREEZE_CARDS_USED_KEY, FREEZE_NOTICE_ACK_KEY,
 ];
 window.BACKUP_KEYS = BACKUP_KEYS;
 
