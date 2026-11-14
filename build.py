@@ -6208,16 +6208,6 @@ function renderWeeklyReport(targetId) {
     </div>`;
 
   const highlights = [];
-  const prsThisWeek = [];
-  const priorBest = {};
-  setLog.filter(s => s.date < weekStart).forEach(s => { if (isBetterSet(s, priorBest[s.exercise])) priorBest[s.exercise] = s; });
-  setLog.filter(s => s.date >= weekStart).sort((a, b) => a.date === b.date ? a.id.localeCompare(b.id) : a.date.localeCompare(b.date)).forEach(s => {
-    const cur = priorBest[s.exercise];
-    if (isBetterSet(s, cur)) { prsThisWeek.push(s); priorBest[s.exercise] = s; }
-  });
-  if (prsThisWeek.length) {
-    highlights.push(`🏆 ${prsThisWeek.length} ny${prsThisWeek.length > 1 ? "e" : ""} PR denne uken: ${prsThisWeek.map(p => p.label).join(", ")}.`);
-  }
   const savedThisWeek = tx.filter(t => t.date >= weekStart && t.category === DATA.dogFund.category).reduce((s, t) => s + t.amount, 0);
   if (savedThisWeek > 0) highlights.push(`🐶 Du la ${Math.round(savedThisWeek)} kr i hundefondet denne uken.`);
   const bestSleepDay = history.filter(d => d.sleepScore != null).sort((a, b) => b.sleepScore - a.sleepScore)[0];
