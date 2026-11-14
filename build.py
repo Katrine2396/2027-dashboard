@@ -918,7 +918,7 @@ TEMPLATE = r"""<!DOCTYPE html>
     border-radius: 0 0 28px 28px;
   }
   header.hero .wrap { display: flex; flex-direction: column; gap: 6px; }
-  header.hero .hero-greeting { font-family: "Playfair Display", serif; font-style: italic; font-weight: 700; font-size: 25px; letter-spacing: .01em; }
+  header.hero .hero-greeting { font-family: "Playfair Display", serif; font-weight: 700; font-size: 30px; letter-spacing: .01em; }
   header.hero .hero-datetime { color: #f2ccda; font-size: 13px; font-weight: 500; letter-spacing: .02em; }
   .hero-status-strip { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
   .hss-chip { display: flex; flex-direction: column; gap: 7px; padding: 0 18px; }
@@ -1163,6 +1163,10 @@ TEMPLATE = r"""<!DOCTYPE html>
   .trend-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 
   footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 40px; }
+  #footer-settings-link {
+    background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 20px;
+    padding: 8px 16px; font-size: 12.5px; font-family: Nunito, sans-serif; cursor: pointer;
+  }
   .settings-card { margin: 24px 0 0; }
   .settings-toggle-row { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-top: 10px; cursor: pointer; }
   .sync-card { margin: 16px 0 0; }
@@ -1399,14 +1403,15 @@ TEMPLATE = r"""<!DOCTYPE html>
     --hj-muted: var(--muted); --hj-accent: #f6c667; --hj-accent2: var(--accent2); --hj-line: var(--line);
     margin: 0 0 24px; font-family: Nunito, sans-serif;
   }
-  .hjem-topbar { display: flex; align-items: center; justify-content: flex-end; margin-bottom: 12px; }
+  .hjem-topbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+  .hjem-topbar .hjem-why { margin: 0; flex: 1; min-width: 0; }
   .hjem-greeting { font-family: "Playfair Display", serif; font-size: 19px; }
   .hjem-datetime { font-size: 12px; color: var(--hj-muted); margin-top: 2px; }
   .hjem-badday-toggle {
     background: var(--hj-card2); color: var(--hj-ink); border: 1px solid var(--hj-line);
     border-radius: 20px; padding: 6px 12px; font-size: 12px; cursor: pointer;
   }
-  .hjem-why { font-size: 12px; color: var(--hj-muted); margin: -4px 0 12px; cursor: pointer; }
+  .hjem-why { font-size: 12px; color: var(--hj-muted); cursor: pointer; }
   .hjem-why.empty { font-style: italic; }
   .hjem-zone { margin-bottom: 18px; }
   .hjem-zone-title { font-size: 13px; color: var(--hj-muted); text-transform: uppercase; letter-spacing: .06em; margin: 0 0 8px; }
@@ -1415,7 +1420,7 @@ TEMPLATE = r"""<!DOCTYPE html>
     padding: 12px 14px; color: var(--hj-ink);
   }
   .hjem-card-title { font-size: 12px; color: var(--hj-muted); margin-bottom: 6px; }
-  .hjem-topbar-btns { display: flex; align-items: center; gap: 6px; }
+  .hjem-topbar-btns { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
   .hjem-refresh-btn {
     background: var(--hj-card2); color: var(--hj-ink); border: 1px solid var(--hj-line);
     border-radius: 50%; width: 30px; height: 30px; font-size: 15px; line-height: 1; cursor: pointer;
@@ -1668,7 +1673,6 @@ TEMPLATE = r"""<!DOCTYPE html>
     <button data-tab="handleliste">Handleliste</button>
     <button data-tab="rapport">Rapport</button>
     <button data-tab="statistikk">Statistikk</button>
-    <button data-tab="innstillinger">Innstillinger</button>
   </nav>
 
   <div class="rest-bubble" id="rest-bubble">
@@ -1692,12 +1696,12 @@ TEMPLATE = r"""<!DOCTYPE html>
   <div class="tab-panel" data-tab="hjem">
   <div class="hjem-dash" id="hjem-dash">
     <div class="hjem-topbar">
+      <div class="hjem-why" id="hjem-why"></div>
       <div class="hjem-topbar-btns">
         <button class="hjem-refresh-btn" id="hjem-refresh-btn" title="Oppdater">⟳</button>
         <button class="hjem-badday-toggle" id="hjem-badday-toggle">🌱 Minimumsdag</button>
       </div>
     </div>
-    <div class="hjem-why" id="hjem-why"></div>
 
     <div id="hjem-reminder"></div>
     <div id="hjem-unplanned-cardio"></div>
@@ -2123,7 +2127,9 @@ TEMPLATE = r"""<!DOCTYPE html>
   </div>
   <div id="overwhelm-out"></div>
 
-  <footer id="footer"></footer>
+  <footer id="footer">
+    <button id="footer-settings-link">⚙️ Innstillinger</button>
+  </footer>
 </div>
 
 <div class="quicklog-drawer" id="quicklog-drawer">
@@ -2360,6 +2366,10 @@ document.querySelectorAll("#tab-nav button").forEach(btn => {
 const rememberedTab = localStorage.getItem(ACTIVE_TAB_KEY);
 const validTabs = Array.from(document.querySelectorAll(".tab-panel")).map(p => p.dataset.tab);
 showTab(validTabs.includes(rememberedTab) ? rememberedTab : "hjem");
+document.getElementById("footer-settings-link").addEventListener("click", () => {
+  showTab("innstillinger");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
 
 // ---------------------------------------------------------------- training plan
 const PLAN_OVERRIDES_KEY = "garminDashboardPlanOverrides_v1";
