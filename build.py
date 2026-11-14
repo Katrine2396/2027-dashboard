@@ -1929,7 +1929,8 @@ TEMPLATE = r"""<!DOCTYPE html>
   <div class="tab-panel" data-tab="budsjett">
   <section>
     <h2>Budsjett</h2>
-    <div class="section-sub">Alle transaksjoner logges manuelt, for full oversikt per kategori</div>
+    <div class="section-sub">Faste utgifter logges automatisk hver økonomimåned - variable utgifter logger du selv</div>
+    <div id="fixed-autolog-banner"></div>
     <div class="card">
       <div class="month-nav">
         <button class="btn ghost small" id="em-prev">‹</button>
@@ -3493,6 +3494,51 @@ function categoryOptionsHtml(cfg) {
 function loadTransactions() { return loadLS(TX_KEY, []); }
 function saveTransactions(t) { saveLS(TX_KEY, t); }
 
+// Logs each fixed category's cap amount as a transaction once per economic month (16th-15th),
+// so "Brukt denne måneden" reflects reality without her re-typing husleie/strøm/etc. every month.
+// Skips a category that already has a logged transaction that month, so it never double-counts
+// a bill she happened to log herself before this ran.
+const FIXED_AUTOLOG_KEY = "garminDashboardFixedAutolog_v1";
+function autoLogFixedExpenses() {
+  const emKey = emKeyForDate(todayISO());
+  if (loadLS(FIXED_AUTOLOG_KEY, "") === emKey) return [];
+  const cfg = loadBudgetConfig();
+  const start = emStart(emKey), end = emEnd(emKey);
+  const tx = loadTransactions();
+  const added = [];
+  cfg.categories.filter(c => c.type === "fixed").forEach(c => {
+    const already = tx.some(t => t.category === c.key && t.date >= start && t.date <= end);
+    if (already) return;
+    const amount = getCategoryCap(c, emKey);
+    if (!amount) return;
+    const entry = { id: "autofix-" + c.key + "-" + emKey, date: start, amount, category: c.key, name: c.label, autoLogged: true };
+    tx.push(entry);
+    added.push(entry);
+  });
+  saveTransactions(tx);
+  saveLS(FIXED_AUTOLOG_KEY, emKey);
+  return added;
+}
+const autoLoggedFixedThisLoad = autoLogFixedExpenses();
+function renderFixedAutologBanner() {
+  const el = document.getElementById("fixed-autolog-banner");
+  if (!el) return;
+  if (!autoLoggedFixedThisLoad.length) { el.innerHTML = ""; return; }
+  const total = autoLoggedFixedThisLoad.reduce((s, t) => s + t.amount, 0);
+  const items = autoLoggedFixedThisLoad.map(t => `${t.name} (${t.amount.toLocaleString()} kr)`).join(", ");
+  el.innerHTML = `
+    <div class="missed-day-box">
+      🔁 Faste utgifter for ${emLabel(emKeyForDate(todayISO()))} er lagt til automatisk: ${items} - ${total.toLocaleString()} kr totalt.
+      Avviker noe denne måneden? Juster eller fjern enkeltposter i listen under.
+      <div class="missed-day-actions">
+        <button class="btn ghost small" id="fixed-autolog-dismiss">Skjul</button>
+      </div>
+    </div>
+  `;
+  document.getElementById("fixed-autolog-dismiss").addEventListener("click", () => { el.innerHTML = ""; });
+}
+renderFixedAutologBanner();
+
 function fundBalance() {
   const tx = loadTransactions();
   const fundKey = DATA.dogFund.category;
@@ -4085,7 +4131,7 @@ function renderTxList() {
   const start = emStart(currentEconMonth), end = emEnd(currentEconMonth);
   const tx = loadTransactions().filter(t => t.date >= start && t.date <= end).sort((a, b) => b.date.localeCompare(a.date));
   document.getElementById("tx-list").innerHTML = tx.map(t => `
-    <li data-id="${t.id}"><span>${fmtShort(t.date)} · ${catLabel(t.category)} · ${t.name || ""}</span>
+    <li data-id="${t.id}"><span>${fmtShort(t.date)} · ${catLabel(t.category)} · ${t.name || ""}${t.autoLogged ? " 🔁" : ""}</span>
       <b>${t.amount} kr</b>
       <button data-tx-remove="${t.id}" style="background:none;border:none;color:var(--muted);cursor:pointer;">✕</button>
     </li>`).join("") || `<li style="border-top:none;color:var(--muted);">Ingen transaksjoner denne økonomimåneden</li>`;
@@ -5941,7 +5987,7 @@ const BACKUP_KEYS = [
   FORGOTTEN_SAVINGS_KEY, BADDAY_LOG_KEY, EXTRAS_KEY, WATER_KEY, STREAK_BEST_KEY,
   SETTINGS_KEY, WHY_KEY, VACATION_KEY, CUSTOM_MEALS_KEY, MEAL_LOG_KEY, INVEST_FUND_KEY,
   SAVINGS_GOALS_KEY, CUSTOM_INGREDIENTS_KEY, MEAL_ING_OVERRIDES_KEY, MISSED_DAY_ACK_KEY, RPE_LOG_KEY,
-  UNPLANNED_CARDIO_ACK_KEY,
+  UNPLANNED_CARDIO_ACK_KEY, FIXED_AUTOLOG_KEY,
 ];
 window.BACKUP_KEYS = BACKUP_KEYS;
 
