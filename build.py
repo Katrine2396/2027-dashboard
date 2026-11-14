@@ -1675,6 +1675,8 @@ TEMPLATE = r"""<!DOCTYPE html>
 
     <div id="hjem-reminder"></div>
     <div id="hjem-unplanned-cardio"></div>
+    <div id="hjem-weight-reminder"></div>
+    <div id="hjem-backup-reminder"></div>
 
     <div class="hjem-main-grid">
       <div class="hjem-rail">
@@ -2478,6 +2480,70 @@ function renderHjemUnplannedCardio() {
   document.getElementById("hjem-unplanned-cardio-dismiss").addEventListener("click", () => {
     ackUnplannedCardio(ackId);
     renderHjemUnplannedCardio();
+  });
+}
+
+function daysSinceDate(dateStr) {
+  if (!dateStr) return null;
+  return Math.round((new Date(todayISO() + "T00:00:00") - new Date(dateStr + "T00:00:00")) / 86400000);
+}
+
+// ---- weight/measurement logging reminder (points reward weekly weigh-ins and monthly
+// measurements, but nothing used to nudge her to actually do them) ----
+function renderHjemWeightReminder() {
+  const el = document.getElementById("hjem-weight-reminder");
+  if (!el) return;
+  if (!loadSettings().personalityEnabled || isVacationActive()) { el.innerHTML = ""; return; }
+
+  const weightLog = loadWeightLog().sort((a, b) => a.date.localeCompare(b.date));
+  const measureLog = loadMeasureLog().sort((a, b) => a.date.localeCompare(b.date));
+  const weightDays = weightLog.length ? daysSinceDate(weightLog[weightLog.length - 1].date) : null;
+  const measureDays = measureLog.length ? daysSinceDate(measureLog[measureLog.length - 1].date) : null;
+
+  const msgs = [];
+  if (weightDays == null || weightDays >= 10) {
+    msgs.push({ text: weightDays == null ? "Du har ikke registrert vekt ennå" : `Du har ikke veid deg på ${weightDays} dager`, target: "weight-date" });
+  }
+  if (measureDays == null || measureDays >= 35) {
+    msgs.push({ text: measureDays == null ? "Du har ikke tatt mål ennå" : `Du har ikke tatt mål på ${measureDays} dager`, target: "measure-date" });
+  }
+  if (!msgs.length) { el.innerHTML = ""; return; }
+
+  el.innerHTML = `
+    <div class="hjem-reminder-banner">
+      <span>⚖️ ${msgs.map(m => m.text).join(" · ")}</span>
+      <button id="hjem-weight-reminder-link">Logg nå</button>
+    </div>
+  `;
+  document.getElementById("hjem-weight-reminder-link").addEventListener("click", () => {
+    showTab("fremgang");
+    setTimeout(() => {
+      const target = document.getElementById(msgs[0].target);
+      if (target) target.scrollIntoView({ behavior: "smooth" });
+    }, 50);
+  });
+}
+
+// ---- backup reminder (all data lives only in this browser's localStorage, so a stale or
+// missing backup means a lost phone/cleared browser data loses everything) ----
+const LAST_BACKUP_KEY = "garminDashboardLastBackup_v1";
+function renderHjemBackupReminder() {
+  const el = document.getElementById("hjem-backup-reminder");
+  if (!el) return;
+  const days = daysSinceDate(loadLS(LAST_BACKUP_KEY, null));
+  if (days != null && days < 30) { el.innerHTML = ""; return; }
+  el.innerHTML = `
+    <div class="hjem-reminder-banner">
+      <span>💾 ${days == null ? "Du har aldri lastet ned en sikkerhetskopi" : `Sist sikkerhetskopiert for ${days} dager siden`}. All data ligger bare i denne nettleseren.</span>
+      <button id="hjem-backup-reminder-link">Gå til Innstillinger</button>
+    </div>
+  `;
+  document.getElementById("hjem-backup-reminder-link").addEventListener("click", () => {
+    showTab("innstillinger");
+    setTimeout(() => {
+      const target = document.getElementById("backup-card");
+      if (target) target.scrollIntoView({ behavior: "smooth" });
+    }, 50);
   });
 }
 
@@ -5413,6 +5479,8 @@ function renderHjem() {
   renderHjemWhy();
   renderHjemReminder();
   renderHjemUnplannedCardio();
+  renderHjemWeightReminder();
+  renderHjemBackupReminder();
   renderHjemSession();
   renderHjemKcalRing();
   renderHjemTodayTx();
@@ -6002,6 +6070,7 @@ document.getElementById("sync-logout-btn").addEventListener("click", () => {
 });
 
 document.getElementById("backup-export").addEventListener("click", () => {
+  saveLS(LAST_BACKUP_KEY, todayISO());
   const dump = {};
   BACKUP_KEYS.forEach(k => {
     const v = localStorage.getItem(k);
@@ -6014,6 +6083,7 @@ document.getElementById("backup-export").addEventListener("click", () => {
   a.download = `dashboard-backup-${todayISO()}.json`;
   a.click();
   URL.revokeObjectURL(url);
+  renderHjemBackupReminder();
 });
 
 document.getElementById("backup-import-btn").addEventListener("click", () => {
