@@ -2893,20 +2893,15 @@ function effectiveMealOption(type, optIdx, opt, date) {
   return { name: opt.name, kcal: Math.round(kcal), protein: Math.round(protein), effectiveItems };
 }
 
-// totals actually eaten on a given date: breakfast (the standard one, unless a different
-// breakfast option was marked eaten that day, or its ingredients were swapped for the day)
-// + whichever lunch/snack/dinner options were marked eaten that day + anything logged as an "extra"
+// totals actually eaten on a given date: only meals explicitly logged that day
+// (breakfast included - nothing is assumed eaten until you log it) + anything logged as an "extra"
 function dayNutritionTotals(date) {
-  const n = DATA.nutritionPlan;
   const meals = loadMealLog().filter(m => m.date === date);
   const extrasForDay = loadExtras().filter(e => e.date === date);
   const extrasTotal = extrasForDay.reduce((s, e) => s + (e.kcal || 0), 0);
-  const loggedBreakfast = meals.find(m => m.type === "breakfast");
-  const breakfast = loggedBreakfast || effectiveMealOption("breakfast", 0, n.breakfast.options[0], date);
-  const otherMeals = meals.filter(m => m.type !== "breakfast");
   return {
-    kcal: breakfast.kcal + otherMeals.reduce((s, m) => s + (m.kcal || 0), 0) + extrasTotal,
-    protein: breakfast.protein + otherMeals.reduce((s, m) => s + (m.protein || 0), 0),
+    kcal: meals.reduce((s, m) => s + (m.kcal || 0), 0) + extrasTotal,
+    protein: meals.reduce((s, m) => s + (m.protein || 0), 0),
     mealsLogged: meals,
     extras: extrasForDay,
   };
@@ -3014,7 +3009,6 @@ function renderNutrition() {
       ${repeatHtml}
       ${group.options.map((o, idx) => mealOptionHtml(effectiveMealOption(key, idx, o, today), null, { type: key, idx, eaten: isMealEatenToday(key, o.name) }, { type: key, optIdx: idx })).join("")}
       ${customOpts.map((o, i) => mealOptionHtml(effectiveMealOption(key, group.options.length + i, o, today), o.id, { type: key, idx: group.options.length + i, eaten: isMealEatenToday(key, o.name) }, null)).join("")}
-      ${key === "breakfast" ? `<div class="section-sub" style="margin:4px 0 10px;">Standardfrokosten over telles automatisk hver dag, med mindre du merker en annen frokost som spist i dag.</div>` : ""}
       <div class="log-form meal-add-form">
         <input type="text" id="meal-add-name-${key}" placeholder="Eget forslag - navn">
         <input type="number" step="10" id="meal-add-kcal-${key}" placeholder="kcal">
