@@ -6782,6 +6782,15 @@ function renderDebugPage() {
     lastSyncedAt = user ? loadLastSyncedAt(user.uid) : 0;
     window.__onAuthStateChanged(user);
   });
+
+  // A tab left open for hours (e.g. on a laptop) otherwise never learns about edits made
+  // elsewhere until she reloads it or hits "Synk nå" - so every unrelated save on it kept
+  // re-pushing its own stale snapshot and clobbering newer edits from another device. This
+  // periodically pulls in the background to catch up before that can happen. Skipped while
+  // the tab is focused, so it never yanks a reload out from under her mid-edit.
+  setInterval(() => {
+    if (currentUser && !document.hasFocus()) pullIfNewer();
+  }, 60000);
 </script>
 </body>
 </html>
