@@ -1839,7 +1839,7 @@ TEMPLATE = r"""<!DOCTYPE html>
 
     <div class="fremgang-section card">
       <h3>⚖️ Kropp &amp; mål</h3>
-      <div class="section-sub">Vekt (glattet 7-dagers snitt) sammen med et kroppsmål, i samme tidslinje</div>
+      <div class="section-sub">Vekt og et kroppsmål vist som % endring fra start av perioden, så de to kan sammenlignes direkte</div>
       <div class="weight-goal-row">Målvekt: <input type="number" step="0.5" id="weight-goal-input"> kg <button class="btn ghost small" id="weight-goal-save">Lagre</button></div>
       <div class="period-tabs" id="body-period-tabs">
         <button class="period-btn" data-period="1">1 mnd</button>
@@ -3894,7 +3894,7 @@ function renderWeightChart(svgId, tooltipId) {
   if (log.length < 2) { svg.innerHTML = ""; return; }
 
   const avgSeries = weightRollingAvgSeries(log);
-  const w = 480, h = 180, padLeft = 36, padBottom = 20, padTop = 10, padRight = 10;
+  const w = 480, h = 130, padLeft = 36, padBottom = 20, padTop = 10, padRight = 10;
   svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
   svg.innerHTML = "";
   const plotW = w - padLeft - padRight;
@@ -4606,7 +4606,7 @@ function renderWeeklySport() {
 
   const visibleSports = sports.filter(sp => !hiddenSports.has(sp));
 
-  const w = 1000, h = 260, padLeft = 40, padBottom = 24, padTop = 10;
+  const w = 1000, h = 190, padLeft = 40, padBottom = 24, padTop = 10;
   svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
   svg.innerHTML = "";
   const plotW = w - padLeft - 10;
@@ -4662,7 +4662,7 @@ function renderLineChart(svgId, ttId, weeks, values, color, unit) {
   const tooltip = document.getElementById(ttId);
   if (!weeks || !weeks.length) { svg.outerHTML = '<div style="color:#8a8580;font-size:13px;">Ingen data ennå</div>'; return; }
 
-  const w = 480, h = 180, padLeft = 36, padBottom = 20, padTop = 10, padRight = 10;
+  const w = 480, h = 130, padLeft = 36, padBottom = 20, padTop = 10, padRight = 10;
   svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
   const plotW = w - padLeft - padRight;
   const plotH = h - padBottom - padTop;
@@ -4724,7 +4724,7 @@ function renderSimpleBarChart(svgId, ttId, labels, values, color, unit) {
   const tooltip = document.getElementById(ttId);
   if (!labels || !labels.length) { svg.outerHTML = '<div style="color:#8a8580;font-size:13px;">Ingen data ennå</div>'; return; }
 
-  const w = 480, h = 180, padLeft = 36, padBottom = 20, padTop = 10, padRight = 10;
+  const w = 480, h = 130, padLeft = 36, padBottom = 20, padTop = 10, padRight = 10;
   svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
   const plotW = w - padLeft - padRight;
   const plotH = h - padBottom - padTop;
@@ -4797,7 +4797,7 @@ function renderTrendChart(svgId, ttId, labels, series, opts) {
   if (tooltip) tooltip.classList.add("ml");
 
   const hasRight = series.some(s => s.axis === "right");
-  const w = 480, h = 190, padLeft = 38, padRight = hasRight ? 38 : 12, padTop = 14, padBottom = 22;
+  const w = 480, h = 140, padLeft = 38, padRight = hasRight ? 38 : 12, padTop = 14, padBottom = 22;
   svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
   svg.innerHTML = "";
   const plotW = w - padLeft - padRight, plotH = h - padTop - padBottom;
@@ -4996,10 +4996,19 @@ function renderBodyGoalChart() {
   const measureVals = allDates.map(d => (measureByDate[d] != null ? measureByDate[d] : null));
   const measureLabel = BODY_MEASURE_LABELS[bodyChartMeasure];
 
+  // Vekt (kg) og mål (cm) har helt ulike skalaer - å plotte dem på separate venstre/høyre-akser
+  // kan se ut som de følger hverandre (eller ikke) rent tilfeldig, avhengig av akse-skalering.
+  // Viser i stedet begge som % endring fra periodens start, på samme akse - da er det faktisk
+  // riktig å sammenligne linjene direkte.
+  const pctChangeSeries = vals => {
+    const base = vals.find(v => v != null);
+    if (base == null) return vals.map(() => null);
+    return vals.map(v => (v == null ? null : Math.round(((v - base) / base) * 1000) / 10));
+  };
   renderTrendChart("chart-body", "tt-body", allDates, [
-    { name: "Vekt", color: "#7a1f3d", values: weightVals, unit: "kg", axis: "left" },
-    { name: measureLabel, color: "#a46cc0", values: measureVals, unit: "cm", axis: "right" },
-  ], { legendId: "legend-body", leftDecimals: 1, rightDecimals: 1 });
+    { name: "Vekt", color: "#7a1f3d", values: pctChangeSeries(weightVals), unit: "%" },
+    { name: measureLabel, color: "#a46cc0", values: pctChangeSeries(measureVals), unit: "%" },
+  ], { legendId: "legend-body", leftDecimals: 1 });
 
   const note = document.getElementById("body-context-note");
   if (!note) return;
