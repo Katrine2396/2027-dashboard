@@ -1331,8 +1331,14 @@ TEMPLATE = r"""<!DOCTYPE html>
   .tab-panel { display: none; }
   .tab-panel.active { display: block; }
 
-  .quiet-actions { display: flex; gap: 8px; margin: 14px 0 0; }
-  .overwhelm-btn, .badday-btn { flex: 1; margin: 0; }
+  .quiet-actions-bottom {
+    display: flex; gap: 8px; justify-content: center; margin: 40px 0 16px; padding-top: 16px;
+    border-top: 1px solid var(--line);
+  }
+  .quiet-actions-bottom .overwhelm-btn, .quiet-actions-bottom .badday-btn {
+    flex: 0 1 auto; margin: 0; font-size: 12px; padding: 7px 14px; min-height: 0;
+    color: var(--muted); border-color: var(--line);
+  }
   .overwhelm-box {
     background: var(--card); border: 1px solid var(--line); border-radius: 14px;
     padding: 16px; margin-top: 10px; line-height: 1.6; font-size: 14px;
@@ -1616,12 +1622,6 @@ TEMPLATE = r"""<!DOCTYPE html>
     <button data-tab="statistikk">Statistikk</button>
     <button data-tab="innstillinger">Innstillinger</button>
   </nav>
-
-  <div class="quiet-actions">
-    <button class="btn ghost overwhelm-btn" id="overwhelm-btn">🫧 Jeg er overveldet</button>
-    <button class="btn ghost badday-btn" id="badday-btn">🌧️ Dårlig dag</button>
-  </div>
-  <div id="overwhelm-out"></div>
 
   <div class="rest-bubble" id="rest-bubble">
     <div class="rt-bubble-label" id="rt-bubble-label">Hvile</div>
@@ -2048,6 +2048,12 @@ TEMPLATE = r"""<!DOCTYPE html>
     </div>
   </section>
   </div>
+
+  <div class="quiet-actions-bottom">
+    <button class="btn ghost overwhelm-btn" id="overwhelm-btn">🫧 Jeg er overveldet</button>
+    <button class="btn ghost badday-btn" id="badday-btn">🌧️ Dårlig dag</button>
+  </div>
+  <div id="overwhelm-out"></div>
 
   <footer id="footer"></footer>
 </div>
