@@ -245,6 +245,7 @@ BUDGET_DEFAULTS = {
         {"key": "klaer_velvare", "label": "Klær og velvære", "type": "variable", "icon": "👗", "cap": 700},
         {"key": "fritid_sosialt", "label": "Fritid og sosialt", "type": "variable", "icon": "🎉", "cap": 800},
         {"key": "gaver", "label": "Gaver", "type": "variable", "icon": "🎁", "cap": 500},
+        {"key": "snus", "label": "Snus", "type": "variable", "icon": "🚬", "cap": 500},
         {"key": "annet", "label": "Annet", "type": "variable", "icon": "📦", "cap": 500},
         # sparing (egne linjer, men regnes som variable utgifter)
         {"key": "hundefond", "label": "Sparing: Hund", "type": "variable", "savings": True, "icon": "🐶", "cap": 1000},
