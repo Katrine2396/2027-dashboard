@@ -238,6 +238,16 @@ def pull_snapshots():
             save_json("hr_zones.json", zones)
     except RuntimeError as e:
         print(f"  HR zones unavailable: {e}")
+    time.sleep(PAUSE)
+    # Garmin's own Training Status (Productive/Peaking/Recovery/etc.) + VO2 max - this is an
+    # unofficial, community-reverse-engineered endpoint (not documented by Garmin), so it may
+    # not work or may change shape without notice. Fails soft like the two calls above.
+    try:
+        ts = api_get(f"/metrics-service/metrics/trainingstatus/aggregated/{today}")
+        if ts:
+            save_json("training_status.json", {"date": today, "data": ts})
+    except RuntimeError as e:
+        print(f"  training status unavailable: {e}")
     print("  done")
 
 

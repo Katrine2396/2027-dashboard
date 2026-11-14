@@ -337,6 +337,46 @@ def safe_round(x, n=0):
     return round(x, n) if n else int(round(x))
 
 
+TRAINING_STATUS_LABELS_NO = {
+    0: "Ingen status", 1: "Detrening", 2: "Restitusjon", 3: "Vedlikeholder",
+    4: "Produktiv", 5: "Peaking", 6: "Overreaching", 7: "Uproduktiv",
+}
+
+
+def parse_training_status():
+    """Garmin's own Training Status + VO2 max, from an unofficial endpoint whose exact
+    response shape isn't documented - walked defensively so a shape mismatch or missing
+    file just means nothing is shown, not a build failure."""
+    raw = load_json("training_status.json", None)
+    if not raw or not raw.get("data"):
+        return None
+    try:
+        date_entry = next(iter(raw["data"].values()), None)
+        if not date_entry:
+            return None
+        mr_status = date_entry.get("mostRecentTrainingStatus") or {}
+        latest_by_device = mr_status.get("latestTrainingStatusData") or {}
+        device_entry = next(iter(latest_by_device.values()), None) or {}
+        status_code = device_entry.get("trainingStatus")
+        status_label = TRAINING_STATUS_LABELS_NO.get(status_code)
+        acute = device_entry.get("acuteTrainingLoadDTO") or {}
+        load_ratio = acute.get("dailyAcuteChronicWorkloadRatio")
+        mr_vo2 = date_entry.get("mostRecentVO2Max") or {}
+        vo2_generic = mr_vo2.get("generic") or {}
+        vo2max = vo2_generic.get("vo2MaxPreciseValue")
+        if vo2max is None:
+            vo2max = vo2_generic.get("vo2MaxValue")
+        if status_label is None and vo2max is None:
+            return None
+        return {
+            "statusLabel": status_label,
+            "loadRatio": safe_round(load_ratio, 2) if load_ratio is not None else None,
+            "vo2Max": safe_round(vo2max, 1) if vo2max is not None else None,
+        }
+    except (AttributeError, TypeError):
+        return None
+
+
 def main():
     activities = load_json("activities.json", [])
     daily = load_json("daily_summaries.json", {})
@@ -854,6 +894,7 @@ def main():
         "sportOrder": SPORT_ORDER,
         "budgetDefaults": BUDGET_DEFAULTS,
         "dogFund": DOG_FUND,
+        "trainingStatus": parse_training_status(),
         "activeCalGoalDefault": ACTIVE_CAL_GOAL_DEFAULT,
         "pointsConfig": POINTS_CONFIG,
         "trainingHistory": training_history,
@@ -2027,6 +2068,12 @@ TEMPLATE = r"""<!DOCTYPE html>
   </div>
 
   <div class="tab-panel" data-tab="statistikk">
+  <section id="training-status-section" style="display:none;">
+    <h2>Garmins treningsstatus</h2>
+    <div class="section-sub">Garmins egen vurdering, hentet direkte fra kontoen din</div>
+    <div class="card" id="training-status-card"></div>
+  </section>
+
   <section>
     <h2>Denne uken vs. nylige uker</h2>
     <div class="section-sub">Økter, tid og distanse per idrett, siste 10 uker</div>
@@ -4665,6 +4712,20 @@ function renderWeeklySport() {
   });
 }
 renderWeeklySport();
+
+(function renderTrainingStatus() {
+  const section = document.getElementById("training-status-section");
+  const card = document.getElementById("training-status-card");
+  const ts = DATA.trainingStatus;
+  if (!section || !card || !ts) return; // intet funnet (eller ikke hentet ennå) - skjul seksjonen
+  const rows = [];
+  if (ts.statusLabel) rows.push(`<div class="snapshot-chip">Status<b>${ts.statusLabel}</b></div>`);
+  if (ts.vo2Max != null) rows.push(`<div class="snapshot-chip">VO2 Max<b>${ts.vo2Max}</b></div>`);
+  if (ts.loadRatio != null) rows.push(`<div class="snapshot-chip">Belastningsforhold<b>${ts.loadRatio}</b></div>`);
+  if (!rows.length) return;
+  card.innerHTML = `<div class="snapshot-row">${rows.join("")}</div>`;
+  section.style.display = "";
+})();
 
 // ---------------------------------------------------------------- line charts
 function renderLineChart(svgId, ttId, weeks, values, color, unit) {
