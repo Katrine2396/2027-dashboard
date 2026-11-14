@@ -5672,6 +5672,7 @@ function renderHjemFinance() {
   const pct = variableBudget ? Math.min(100, Math.round(100 * variableSpent / variableBudget)) : 0;
   const over = variableSpent > variableBudget;
   const savingsPct = savingsBudget ? Math.min(100, Math.round(100 * savingsSpent / savingsBudget)) : 0;
+  const sparekrukkeBalance = savingsBalance(SPAREKRUKKE_KEY);
 
   el.innerHTML = `
     <div class="hjem-finance-row">
@@ -5681,6 +5682,10 @@ function renderHjemFinance() {
     <div class="hjem-finance-row">
       <div class="hf-label"><span>Satt av til sparing</span><span>${savingsSpent.toLocaleString()} / ${savingsBudget.toLocaleString()} kr</span></div>
       <div class="hjem-finance-bar"><div class="savings" style="width:${savingsPct}%"></div></div>
+    </div>
+    <div class="hjem-finance-row">
+      <div class="hf-label"><span>🫙 Sparekrukka - saldo</span></div>
+      <div class="hf-val">${Math.round(sparekrukkeBalance).toLocaleString()} kr</div>
     </div>
     <button class="hjem-tx-nudge" id="hjem-finance-expense-btn">+ Logg utgift</button>
   `;
