@@ -250,6 +250,7 @@ BUDGET_DEFAULTS = {
         {"key": "hundefond", "label": "Sparing: Hund", "type": "variable", "savings": True, "icon": "🐶", "cap": 1000},
         {"key": "sparing_pensjon", "label": "Sparing: Pensjon", "type": "variable", "savings": True, "icon": "👵", "cap": 1000},
         {"key": "sparing_hoyrente", "label": "Sparing: Høyrente", "type": "variable", "savings": True, "icon": "💰", "cap": 1000},
+        {"key": "sparekrukke", "label": "Sparekrukka", "type": "variable", "savings": True, "icon": "🫙", "cap": 500},
     ],
 }
 DOG_FUND = {"target": 30000, "startSaved": 5000, "category": "hundefond"}
@@ -1166,6 +1167,7 @@ TEMPLATE = r"""<!DOCTYPE html>
     background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 20px;
     padding: 8px 16px; font-size: 12.5px; font-family: Nunito, sans-serif; cursor: pointer;
   }
+  #footer-generated { margin-top: 10px; }
   .settings-card { margin: 24px 0 0; }
   .settings-toggle-row { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-top: 10px; cursor: pointer; }
   .sync-card { margin: 16px 0 0; }
@@ -1510,6 +1512,7 @@ TEMPLATE = r"""<!DOCTYPE html>
   .hjem-finance-bar { background: var(--hj-line); border-radius: 8px; height: 8px; overflow: hidden; margin-top: 6px; }
   .hjem-finance-bar > div { background: var(--hj-accent); height: 100%; }
   .hjem-finance-bar > div.over { background: #e37878; }
+  .hjem-finance-bar > div.savings { background: #2f8a4e; }
   .hjem-tx-nudge {
     display: block; width: 100%; margin-top: 8px; padding: 9px 12px; border: none; border-radius: 10px;
     background: var(--hj-card2); color: var(--hj-ink); font-family: Nunito, sans-serif; font-size: 12.5px;
@@ -1992,12 +1995,12 @@ TEMPLATE = r"""<!DOCTYPE html>
     <div class="card forgotten-savings-card" id="forgotten-savings-card" style="margin-top:14px;"></div>
     <div class="card" style="margin-top:14px;">
       <h3 style="margin:0 0 4px;font-size:15px;">Kjøpe eller spare?</h3>
-      <div class="section-sub" style="margin-bottom:0;">Var du fristet til å kjøpe noe? Sjekk hva det egentlig koster deg, og spar det i hundefondet i stedet hvis du lar være.</div>
+      <div class="section-sub" style="margin-bottom:0;">Var du fristet til å kjøpe noe - takeaway, godteri, en genser? Sjekk hva det egentlig koster deg, og legg det i Sparekrukka i stedet hvis du lar være.</div>
       <div class="log-form">
         <input type="number" step="1" id="save-amount" placeholder="Beløp (kr)">
         <input type="text" id="save-name" placeholder="Fristet av hva?">
         <button class="btn ghost" id="buy-check">Sjekk</button>
-        <button class="btn" id="save-add">Spar i hundefondet</button>
+        <button class="btn" id="save-add">Legg i Sparekrukka</button>
       </div>
       <div class="buy-check-settings">
         <label>Timelønn (kr)<input type="number" step="10" id="buy-wage" placeholder="f.eks. 250"></label>
@@ -2122,6 +2125,7 @@ TEMPLATE = r"""<!DOCTYPE html>
 
   <footer id="footer">
     <button id="footer-settings-link">⚙️ Innstillinger</button>
+    <div id="footer-generated"></div>
   </footer>
 </div>
 
@@ -4350,19 +4354,21 @@ function renderBudgetSummary() {
   const cfg = loadBudgetConfig();
   const emKey = currentEconMonth;
   const start = emStart(emKey), end = emEnd(emKey);
-  // "Brukt denne måneden" betyr det samme her som på Hjem - kun variable utgifter, siden
-  // faste utgifter er penger hun betaler uansett. "Igjen" trekker likevel fra begge deler,
-  // siden det skal gjenspeile hva hun faktisk har å disponere.
+  // "Brukt på variable utgifter" betyr det samme her som på Hjem - ikke faste utgifter
+  // (penger hun betaler uansett) og ikke sparing (fortsatt hennes, bare lagt til side).
+  // "Igjen" trekker likevel fra alle tre, siden det skal gjenspeile reelt handlingsrom.
   const fixedTotal = cfg.categories.filter(c => c.type === "fixed").reduce((s, c) => s + getCategoryCap(c, emKey), 0);
-  const variableKeys = cfg.categories.filter(c => c.type === "variable").map(c => c.key);
-  const variableSpent = loadTransactions()
-    .filter(t => variableKeys.includes(t.category) && t.date >= start && t.date <= end)
-    .reduce((s, t) => s + t.amount, 0);
+  const variableKeys = cfg.categories.filter(c => c.type === "variable" && !c.savings).map(c => c.key);
+  const savingsKeys = cfg.categories.filter(c => c.savings).map(c => c.key);
+  const tx = loadTransactions().filter(t => t.date >= start && t.date <= end);
+  const variableSpent = tx.filter(t => variableKeys.includes(t.category)).reduce((s, t) => s + t.amount, 0);
+  const savingsSpent = tx.filter(t => savingsKeys.includes(t.category)).reduce((s, t) => s + t.amount, 0);
   document.getElementById("budget-summary").innerHTML = `
     <div class="snapshot-chip">Inntekt<b>${cfg.income.toLocaleString()} kr</b></div>
     <div class="snapshot-chip">Faste utgifter<b>${fixedTotal.toLocaleString()} kr</b></div>
-    <div class="snapshot-chip">Brukt denne måneden<b>${variableSpent.toLocaleString()} kr</b></div>
-    <div class="snapshot-chip">Igjen<b>${(cfg.income - fixedTotal - variableSpent).toLocaleString()} kr</b></div>
+    <div class="snapshot-chip">Brukt på variable utgifter<b>${variableSpent.toLocaleString()} kr</b></div>
+    <div class="snapshot-chip">Satt av til sparing<b>${savingsSpent.toLocaleString()} kr</b></div>
+    <div class="snapshot-chip">Igjen<b>${(cfg.income - fixedTotal - variableSpent - savingsSpent).toLocaleString()} kr</b></div>
   `;
 }
 
@@ -4512,17 +4518,22 @@ document.getElementById("tx-add").addEventListener("click", () => {
   if (roundedUp) renderForgottenSavings(true);
 });
 
-document.getElementById("save-add").addEventListener("click", () => {
-  const amount = parseFloat(document.getElementById("save-amount").value);
-  const name = document.getElementById("save-name").value.trim();
-  if (!amount) return;
+// "Kjøpe eller spare?" - penger hun bevisst lar være å bruke på noe hun var fristet
+// av, og legger i Sparekrukka i stedet (ikke hundefondet - det er et eget, separat mål).
+const SPAREKRUKKE_KEY = "sparekrukke";
+function addToSparekrukke(amount, name) {
   const tx = loadTransactions();
-  tx.push({ id: "save-" + Date.now() + Math.random(), date: todayISO(), amount, category: DATA.dogFund.category, name: name || "Spar i stedet" });
+  tx.push({ id: "save-" + Date.now() + Math.random(), date: todayISO(), amount, category: SPAREKRUKKE_KEY, name: name || "Spar i stedet" });
   saveTransactions(tx);
-  document.getElementById("save-amount").value = "";
   document.getElementById("save-name").value = "";
   document.getElementById("buy-check-out").innerHTML = "";
   renderBudget();
+}
+document.getElementById("save-add").addEventListener("click", () => {
+  const amount = parseFloat(document.getElementById("save-amount").value);
+  if (!amount) return;
+  addToSparekrukke(amount, document.getElementById("save-name").value.trim());
+  document.getElementById("save-amount").value = "";
 });
 
 const wageInput = document.getElementById("buy-wage");
@@ -4538,9 +4549,9 @@ document.getElementById("buy-check").addEventListener("click", () => {
   const amount = parseFloat(document.getElementById("save-amount").value);
   const out = document.getElementById("buy-check-out");
   if (!amount) { out.innerHTML = ""; return; }
-  const remaining = Math.max(0, DATA.dogFund.target - fundBalance());
-  const pctOfFund = Math.min(100, 100 * amount / DATA.dogFund.target);
-  const pctOfRemaining = remaining > 0 ? Math.min(100, 100 * amount / remaining) : 100;
+  const target = savingsTarget(SPAREKRUKKE_KEY);
+  const balance = savingsBalance(SPAREKRUKKE_KEY);
+  const remaining = Math.max(0, target - balance);
   const wage = parseFloat(wageInput.value);
   const rate = parseFloat(rateInput.value);
   const hoursLine = wage ? `<div class="buy-check-box">Det er <b>${(amount / wage).toFixed(1)} timer</b> av arbeidstiden din.</div>` : "";
@@ -4552,19 +4563,15 @@ document.getElementById("buy-check").addEventListener("click", () => {
     }).join("");
     growthHtml = `<div class="section-sub" style="margin:10px 0 0;">Hvis du sparer det i stedet og investerer til ${rate}% årlig avkastning:</div><div class="buy-growth-row">${chips}</div>`;
   }
-  out.innerHTML = `<div class="buy-check-box">${amount.toLocaleString()} kr er <b>${pctOfFund.toFixed(1)}%</b> av hele hundefondmålet${remaining > 0 ? ` - <b>${pctOfRemaining.toFixed(1)}%</b> av det som gjenstår` : ""}.</div>${hoursLine}${growthHtml}`;
+  const fundLine = target
+    ? `<div class="buy-check-box">${amount.toLocaleString()} kr er <b>${(100 * amount / target).toFixed(1)}%</b> av sparemålet for Sparekrukka${remaining > 0 ? ` - <b>${(100 * amount / remaining).toFixed(1)}%</b> av det som gjenstår` : ""}.</div>`
+    : "";
+  out.innerHTML = `${fundLine}${hoursLine}${growthHtml}`;
 });
 
 document.querySelectorAll(".save-presets button[data-preset]").forEach(btn => {
   btn.addEventListener("click", () => {
-    const amount = parseFloat(btn.dataset.preset);
-    const name = document.getElementById("save-name").value.trim();
-    const tx = loadTransactions();
-    tx.push({ id: "save-" + Date.now() + Math.random(), date: todayISO(), amount, category: DATA.dogFund.category, name: name || "Spar i stedet" });
-    saveTransactions(tx);
-    document.getElementById("save-name").value = "";
-    document.getElementById("buy-check-out").innerHTML = "";
-    renderBudget();
+    addToSparekrukke(parseFloat(btn.dataset.preset), document.getElementById("save-name").value.trim());
   });
 });
 
@@ -5649,21 +5656,30 @@ function renderHjemFinance() {
   const cfg = loadBudgetConfig();
   const emKey = emKeyForDate(todayISO());
   // faste utgifter (husleie, strøm, osv.) er penger hun betaler uansett - de skal ikke
-  // telle som "brukt" her, bare det hun faktisk velger å bruke på variable ting
-  const variableCats = cfg.categories.filter(c => c.type === "variable");
+  // telle som "brukt" her. Variable utgifter og sparing vises separat, siden penger satt
+  // av til sparing fortsatt er hennes, bare lagt til side - ikke forbrukt på samme måte.
+  const variableCats = cfg.categories.filter(c => c.type === "variable" && !c.savings);
+  const savingsCats = cfg.categories.filter(c => c.savings);
   const variableKeys = variableCats.map(c => c.key);
-  const totalBudget = variableCats.reduce((s, c) => s + getCategoryCap(c, emKey), 0);
+  const savingsKeys = savingsCats.map(c => c.key);
+  const variableBudget = variableCats.reduce((s, c) => s + getCategoryCap(c, emKey), 0);
+  const savingsBudget = savingsCats.reduce((s, c) => s + getCategoryCap(c, emKey), 0);
   const start = emStart(emKey), end = emEnd(emKey);
-  const spent = loadTransactions()
-    .filter(t => variableKeys.includes(t.category) && t.date >= start && t.date <= end)
-    .reduce((s, t) => s + t.amount, 0);
-  const pct = totalBudget ? Math.min(100, Math.round(100 * spent / totalBudget)) : 0;
-  const over = spent > totalBudget;
+  const tx = loadTransactions().filter(t => t.date >= start && t.date <= end);
+  const variableSpent = tx.filter(t => variableKeys.includes(t.category)).reduce((s, t) => s + t.amount, 0);
+  const savingsSpent = tx.filter(t => savingsKeys.includes(t.category)).reduce((s, t) => s + t.amount, 0);
+  const pct = variableBudget ? Math.min(100, Math.round(100 * variableSpent / variableBudget)) : 0;
+  const over = variableSpent > variableBudget;
+  const savingsPct = savingsBudget ? Math.min(100, Math.round(100 * savingsSpent / savingsBudget)) : 0;
 
   el.innerHTML = `
     <div class="hjem-finance-row">
-      <div class="hf-label"><span>Brukt denne måneden</span><span>${spent.toLocaleString()} / ${totalBudget.toLocaleString()} kr</span></div>
+      <div class="hf-label"><span>Brukt på variable utgifter</span><span>${variableSpent.toLocaleString()} / ${variableBudget.toLocaleString()} kr</span></div>
       <div class="hjem-finance-bar"><div class="${over ? "over" : ""}" style="width:${pct}%"></div></div>
+    </div>
+    <div class="hjem-finance-row">
+      <div class="hf-label"><span>Satt av til sparing</span><span>${savingsSpent.toLocaleString()} / ${savingsBudget.toLocaleString()} kr</span></div>
+      <div class="hjem-finance-bar"><div class="savings" style="width:${savingsPct}%"></div></div>
     </div>
     <button class="hjem-tx-nudge" id="hjem-finance-expense-btn">+ Logg utgift</button>
   `;
@@ -6408,7 +6424,7 @@ document.getElementById("backup-import-file").addEventListener("change", (e) => 
   reader.readAsText(file);
 });
 
-document.getElementById("footer").textContent = `Generated ${new Date(DATA.meta.generated).toLocaleString()}`;
+document.getElementById("footer-generated").textContent = `Generated ${new Date(DATA.meta.generated).toLocaleString()}`;
 
 // ---------------------------------------------------------------- hidden debug page
 // Not linked anywhere in the UI - visit dashboard.html#debug (after unlocking the gate)
