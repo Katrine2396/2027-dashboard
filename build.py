@@ -1214,8 +1214,13 @@ TEMPLATE = r"""<!DOCTYPE html>
   .btn.small { padding: 6px 12px; font-size: 12px; min-height: 0; }
   .btn-big { width: 100%; padding: 15px; font-size: 16px; margin-top: 2px; }
   .log-list { list-style: none; padding: 0; margin: 10px 0 0; font-size: 13px; }
-  .log-list li { display: flex; justify-content: space-between; padding: 6px 0; border-top: 1px solid var(--line); color: var(--muted); }
+  .log-list li { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); color: var(--muted); }
   .log-list li b { color: var(--ink); }
+  .log-remove-btn {
+    background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px;
+    min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center;
+    margin: -11px -10px -11px 0; flex-shrink: 0;
+  }
   .log-delta { font-size: 11px; }
   .log-delta.down { color: #2f8a4e; }
   .log-delta.up { color: var(--accent); }
@@ -1369,6 +1374,7 @@ TEMPLATE = r"""<!DOCTYPE html>
 
   .badday-panel { display: none; max-width: 420px; margin: 24px auto; text-align: center; }
   body.badday-active header,
+  body.badday-active .quicklog-bar,
   body.badday-active .wrap > *:not(.badday-panel) { display: none !important; }
   body.badday-active .badday-panel { display: block; }
   .badday-quickbtns { display: flex; flex-direction: column; gap: 12px; margin: 24px 0; }
@@ -1478,6 +1484,11 @@ TEMPLATE = r"""<!DOCTYPE html>
   .hjem-tx-empty { color: var(--hj-muted); }
   .hjem-tx-total { display: flex; justify-content: space-between; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--hj-line); font-weight: 700; font-size: 13px; }
   .hjem-body-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .hjem-body-group-label {
+    grid-column: 1 / -1; font-size: 10.5px; color: var(--hj-muted); text-transform: uppercase;
+    letter-spacing: .05em; margin: 10px 0 -2px;
+  }
+  .hjem-body-group-label:first-child { margin-top: 0; }
   .hjem-bigstat .hbs-label { font-size: 11px; color: var(--hj-muted); text-transform: uppercase; }
   .hjem-bigstat .hbs-num { font-size: 24px; font-weight: 700; margin: 2px 0 6px; font-family: "Playfair Display", serif; }
   .hjem-bigstat .hbs-bar { background: var(--hj-line); border-radius: 8px; height: 7px; overflow: hidden; }
@@ -1798,7 +1809,6 @@ TEMPLATE = r"""<!DOCTYPE html>
     <h2>Kosthold</h2>
     <div class="section-sub">Faste, enkle alternativer - ingen logging nødvendig</div>
     <div class="kcal-row" id="kcal-row"></div>
-    <div id="meal-plan"></div>
     <div class="card" id="extras-card" style="margin-top:14px;">
       <h3 style="margin:0 0 4px;font-size:15px;">Utenom planen</h3>
       <div class="section-sub" style="margin-bottom:10px;">Spiste eller drakk du noe ekstra - eller en hel lunsj/middag ute? Logg et anslag her, ingen fullstendig matdagbok nødvendig.</div>
@@ -1815,6 +1825,7 @@ TEMPLATE = r"""<!DOCTYPE html>
       <div id="extras-today-total"></div>
       <ul class="log-list" id="extras-list"></ul>
     </div>
+    <div id="meal-plan"></div>
     <div class="card" id="nutrition-coach-card" style="margin-top:14px;"></div>
   </section>
   </div>
@@ -3357,7 +3368,7 @@ function renderExtras() {
     : "";
   document.getElementById("extras-list").innerHTML = todays.map(e => `
     <li data-id="${e.id}"><span>${e.name}${e.kcal ? ` · ${e.kcal} kcal` : ""}</span>
-      <button data-extra-remove="${e.id}" style="background:none;border:none;color:var(--muted);cursor:pointer;">✕</button>
+      <button class="log-remove-btn" data-extra-remove="${e.id}">✕</button>
     </li>`).join("") || `<li style="border-top:none;color:var(--muted);">Ingenting logget i dag</li>`;
 
   document.querySelectorAll("#extras-list button[data-extra-remove]").forEach(btn => {
@@ -3980,8 +3991,21 @@ function renderWeightLog() {
       const d = e.kg - prev.kg;
       delta = `<span class="log-delta ${d <= 0 ? "down" : "up"}">${d > 0 ? "+" : ""}${d.toFixed(1)} kg</span>`;
     }
-    return `<li><span>${fmtShort(e.date)}</span><b>${e.kg} kg</b> ${delta}</li>`;
-  }).join("") || `<li style="border-top:none;color:var(--muted);">Ingen målinger ennå</li>`;
+    return `<li data-date="${e.date}"><span>${fmtShort(e.date)}</span><b>${e.kg} kg</b> ${delta}<button class="log-remove-btn" data-weight-remove="${e.date}">✕</button></li>`;
+  }).join("") || `<li style="border-top:none;color:var(--muted);">Ingen målinger ennå - logg vekten din i dag for å komme i gang 👆</li>`;
+  document.querySelectorAll("#weight-list button[data-weight-remove]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      saveWeightLog(loadWeightLog().filter(e => e.date !== btn.dataset.weightRemove));
+      renderWeightLog();
+      renderWeightTrend();
+      renderWeightChart();
+      renderLevel();
+      renderWeeklySnapshot();
+      renderPlateau();
+      renderBodyGoalChart();
+      renderCalorieCalibration();
+    });
+  });
 }
 document.getElementById("weight-add").addEventListener("click", () => {
   const date = document.getElementById("weight-date").value || todayISO();
@@ -4004,8 +4028,17 @@ document.getElementById("weight-add").addEventListener("click", () => {
 function renderMeasureLog() {
   const log = loadMeasureLog().sort((a, b) => b.date.localeCompare(a.date));
   document.getElementById("measure-list").innerHTML = log.slice(0, 6).map(e =>
-    `<li><span>${fmtShort(e.date)}</span><b>${e.waist ?? "–"} / ${e.hips ?? "–"} / ${e.arm ?? "–"} / ${e.thigh ?? "–"} / ${e.chest ?? "–"} cm</b></li>`
-  ).join("") || `<li style="border-top:none;color:var(--muted);">Ingen mål ennå</li>`;
+    `<li data-date="${e.date}"><span>${fmtShort(e.date)}</span><b>${e.waist ?? "–"} / ${e.hips ?? "–"} / ${e.arm ?? "–"} / ${e.thigh ?? "–"} / ${e.chest ?? "–"} cm</b><button class="log-remove-btn" data-measure-remove="${e.date}">✕</button></li>`
+  ).join("") || `<li style="border-top:none;color:var(--muted);">Ingen mål ennå - ta de første målene dine for å se endring over tid 📏</li>`;
+  document.querySelectorAll("#measure-list button[data-measure-remove]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      saveMeasureLog(loadMeasureLog().filter(e => e.date !== btn.dataset.measureRemove));
+      renderMeasureLog();
+      renderLevel();
+      renderPlateau();
+      renderBodyGoalChart();
+    });
+  });
 }
 document.getElementById("measure-add").addEventListener("click", () => {
   const date = document.getElementById("measure-date").value || todayISO();
@@ -4356,7 +4389,7 @@ function renderTxList() {
   document.getElementById("tx-list").innerHTML = tx.map(t => `
     <li data-id="${t.id}"><span>${fmtShort(t.date)} · ${catLabel(t.category)} · ${t.name || ""}${t.autoLogged ? " 🔁" : ""}</span>
       <b>${t.amount} kr</b>
-      <button data-tx-remove="${t.id}" style="background:none;border:none;color:var(--muted);cursor:pointer;">✕</button>
+      <button class="log-remove-btn" data-tx-remove="${t.id}">✕</button>
     </li>`).join("") || `<li style="border-top:none;color:var(--muted);">Ingen transaksjoner denne økonomimåneden</li>`;
 
   document.querySelectorAll("#tx-list button[data-tx-remove]").forEach(btn => {
@@ -5564,6 +5597,7 @@ function renderHjemBodyToday() {
 
   el.innerHTML = `
     <div class="hjem-body-grid">
+      <div class="hjem-body-group-label">Aktivitet i dag</div>
       <div class="hjem-card hjem-bigstat">
         <div class="hbs-label">Skritt</div>
         <div class="hbs-num">${steps.value != null ? steps.value.toLocaleString() : "–"}</div>
@@ -5574,6 +5608,7 @@ function renderHjemBodyToday() {
         <div class="hbs-num">${activeCal != null ? Math.round(activeCal) : "–"}</div>
         <div class="hbs-bar"><div class="${calPct >= 100 ? "goalmet" : ""}" style="width:${calPct}%"></div></div>
       </div>
+      <div class="hjem-body-group-label">Restitusjon i natt</div>
       <div class="hjem-minirow">
         <div class="hjem-card hjem-minicard">
           <div class="label">Søvn</div>
@@ -5638,7 +5673,28 @@ function renderHjemFinance() {
       <div class="hf-label"><span>Brukt denne måneden</span><span>${spent.toLocaleString()} / ${totalBudget.toLocaleString()} kr</span></div>
       <div class="hjem-finance-bar"><div class="${over ? "over" : ""}" style="width:${pct}%"></div></div>
     </div>
+    <button class="hjem-tx-nudge" id="hjem-finance-expense-btn">+ Logg utgift</button>
   `;
+  document.getElementById("hjem-finance-expense-btn").addEventListener("click", openExpenseDrawer);
+}
+
+function openExpenseDrawer() {
+  const cfg = loadBudgetConfig();
+  openQuicklogDrawer("Logg utgift", `
+    <input type="number" step="1" id="ql-expense-amount" placeholder="Beløp (kr)">
+    <select id="ql-expense-category">${categoryOptionsHtml(cfg)}</select>
+    <input type="text" id="ql-expense-name" placeholder="Hva var det? (valgfritt)">
+    <button class="btn" id="ql-expense-save">Lagre</button>
+  `);
+  document.getElementById("ql-expense-save").addEventListener("click", () => {
+    const amount = parseFloat(document.getElementById("ql-expense-amount").value);
+    if (!amount) return;
+    const category = document.getElementById("ql-expense-category").value;
+    const name = document.getElementById("ql-expense-name").value.trim();
+    addTransactionWithRoundUp(todayISO(), amount, category, name);
+    closeQuicklogDrawer();
+    renderBudget();
+  });
 }
 
 function renderHjemReminder() {
