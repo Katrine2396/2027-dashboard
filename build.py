@@ -914,15 +914,18 @@ TEMPLATE = r"""<!DOCTYPE html>
   header.hero {
     background: linear-gradient(135deg, #7a1f3d 0%, #a8406a 100%);
     color: #fff;
-    padding: calc(14px + env(safe-area-inset-top)) 20px 14px;
+    padding: calc(24px + env(safe-area-inset-top)) 22px 28px;
+    border-radius: 0 0 28px 28px;
   }
-  header.hero .wrap { display: flex; flex-direction: column; gap: 2px; }
-  header.hero .hero-greeting { font-family: "Playfair Display", serif; font-style: italic; font-weight: 700; font-size: 21px; }
-  header.hero .hero-datetime { color: #fbe7ed; font-size: 12.5px; font-weight: 500; }
-  .hero-status-strip { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; }
-  .hss-chip { display: flex; flex-direction: column; gap: 3px; }
-  .hss-main { font-size: 13px; font-weight: 700; color: #fff; white-space: nowrap; }
-  .hss-spark { width: 46px; height: 12px; display: block; color: #f6b8ca; opacity: .85; }
+  header.hero .wrap { display: flex; flex-direction: column; gap: 6px; }
+  header.hero .hero-greeting { font-family: "Playfair Display", serif; font-style: italic; font-weight: 700; font-size: 25px; letter-spacing: .01em; }
+  header.hero .hero-datetime { color: #f2ccda; font-size: 13px; font-weight: 500; letter-spacing: .02em; }
+  .hero-status-strip { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+  .hss-chip { display: flex; flex-direction: column; gap: 7px; padding: 0 18px; }
+  .hss-chip:not(:first-child) { border-left: 1px solid rgba(255, 255, 255, .18); }
+  .hss-chip:first-child { padding-left: 0; }
+  .hss-main { font-size: 14.5px; font-weight: 700; color: #fff; white-space: nowrap; letter-spacing: .01em; }
+  .hss-spark { width: 48px; height: 14px; display: block; color: #f3b9cc; opacity: .8; }
 
   .goal-row {
     display: flex;
