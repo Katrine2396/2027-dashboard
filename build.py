@@ -224,7 +224,7 @@ def _finalize_nutrition_plan(plan, catalog):
 
 NUTRITION_PLAN = _finalize_nutrition_plan(NUTRITION_PLAN, INGREDIENT_CATALOG)
 # ---- budget (starting points - fully editable in the app; income 32k/mnd) ----
-# Økonomimåned: 16.-15. (lønn kommer den 16.). "cap" is the initial budget amount;
+# Økonomimåned: 15.-14. "cap" is the initial budget amount;
 # the app converts this to a capHistory (effective-dated) list on first load so that
 # later edits only affect the economic month they were made in, and onward.
 BUDGET_DEFAULTS = {
@@ -1912,7 +1912,7 @@ TEMPLATE = r"""<!DOCTYPE html>
 
     <div class="fremgang-section card">
       <h3>💰 Variable utgifter</h3>
-      <div class="section-sub">Per økonomimåned (16.–15.), siste 12 måneder - faste utgifter er ikke med, siden de er faste uansett</div>
+      <div class="section-sub">Per økonomimåned (15.–14.), siste 12 måneder - faste utgifter er ikke med, siden de er faste uansett</div>
       <div class="chart-wrap"><svg id="chart-expenses"></svg><div class="tooltip ml" id="tt-expenses"></div></div>
     </div>
 
@@ -3459,12 +3459,12 @@ function isoWeekOf(dateStr) {
 }
 function monthOf(dateStr) { return dateStr.slice(0, 7); }
 
-// ---- økonomimåned: 16. i hver måned til 15. i neste (lønn kommer den 16.) ----
+// ---- økonomimåned: 15. i hver måned til 14. i neste ----
 const NO_MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Des"];
 function emKeyForDate(dateStr) {
   const d = new Date(dateStr + "T00:00:00");
   let y = d.getFullYear(), m = d.getMonth();
-  if (d.getDate() <= 15) { m -= 1; if (m < 0) { m = 11; y -= 1; } }
+  if (d.getDate() <= 14) { m -= 1; if (m < 0) { m = 11; y -= 1; } }
   return `${y}-${String(m + 1).padStart(2, "0")}`;
 }
 function emAddMonths(emKey, delta) {
@@ -3474,12 +3474,12 @@ function emAddMonths(emKey, delta) {
   m = ((m % 12) + 12) % 12;
   return `${y}-${String(m + 1).padStart(2, "0")}`;
 }
-function emStart(emKey) { return `${emKey}-16`; }
-function emEnd(emKey) { return `${emAddMonths(emKey, 1)}-15`; }
+function emStart(emKey) { return `${emKey}-15`; }
+function emEnd(emKey) { return `${emAddMonths(emKey, 1)}-14`; }
 function emLabel(emKey) {
   const [, m] = emKey.split("-").map(Number);
   const [, nm] = emAddMonths(emKey, 1).split("-").map(Number);
-  return `Økonomimåned: 16. ${NO_MONTHS_SHORT[m - 1]} – 15. ${NO_MONTHS_SHORT[nm - 1]}`;
+  return `Økonomimåned: 15. ${NO_MONTHS_SHORT[m - 1]} – 14. ${NO_MONTHS_SHORT[nm - 1]}`;
 }
 function emShortLabel(emKey) {
   const [y, m] = emKey.split("-").map(Number);
@@ -3507,7 +3507,7 @@ function saveShopList(l) { saveLS(SHOP_LIST_KEY, l); }
 
 // ---- budget config / transactions ----
 // one-time migration from the old flat-cap/calendar-month category set to the new
-// fixed/variable/sparing categories + økonomimåned (16.-15.) model. Carries over
+// fixed/variable/sparing categories + økonomimåned (15.-14.) model. Carries over
 // cap customizations and re-tags existing transactions where a direct equivalent exists.
 function migrateBudgetConfig(stored) {
   const fresh = JSON.parse(JSON.stringify(DATA.budgetDefaults));
