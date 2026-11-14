@@ -915,7 +915,6 @@ TEMPLATE = r"""<!DOCTYPE html>
     background: linear-gradient(135deg, #7a1f3d 0%, #a8406a 100%);
     color: #fff;
     padding: calc(24px + env(safe-area-inset-top)) 22px 28px;
-    border-radius: 0 0 28px 28px;
   }
   header.hero .wrap { display: flex; flex-direction: column; gap: 6px; }
   header.hero .hero-greeting { font-family: "Playfair Display", serif; font-weight: 700; font-size: 30px; letter-spacing: .01em; }
