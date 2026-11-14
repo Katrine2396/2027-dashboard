@@ -337,44 +337,32 @@ def safe_round(x, n=0):
     return round(x, n) if n else int(round(x))
 
 
-TRAINING_STATUS_LABELS_NO = {
-    0: "Ingen status", 1: "Detrening", 2: "Restitusjon", 3: "Vedlikeholder",
-    4: "Produktiv", 5: "Peaking", 6: "Overreaching", 7: "Uproduktiv",
-}
+VO2_SPORT_LABELS_NO = {"RUNNING": "Løping", "WALKING": "Gange", "CYCLING": "Sykling"}
 
 
-def parse_training_status():
-    """Garmin's own Training Status + VO2 max, from an unofficial endpoint whose exact
-    response shape isn't documented - walked defensively so a shape mismatch or missing
-    file just means nothing is shown, not a build failure."""
-    raw = load_json("training_status.json", None)
+def parse_vo2max():
+    """Garmin's VO2 max estimate, from the confirmed-working Personal API endpoint
+    (verified live against the real account). Entries only appear on days Garmin actually
+    recomputed an estimate, so this picks the most recent one in the pulled window. Garmin's
+    separate "Training Status" (Productive/Peaking/etc.) isn't available via this API at all -
+    that's part of a different, paid Garmin business product."""
+    raw = load_json("vo2max.json", None)
     if not raw or not raw.get("data"):
         return None
-    try:
-        date_entry = next(iter(raw["data"].values()), None)
-        if not date_entry:
-            return None
-        mr_status = date_entry.get("mostRecentTrainingStatus") or {}
-        latest_by_device = mr_status.get("latestTrainingStatusData") or {}
-        device_entry = next(iter(latest_by_device.values()), None) or {}
-        status_code = device_entry.get("trainingStatus")
-        status_label = TRAINING_STATUS_LABELS_NO.get(status_code)
-        acute = device_entry.get("acuteTrainingLoadDTO") or {}
-        load_ratio = acute.get("dailyAcuteChronicWorkloadRatio")
-        mr_vo2 = date_entry.get("mostRecentVO2Max") or {}
-        vo2_generic = mr_vo2.get("generic") or {}
-        vo2max = vo2_generic.get("vo2MaxPreciseValue")
-        if vo2max is None:
-            vo2max = vo2_generic.get("vo2MaxValue")
-        if status_label is None and vo2max is None:
-            return None
-        return {
-            "statusLabel": status_label,
-            "loadRatio": safe_round(load_ratio, 2) if load_ratio is not None else None,
-            "vo2Max": safe_round(vo2max, 1) if vo2max is not None else None,
-        }
-    except (AttributeError, TypeError):
+    entries = [e for e in raw["data"] if (e.get("generic") or {}).get("vo2MaxValue") is not None]
+    if not entries:
         return None
+    entries.sort(key=lambda e: e["generic"]["calendarDate"])
+    latest = entries[-1]["generic"]
+    vo2max = latest.get("vo2MaxPreciseValue")
+    if vo2max is None:
+        vo2max = latest.get("vo2MaxValue")
+    sport = latest.get("sport")
+    return {
+        "vo2Max": safe_round(vo2max, 1),
+        "date": latest.get("calendarDate"),
+        "sport": VO2_SPORT_LABELS_NO.get(sport, sport),
+    }
 
 
 def main():
@@ -894,7 +882,7 @@ def main():
         "sportOrder": SPORT_ORDER,
         "budgetDefaults": BUDGET_DEFAULTS,
         "dogFund": DOG_FUND,
-        "trainingStatus": parse_training_status(),
+        "vo2Max": parse_vo2max(),
         "activeCalGoalDefault": ACTIVE_CAL_GOAL_DEFAULT,
         "pointsConfig": POINTS_CONFIG,
         "trainingHistory": training_history,
@@ -2068,10 +2056,10 @@ TEMPLATE = r"""<!DOCTYPE html>
   </div>
 
   <div class="tab-panel" data-tab="statistikk">
-  <section id="training-status-section" style="display:none;">
-    <h2>Garmins treningsstatus</h2>
-    <div class="section-sub">Garmins egen vurdering, hentet direkte fra kontoen din</div>
-    <div class="card" id="training-status-card"></div>
+  <section id="vo2max-section" style="display:none;">
+    <h2>VO2 Max</h2>
+    <div class="section-sub">Garmins kondisjonsestimat, hentet direkte fra kontoen din</div>
+    <div class="card" id="vo2max-card"></div>
   </section>
 
   <section>
@@ -4713,16 +4701,16 @@ function renderWeeklySport() {
 }
 renderWeeklySport();
 
-(function renderTrainingStatus() {
-  const section = document.getElementById("training-status-section");
-  const card = document.getElementById("training-status-card");
-  const ts = DATA.trainingStatus;
-  if (!section || !card || !ts) return; // intet funnet (eller ikke hentet ennå) - skjul seksjonen
-  const rows = [];
-  if (ts.statusLabel) rows.push(`<div class="snapshot-chip">Status<b>${ts.statusLabel}</b></div>`);
-  if (ts.vo2Max != null) rows.push(`<div class="snapshot-chip">VO2 Max<b>${ts.vo2Max}</b></div>`);
-  if (ts.loadRatio != null) rows.push(`<div class="snapshot-chip">Belastningsforhold<b>${ts.loadRatio}</b></div>`);
-  if (!rows.length) return;
+(function renderVo2Max() {
+  const section = document.getElementById("vo2max-section");
+  const card = document.getElementById("vo2max-card");
+  const v = DATA.vo2Max;
+  if (!section || !card || !v || v.vo2Max == null) return; // intet funnet (eller ikke hentet ennå) - skjul seksjonen
+  const rows = [
+    `<div class="snapshot-chip">VO2 Max<b>${v.vo2Max}</b></div>`,
+    `<div class="snapshot-chip">Sist beregnet<b>${fmtShort(v.date)}</b></div>`,
+  ];
+  if (v.sport) rows.push(`<div class="snapshot-chip">Basert på<b>${v.sport}</b></div>`);
   card.innerHTML = `<div class="snapshot-row">${rows.join("")}</div>`;
   section.style.display = "";
 })();
