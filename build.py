@@ -5242,19 +5242,6 @@ function scoreRingHtml(score, size, strokeWidth) {
 }
 // kcal: scores 100 at the goal, falling off the further eaten is from it in either direction.
 // protein: scores by how close you are to your protein floor, capped at 100 once you hit it.
-function nutritionScore() {
-  const n = DATA.nutritionPlan;
-  const totals = dayNutritionTotals(todayISO());
-  const proteinPct = n.proteinMin ? Math.min(100, Math.round(100 * totals.protein / n.proteinMin)) : null;
-  let kcalScore = null;
-  if (n.dailyKcal) {
-    const diffPct = Math.abs(totals.kcal - n.dailyKcal) / n.dailyKcal;
-    kcalScore = Math.max(0, Math.round(100 - diffPct * 150));
-  }
-  const parts = [proteinPct, kcalScore].filter(v => v != null);
-  return parts.length ? Math.round(parts.reduce((s, v) => s + v, 0) / parts.length) : null;
-}
-
 function recoveryVerdict(score) {
   if (score == null) return "Ikke nok data til å beregne recovery ennå.";
   if (score >= 67) return "God recovery - kroppen er klar for en skikkelig økt i dag.";
@@ -5287,15 +5274,6 @@ function strainNote(strain, recovery, p) {
   if (lowRecovery) return "Lav recovery - hold morgendagens økt lett til moderat.";
   return "Middels recovery og belastning - en vanlig økt i morgen bør gå fint.";
 }
-function nutritionNote(score, totals, n) {
-  if (score == null) return "Ikke logget noe i dag ennå.";
-  const proteinPct = n.proteinMin ? Math.round(100 * totals.protein / n.proteinMin) : null;
-  if (proteinPct != null && proteinPct < 70) return `${Math.round(totals.protein)} / ${n.proteinMin} g protein så langt.`;
-  if (score >= 67) return "Bra treff på kalorier og protein i dag.";
-  if (score >= 34) return "Et stykke unna kalorie-/proteinmålet ennå.";
-  return "Langt unna kalorie-/proteinmålet i dag.";
-}
-
 let hjemActivityDetailsOpen = false;
 
 function renderHjemSession() {
@@ -5331,10 +5309,11 @@ function renderHjemSession() {
   const garminStrain = p.today.strainScore;
   const rpe = todayRpe();
   const strain = effectiveStrainScore(garminStrain);
-  const nutritionTotals = dayNutritionTotals(todayISO());
-  const nutrition = nutritionScore();
   const recoveryText = [recoveryVerdict(recovery), ...(p.today.reasons || [])].join(" ");
 
+  // Belastning (and especially the RPE prompt) only makes sense once the session is actually
+  // underway or done - asking "how hard did it feel?" before she's started it is premature.
+  const showBelastning = statusKey !== "notstarted";
   // Garmin doesn't always give indoor/manually-entered strength sessions a training load,
   // so belastning can stay at 0 even on a completed session - offer an RPE fallback then.
   const needsRpe = resolved.type !== "rest" && (garminStrain == null || garminStrain === 0) && rpe == null;
@@ -5362,6 +5341,7 @@ function renderHjemSession() {
         ${resolved.matchedActivity.calories ? `<div><span>Kalorier</span><b>${resolved.matchedActivity.calories} kcal</b></div>` : ""}
       </div>` : ""}
     <div class="hs-recovery-note">${recoveryText}</div>
+    ${showBelastning ? `
     <div class="hs-secondary-scores">
       <div class="hs-mini-score">
         ${scoreRingHtml(strain, 40, 5)}
@@ -5374,13 +5354,7 @@ function renderHjemSession() {
             : `<span class="hs-mini-note">${strainNoteText}</span>`}
         </div>
       </div>
-      <div class="hs-mini-score">
-        ${scoreRingHtml(nutrition, 40, 5)}
-        <div class="hs-mini-label">Ernæring<b>${nutrition != null ? nutrition : "–"}</b>
-          <span class="hs-mini-note">${nutritionNote(nutrition, nutritionTotals, DATA.nutritionPlan)}</span>
-        </div>
-      </div>
-    </div>
+    </div>` : ""}
     <button class="hs-link" id="hjem-session-link">${resolved.type === "rest" ? "Til plan →" : "Til økta →"}</button>
   `;
   document.getElementById("hjem-session-link").addEventListener("click", () => {
