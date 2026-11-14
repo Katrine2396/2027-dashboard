@@ -45,11 +45,11 @@ SPORT_COLORS = {
 GS_START = date(2026, 11, 9)
 PROGRAM = {
     0: {"key": "gsA", "label": "Styrke A: helkropp og kjerne", "type": "strength"},
-    1: {"key": "cyc", "label": "Rolig sykling", "type": "cycling"},
+    1: {"key": "cyc", "label": "Kondisjon", "type": "cardio"},
     2: {"key": "gsB", "label": "Styrke B: helkropp og kjerne", "type": "strength"},
     3: {"key": "restW", "label": "Hvile eller rolig gåtur", "type": "rest"},
     4: {"key": "gsC", "label": "Styrke C: helkropp og kjerne", "type": "strength"},
-    5: {"key": "cyc", "label": "Rolig sykling", "type": "cycling"},
+    5: {"key": "cyc", "label": "Kondisjon", "type": "cardio"},
     6: {"key": "rest", "label": "Hvile eller lett aktivitet", "type": "rest"},
 }
 GS_PROG = {
@@ -276,16 +276,20 @@ POINTS_CONFIG = {
 WEEKDAY_LABELS_NO = ["Man", "Tir", "Ons", "Tor", "Fre", "Lør", "Søn"]
 STRENGTH_TYPE_KEYS = {"strength_training"}
 CYCLING_TYPE_KEYS = {"indoor_cycling", "cycling", "road_biking", "mountain_biking", "virtual_ride", "elliptical"}
+RUNNING_TYPE_KEYS = {"running", "treadmill_running", "trail_running", "track_running"}
 WALK_TYPE_KEYS = {"walking", "hiking"}
-TYPE_KEYS_BY_BUCKET = {"strength": STRENGTH_TYPE_KEYS, "cycling": CYCLING_TYPE_KEYS, "walk": WALK_TYPE_KEYS}
+# "cardio" is deliberately generic: a planned "Kondisjon" day is satisfied by any cardio
+# activity Garmin logs that day (cycling, running, walking, elliptical, ...), not just cycling.
+CARDIO_TYPE_KEYS = CYCLING_TYPE_KEYS | RUNNING_TYPE_KEYS | WALK_TYPE_KEYS
+TYPE_KEYS_BY_BUCKET = {"strength": STRENGTH_TYPE_KEYS, "cardio": CARDIO_TYPE_KEYS}
 
 # swap options a session can be manually changed to, for the interactive plan
 SESSION_CATALOG = {
     "gsA": {"label": PROGRAM[0]["label"], "type": "strength", "exercises": PROG_EXERCISES["gsA"]},
     "gsB": {"label": PROGRAM[2]["label"], "type": "strength", "exercises": PROG_EXERCISES["gsB"]},
     "gsC": {"label": PROGRAM[4]["label"], "type": "strength", "exercises": PROG_EXERCISES["gsC"]},
-    "cyc": {"label": "Rolig sykling", "type": "cycling", "note": "Lett motstand, prat i hele setninger"},
-    "walk": {"label": "Gåtur", "type": "walk"},
+    "cyc": {"label": "Kondisjon", "type": "cardio", "note": "Egen takt - du skal kunne prate i hele setninger"},
+    "walk": {"label": "Gåtur", "type": "cardio"},
     "rest": {"label": "Hvile", "type": "rest"},
 }
 
@@ -300,7 +304,7 @@ def session_for(d):
     sess = dict(PROGRAM[d.weekday()])
     week = gs_week(d)
     if sess["key"] == "cyc":
-        sess["label"] = f"Rolig sykling ({GS_PROG[week]['cycle']})"
+        sess["label"] = f"Kondisjon ({GS_PROG[week]['cycle']})"
     return sess
 
 
@@ -689,8 +693,13 @@ def main():
                 if tk in keys:
                     out.append({
                         "type": bucket,
+                        "sport": sport_for(tk),
                         "name": a.get("activityName"),
                         "minutes": safe_round((a.get("duration") or 0) / 60),
+                        "distanceKm": safe_round((a.get("distance") or 0) * KM_PER_METER, 1) or None,
+                        "avgHr": safe_round(a.get("averageHR")) if a.get("averageHR") else None,
+                        "calories": safe_round(a.get("calories")) if a.get("calories") else None,
+                        "activityId": a.get("activityId"),
                     })
                     break
         return out
@@ -1108,6 +1117,12 @@ TEMPLATE = r"""<!DOCTYPE html>
   .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; font-size: 12px; color: var(--muted); }
   .legend span { display: inline-flex; align-items: center; gap: 6px; }
   .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .sport-legend-btn {
+    display: inline-flex; align-items: center; gap: 6px; background: none; border: none;
+    font-family: Nunito, sans-serif; font-size: 12px; color: var(--muted); cursor: pointer; padding: 2px 0;
+  }
+  .sport-legend-btn i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .sport-legend-btn.off { opacity: .4; text-decoration: line-through; }
 
   .tooltip {
     position: absolute;
@@ -1418,6 +1433,13 @@ TEMPLATE = r"""<!DOCTYPE html>
   .hjem-session .hs-status.notstarted { background: var(--hj-card2); color: var(--hj-muted); }
   .hjem-session .hs-status.inprogress { background: rgba(246,198,103,.18); color: #b8860b; }
   .hjem-session .hs-status.done { background: rgba(123,216,143,.16); color: #2f8a4e; }
+  .hjem-session .hs-status.hs-status-tap { cursor: pointer; }
+  .hs-activity-details {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: -4px 0 4px;
+    background: var(--hj-card2); border-radius: 10px; padding: 10px 12px;
+  }
+  .hs-activity-details div { font-size: 11px; color: var(--hj-muted); }
+  .hs-activity-details div b { display: block; font-size: 14px; color: var(--hj-ink); font-weight: 700; margin-top: 1px; }
   .hjem-session .hs-link {
     background: none; border: 1px solid var(--hj-line); color: var(--hj-ink);
     border-radius: 10px; padding: 6px 10px; font-size: 12px; cursor: pointer; font-family: Nunito, sans-serif;
@@ -1477,6 +1499,7 @@ TEMPLATE = r"""<!DOCTYPE html>
     background: var(--hj-accent); color: var(--ink); border: none; border-radius: 8px;
     padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: Nunito, sans-serif;
   }
+  .hjem-reminder-banner button.hjem-badday-toggle { background: transparent; border: 1px solid var(--hj-line); }
   .hjem-main-grid { display: flex; flex-direction: column; gap: 18px; }
   @media (min-width: 900px) {
     .hjem-main-grid { display: grid; grid-template-columns: 1fr 300px; gap: 20px; align-items: start; }
@@ -1651,6 +1674,7 @@ TEMPLATE = r"""<!DOCTYPE html>
     <div class="hjem-why" id="hjem-why"></div>
 
     <div id="hjem-reminder"></div>
+    <div id="hjem-unplanned-cardio"></div>
 
     <div class="hjem-main-grid">
       <div class="hjem-rail">
@@ -2293,7 +2317,7 @@ showTab(validTabs.includes(rememberedTab) ? rememberedTab : "hjem");
 // ---------------------------------------------------------------- training plan
 const PLAN_OVERRIDES_KEY = "garminDashboardPlanOverrides_v1";
 const SWAP_OPTIONS = ["gsA", "gsB", "gsC", "cyc", "walk", "rest"];
-const SWAP_NAMES = { gsA: "Styrke A", gsB: "Styrke B", gsC: "Styrke C", cyc: "Sykling", walk: "Gåtur", rest: "Hvile" };
+const SWAP_NAMES = { gsA: "Styrke A", gsB: "Styrke B", gsC: "Styrke C", cyc: "Kondisjon", walk: "Gåtur", rest: "Hvile" };
 
 function loadPlanOverrides() {
   try { return JSON.parse(localStorage.getItem(PLAN_OVERRIDES_KEY) || "{}"); } catch (e) { return {}; }
@@ -2309,13 +2333,13 @@ function resolvePlanDay(d, overrides) {
     label = cat[ov].label + (ov === "cyc" ? ` (${DATA.program.weekCycleNote})` : "");
     type = cat[ov].type;
     exercises = cat[ov].exercises || null;
-    cycleNote = cat[ov].type === "cycling" ? cat[ov].note : null;
+    cycleNote = ov === "cyc" ? cat[ov].note : null;
   } else {
     key = d.defaultKey;
     label = d.sessionLabel;
     type = d.sessionType;
     exercises = (cat[d.defaultKey] || {}).exercises || null;
-    cycleNote = type === "cycling" ? cat.cyc.note : null;
+    cycleNote = type === "cardio" ? cat.cyc.note : null;
   }
   const matched = type === "rest" ? null : (d.loggedActivities || []).find(a => a.type === type) || null;
   return { key, label, type, exercises, cycleNote, done: type === "rest" ? null : !!matched, matchedActivity: matched };
@@ -2412,6 +2436,50 @@ function effectiveStrainScore(garminStrain) {
 }
 
 // ---- "du hoppet over en dag" - offer to move it to tomorrow, or drop it for this week ----
+// ---- unplanned cardio activity detection (Garmin logged something that wasn't the planned session) ----
+const UNPLANNED_CARDIO_ACK_KEY = "garminDashboardUnplannedCardioAck_v1";
+function loadUnplannedCardioAck() { return loadLS(UNPLANNED_CARDIO_ACK_KEY, []); }
+function ackUnplannedCardio(ackId) {
+  const a = loadUnplannedCardioAck();
+  if (!a.includes(ackId)) { a.push(ackId); saveLS(UNPLANNED_CARDIO_ACK_KEY, a); }
+}
+function renderHjemUnplannedCardio() {
+  const el = document.getElementById("hjem-unplanned-cardio");
+  const p = DATA.program;
+  if (!el || !p || isVacationActive()) { if (el) el.innerHTML = ""; return; }
+  const overrides = loadPlanOverrides();
+  const todayDay = p.week.find(d => d.isToday);
+  if (!todayDay) { el.innerHTML = ""; return; }
+  const resolved = resolvePlanDay(todayDay, overrides);
+  const cardioActivity = (todayDay.loggedActivities || []).find(a => a.type === "cardio");
+  const ack = loadUnplannedCardioAck();
+  const ackId = todayISO() + "|" + (cardioActivity ? cardioActivity.activityId : "");
+  if (!cardioActivity || resolved.type === "cardio" || ack.includes(ackId)) { el.innerHTML = ""; return; }
+
+  const sportLabel = SPORT_LABELS_NO[cardioActivity.sport] || cardioActivity.sport;
+  el.innerHTML = `
+    <div class="hjem-reminder-banner">
+      <span>🏃 Garmin registrerte ${sportLabel.toLowerCase()} (${cardioActivity.minutes} min) i dag, som ikke var planlagt. Vil du legge til denne økten i treningsloggen din?</span>
+      <div class="hjem-topbar-btns">
+        <button id="hjem-unplanned-cardio-add">Legg til</button>
+        <button class="hjem-badday-toggle" id="hjem-unplanned-cardio-dismiss">Nei takk</button>
+      </div>
+    </div>
+  `;
+  document.getElementById("hjem-unplanned-cardio-add").addEventListener("click", () => {
+    const current = loadPlanOverrides();
+    current[todayISO()] = "cyc";
+    savePlanOverrides(current);
+    ackUnplannedCardio(ackId);
+    renderHjem();
+    renderPlan();
+  });
+  document.getElementById("hjem-unplanned-cardio-dismiss").addEventListener("click", () => {
+    ackUnplannedCardio(ackId);
+    renderHjemUnplannedCardio();
+  });
+}
+
 const MISSED_DAY_ACK_KEY = "garminDashboardMissedDayAck_v1";
 function loadMissedDayAck() { return loadLS(MISSED_DAY_ACK_KEY, []); }
 function ackMissedDay(dateStr) {
@@ -4226,7 +4294,10 @@ renderBudget();
 // ---------------------------------------------------------------- weekly by sport chart
 const SPORT_LABELS_NO = { Strength: "Styrke", Cycling: "Sykling", Running: "Løping", Walking: "Gange", Other: "Annet" };
 
-(function renderWeeklySport() {
+// which sports are filtered out of the "Denne uken vs. nylige uker" chart - toggled via the legend
+const hiddenSports = new Set();
+
+function renderWeeklySport() {
   const svg = document.getElementById("chart-weekly-sport");
   const tooltip = document.getElementById("tt-weekly");
   const legend = document.getElementById("sport-legend");
@@ -4234,19 +4305,30 @@ const SPORT_LABELS_NO = { Strength: "Styrke", Cycling: "Sykling", Running: "Løp
   const sports = DATA.sportOrder;
   const colors = DATA.sportColors;
 
-  sports.forEach(sp => {
-    legend.innerHTML += `<span><i style="background:${colors[sp]}"></i>${SPORT_LABELS_NO[sp] || sp}</span>`;
+  legend.innerHTML = sports.map(sp => `
+    <button class="sport-legend-btn${hiddenSports.has(sp) ? " off" : ""}" data-sport="${sp}">
+      <i style="background:${colors[sp]}"></i>${SPORT_LABELS_NO[sp] || sp}
+    </button>`).join("");
+  legend.querySelectorAll(".sport-legend-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const sp = btn.dataset.sport;
+      if (hiddenSports.has(sp)) hiddenSports.delete(sp); else hiddenSports.add(sp);
+      renderWeeklySport();
+    });
   });
+
+  const visibleSports = sports.filter(sp => !hiddenSports.has(sp));
 
   const w = 1000, h = 260, padLeft = 40, padBottom = 24, padTop = 10;
   svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  svg.innerHTML = "";
   const plotW = w - padLeft - 10;
   const plotH = h - padBottom - padTop;
   const barGroupW = plotW / weeks.length;
-  const barW = Math.min(14, barGroupW / (sports.length + 1));
+  const barW = Math.min(14, barGroupW / (visibleSports.length + 1));
 
   let maxMinutes = 0;
-  weeks.forEach(wk => sports.forEach(sp => {
+  weeks.forEach(wk => visibleSports.forEach(sp => {
     const e = wk.sports[sp];
     if (e) maxMinutes = Math.max(maxMinutes, e.minutes);
   }));
@@ -4261,9 +4343,9 @@ const SPORT_LABELS_NO = { Strength: "Styrke", Cycling: "Sykling", Running: "Løp
 
   weeks.forEach((wk, wi) => {
     const groupX = padLeft + wi * barGroupW + barGroupW / 2;
-    sports.forEach((sp, si) => {
+    visibleSports.forEach((sp, si) => {
       const e = wk.sports[sp];
-      const x = groupX - (sports.length * barW) / 2 + si * barW;
+      const x = groupX - (visibleSports.length * barW) / 2 + si * barW;
       if (e) {
         const bh = (e.minutes / maxMinutes) * plotH;
         const y = padTop + plotH - bh;
@@ -4284,7 +4366,8 @@ const SPORT_LABELS_NO = { Strength: "Styrke", Cycling: "Sykling", Running: "Løp
     });
     bar.addEventListener("mouseleave", () => tooltip.style.opacity = 0);
   });
-})();
+}
+renderWeeklySport();
 
 // ---------------------------------------------------------------- line charts
 function renderLineChart(svgId, ttId, weeks, values, color, unit) {
@@ -4947,6 +5030,8 @@ function nutritionNote(score, totals, n) {
   return "Langt unna kalorie-/proteinmålet i dag.";
 }
 
+let hjemActivityDetailsOpen = false;
+
 function renderHjemSession() {
   const p = DATA.program;
   const el = document.getElementById("hjem-session");
@@ -4968,7 +5053,10 @@ function renderHjemSession() {
   if (resolved.type === "rest") {
     statusKey = "done"; statusLabel = "Hviledag";
   } else if (resolved.done) {
-    statusKey = "done"; statusLabel = "Fullført";
+    statusKey = "done";
+    statusLabel = resolved.matchedActivity
+      ? `${SPORT_LABELS_NO[resolved.matchedActivity.sport] || resolved.matchedActivity.sport} (Fullført)`
+      : "Fullført";
   } else if (loadSetLog().some(s => s.date === todayISO() && s.exercise.startsWith(resolved.key + "::"))) {
     statusKey = "inprogress"; statusLabel = "Pågår";
   }
@@ -4997,9 +5085,16 @@ function renderHjemSession() {
       <div class="hs-info">
         <div class="hs-label">${resolved.type === "rest" ? "Hviledag" : resolved.label}</div>
         <div class="hs-sub">Uke ${p.currentWeek}${p.weekIsDeload ? " · Deload" : " av 4"} · ${p.weekFocus}</div>
-        <span class="hs-status ${statusKey}">${statusLabel}</span>
+        <span class="hs-status ${statusKey}${resolved.matchedActivity ? " hs-status-tap" : ""}" ${resolved.matchedActivity ? 'id="hjem-activity-details-toggle"' : ""}>${statusLabel}${resolved.matchedActivity ? (hjemActivityDetailsOpen ? " ▾" : " ▸") : ""}</span>
       </div>
     </div>
+    ${resolved.matchedActivity && hjemActivityDetailsOpen ? `
+      <div class="hs-activity-details">
+        <div><span>Varighet</span><b>${resolved.matchedActivity.minutes} min</b></div>
+        ${resolved.matchedActivity.distanceKm ? `<div><span>Distanse</span><b>${resolved.matchedActivity.distanceKm} km</b></div>` : ""}
+        ${resolved.matchedActivity.avgHr ? `<div><span>Snittpuls</span><b>${resolved.matchedActivity.avgHr} bpm</b></div>` : ""}
+        ${resolved.matchedActivity.calories ? `<div><span>Kalorier</span><b>${resolved.matchedActivity.calories} kcal</b></div>` : ""}
+      </div>` : ""}
     <div class="hs-recovery-note">${recoveryText}</div>
     <div class="hs-secondary-scores">
       <div class="hs-mini-score">
@@ -5037,6 +5132,13 @@ function renderHjemSession() {
       renderHjemSession();
     });
   });
+  const detailsToggle = document.getElementById("hjem-activity-details-toggle");
+  if (detailsToggle) {
+    detailsToggle.addEventListener("click", () => {
+      hjemActivityDetailsOpen = !hjemActivityDetailsOpen;
+      renderHjemSession();
+    });
+  }
 }
 
 function renderHjemKcalRing() {
@@ -5264,6 +5366,7 @@ function renderHjemReminder() {
 function renderHjem() {
   renderHjemWhy();
   renderHjemReminder();
+  renderHjemUnplannedCardio();
   renderHjemSession();
   renderHjemKcalRing();
   renderHjemTodayTx();
@@ -5838,6 +5941,7 @@ const BACKUP_KEYS = [
   FORGOTTEN_SAVINGS_KEY, BADDAY_LOG_KEY, EXTRAS_KEY, WATER_KEY, STREAK_BEST_KEY,
   SETTINGS_KEY, WHY_KEY, VACATION_KEY, CUSTOM_MEALS_KEY, MEAL_LOG_KEY, INVEST_FUND_KEY,
   SAVINGS_GOALS_KEY, CUSTOM_INGREDIENTS_KEY, MEAL_ING_OVERRIDES_KEY, MISSED_DAY_ACK_KEY, RPE_LOG_KEY,
+  UNPLANNED_CARDIO_ACK_KEY,
 ];
 window.BACKUP_KEYS = BACKUP_KEYS;
 
