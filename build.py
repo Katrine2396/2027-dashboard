@@ -1326,9 +1326,6 @@ TEMPLATE = r"""<!DOCTYPE html>
   .fund-summary-row .fs-item b { display: block; font-size: 17px; font-family: "Playfair Display", serif; }
   .fund-summary-row .fs-item b.pos { color: #3f9a5a; }
   .fund-summary-row .fs-item b.neg { color: #c24545; }
-  .expense-totals-list { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
-  .expense-totals-list .et-row { display: flex; justify-content: space-between; font-size: 13px; border-top: 1px solid var(--line); padding-top: 6px; }
-  .expense-totals-list .et-row:first-child { border-top: none; padding-top: 0; }
 
   /* ---- tabs ---- */
   .tab-nav {
@@ -1910,11 +1907,9 @@ TEMPLATE = r"""<!DOCTYPE html>
     </div>
 
     <div class="fremgang-section card">
-      <h3>💰 Faste vs. variable utgifter</h3>
-      <div class="section-sub">Per økonomimåned (16.–15.), siste 12 måneder</div>
-      <div class="legend" id="legend-expenses"></div>
+      <h3>💰 Variable utgifter</h3>
+      <div class="section-sub">Per økonomimåned (16.–15.), siste 12 måneder - faste utgifter er ikke med, siden de er faste uansett</div>
       <div class="chart-wrap"><svg id="chart-expenses"></svg><div class="tooltip ml" id="tt-expenses"></div></div>
-      <div id="fixed-expense-totals"></div>
     </div>
 
     <div class="fremgang-section card">
@@ -1964,8 +1959,7 @@ TEMPLATE = r"""<!DOCTYPE html>
   <div class="tab-panel" data-tab="budsjett">
   <section>
     <h2>Budsjett</h2>
-    <div class="section-sub">Faste utgifter logges automatisk hver økonomimåned - variable utgifter logger du selv</div>
-    <div id="fixed-autolog-banner"></div>
+    <div class="section-sub">Faste utgifter er faste kostnader du uansett betaler - logg bare variable utgifter her</div>
     <div class="card">
       <div class="month-nav">
         <button class="btn ghost small" id="em-prev">‹</button>
@@ -3645,62 +3639,27 @@ function projectSavingsMilestone(key) {
   const monthsNeeded = Math.ceil((target - balance) / rate);
   return { monthsNeeded, emKey: emAddMonths(emKeyForDate(todayISO()), monthsNeeded), rate };
 }
+// faste utgifter er ikke med her - de logges ikke som transaksjoner, bare det faste
+// beløpet hun uansett betaler (satt i "Faste utgifter"-kortet i Budsjett)
 function categoryOptionsHtml(cfg) {
-  const fixed = cfg.categories.filter(c => c.type === "fixed");
   const variable = cfg.categories.filter(c => c.type === "variable" && !c.savings);
   const savings = cfg.categories.filter(c => c.savings);
   const opt = c => `<option value="${c.key}">${c.icon ? c.icon + " " : ""}${c.label}</option>`;
-  return `<optgroup label="Faste utgifter">${fixed.map(opt).join("")}</optgroup>` +
-    `<optgroup label="Variable utgifter">${variable.map(opt).join("")}</optgroup>` +
+  return `<optgroup label="Variable utgifter">${variable.map(opt).join("")}</optgroup>` +
     `<optgroup label="Sparing">${savings.map(opt).join("")}</optgroup>`;
 }
 function loadTransactions() { return loadLS(TX_KEY, []); }
 function saveTransactions(t) { saveLS(TX_KEY, t); }
 
-// Logs each fixed category's cap amount as a transaction once per economic month (16th-15th),
-// so "Brukt denne måneden" reflects reality without her re-typing husleie/strøm/etc. every month.
-// Skips a category that already has a logged transaction that month, so it never double-counts
-// a bill she happened to log herself before this ran.
-const FIXED_AUTOLOG_KEY = "garminDashboardFixedAutolog_v1";
-function autoLogFixedExpenses() {
-  const emKey = emKeyForDate(todayISO());
-  if (loadLS(FIXED_AUTOLOG_KEY, "") === emKey) return [];
-  const cfg = loadBudgetConfig();
-  const start = emStart(emKey), end = emEnd(emKey);
+// Faste utgifter (husleie, strøm, osv.) are committed costs, not discretionary spending -
+// she doesn't want them auto-logged as transactions or counted toward "brukt denne måneden"
+// anywhere. One-time cleanup: strip out any transaction a previous version of this app
+// auto-logged for her (tagged autoLogged: true), so old entries don't linger in her data.
+(function purgeAutoLoggedFixedExpenses() {
   const tx = loadTransactions();
-  const added = [];
-  cfg.categories.filter(c => c.type === "fixed").forEach(c => {
-    const already = tx.some(t => t.category === c.key && t.date >= start && t.date <= end);
-    if (already) return;
-    const amount = getCategoryCap(c, emKey);
-    if (!amount) return;
-    const entry = { id: "autofix-" + c.key + "-" + emKey, date: start, amount, category: c.key, name: c.label, autoLogged: true };
-    tx.push(entry);
-    added.push(entry);
-  });
-  saveTransactions(tx);
-  saveLS(FIXED_AUTOLOG_KEY, emKey);
-  return added;
-}
-const autoLoggedFixedThisLoad = autoLogFixedExpenses();
-function renderFixedAutologBanner() {
-  const el = document.getElementById("fixed-autolog-banner");
-  if (!el) return;
-  if (!autoLoggedFixedThisLoad.length) { el.innerHTML = ""; return; }
-  const total = autoLoggedFixedThisLoad.reduce((s, t) => s + t.amount, 0);
-  const items = autoLoggedFixedThisLoad.map(t => `${t.name} (${t.amount.toLocaleString()} kr)`).join(", ");
-  el.innerHTML = `
-    <div class="missed-day-box">
-      🔁 Faste utgifter for ${emLabel(emKeyForDate(todayISO()))} er lagt til automatisk: ${items} - ${total.toLocaleString()} kr totalt.
-      Avviker noe denne måneden? Juster eller fjern enkeltposter i listen under.
-      <div class="missed-day-actions">
-        <button class="btn ghost small" id="fixed-autolog-dismiss">Skjul</button>
-      </div>
-    </div>
-  `;
-  document.getElementById("fixed-autolog-dismiss").addEventListener("click", () => { el.innerHTML = ""; });
-}
-renderFixedAutologBanner();
+  const kept = tx.filter(t => !t.autoLogged);
+  if (kept.length !== tx.length) saveTransactions(kept);
+})();
 
 function fundBalance() {
   const tx = loadTransactions();
@@ -4364,11 +4323,19 @@ function categoryRowHtml(c, emKey) {
   </div>`;
 }
 
+// faste utgifter spores ikke som "brukt" - bare det faste beløpet hun uansett betaler
+function fixedCategoryRowHtml(c, emKey) {
+  const cap = getCategoryCap(c, emKey);
+  return `<div class="cat-row" data-key="${c.key}">
+    <div class="cat-head"><span>${c.icon ? c.icon + " " : ""}${c.label}</span><b><input class="cap-edit" type="number" value="${cap}" data-cat="${c.key}"> kr</b></div>
+  </div>`;
+}
+
 function renderCategoryBreakdown() {
   const cfg = loadBudgetConfig();
   const fixed = cfg.categories.filter(c => c.type === "fixed");
   const variable = cfg.categories.filter(c => c.type === "variable");
-  document.getElementById("fixed-cat-list").innerHTML = fixed.map(c => categoryRowHtml(c, currentEconMonth)).join("");
+  document.getElementById("fixed-cat-list").innerHTML = fixed.map(c => fixedCategoryRowHtml(c, currentEconMonth)).join("");
   document.getElementById("variable-cat-list").innerHTML = variable.map(c => categoryRowHtml(c, currentEconMonth)).join("");
 
   document.querySelectorAll(".budget-cat-list .cap-edit").forEach(inp => {
@@ -4381,12 +4348,21 @@ function renderCategoryBreakdown() {
 
 function renderBudgetSummary() {
   const cfg = loadBudgetConfig();
-  const start = emStart(currentEconMonth), end = emEnd(currentEconMonth);
-  const totalSpent = loadTransactions().filter(t => t.date >= start && t.date <= end).reduce((s, t) => s + t.amount, 0);
+  const emKey = currentEconMonth;
+  const start = emStart(emKey), end = emEnd(emKey);
+  // "Brukt denne måneden" betyr det samme her som på Hjem - kun variable utgifter, siden
+  // faste utgifter er penger hun betaler uansett. "Igjen" trekker likevel fra begge deler,
+  // siden det skal gjenspeile hva hun faktisk har å disponere.
+  const fixedTotal = cfg.categories.filter(c => c.type === "fixed").reduce((s, c) => s + getCategoryCap(c, emKey), 0);
+  const variableKeys = cfg.categories.filter(c => c.type === "variable").map(c => c.key);
+  const variableSpent = loadTransactions()
+    .filter(t => variableKeys.includes(t.category) && t.date >= start && t.date <= end)
+    .reduce((s, t) => s + t.amount, 0);
   document.getElementById("budget-summary").innerHTML = `
     <div class="snapshot-chip">Inntekt<b>${cfg.income.toLocaleString()} kr</b></div>
-    <div class="snapshot-chip">Brukt denne måneden<b>${totalSpent.toLocaleString()} kr</b></div>
-    <div class="snapshot-chip">Igjen<b>${(cfg.income - totalSpent).toLocaleString()} kr</b></div>
+    <div class="snapshot-chip">Faste utgifter<b>${fixedTotal.toLocaleString()} kr</b></div>
+    <div class="snapshot-chip">Brukt denne måneden<b>${variableSpent.toLocaleString()} kr</b></div>
+    <div class="snapshot-chip">Igjen<b>${(cfg.income - fixedTotal - variableSpent).toLocaleString()} kr</b></div>
   `;
 }
 
@@ -5095,27 +5071,17 @@ function renderExpenseTrends() {
   if (!document.getElementById("chart-expenses")) return;
   const emKeys = emKeysBack(12);
   const cfg = loadBudgetConfig();
-  const fixedKeys = cfg.categories.filter(c => c.type === "fixed").map(c => c.key);
   const variableKeys = cfg.categories.filter(c => c.type === "variable" && !c.savings).map(c => c.key);
   const tx = loadTransactions();
   const totalFor = (keys, emKey) => {
     const start = emStart(emKey), end = emEnd(emKey);
     return tx.filter(t => keys.includes(t.category) && t.date >= start && t.date <= end).reduce((s, t) => s + t.amount, 0);
   };
-  const fixedVals = emKeys.map(ek => totalFor(fixedKeys, ek));
   const variableVals = emKeys.map(ek => totalFor(variableKeys, ek));
 
   renderTrendChart("chart-expenses", "tt-expenses", emKeys, [
-    { name: "Faste utgifter", color: "#7a1f3d", values: fixedVals, unit: "kr" },
     { name: "Variable utgifter", color: "#a46cc0", values: variableVals, unit: "kr" },
-  ], { legendId: "legend-expenses", fmtLabel: emShortLabel });
-
-  const list = document.getElementById("fixed-expense-totals");
-  if (list) {
-    const pairs = emKeys.map((ek, i) => ({ ek, val: fixedVals[i] })).slice(-6).reverse();
-    const rows = pairs.map(p => `<div class="et-row"><span>${emShortLabel(p.ek)}</span><b>${Math.round(p.val).toLocaleString()} kr</b></div>`).join("");
-    list.innerHTML = `<h4 style="margin:14px 0 2px;font-size:13px;">Faste utgifter per økonomimåned</h4><div class="expense-totals-list">${rows}</div>`;
-  }
+  ], { fmtLabel: emShortLabel });
 }
 
 // ---------------------------------------------------------------- fremgang: sparemål
@@ -5669,10 +5635,14 @@ function renderHjemFinance() {
   if (!el) return;
   const cfg = loadBudgetConfig();
   const emKey = emKeyForDate(todayISO());
-  const totalBudget = cfg.categories.reduce((s, c) => s + getCategoryCap(c, emKey), 0);
+  // faste utgifter (husleie, strøm, osv.) er penger hun betaler uansett - de skal ikke
+  // telle som "brukt" her, bare det hun faktisk velger å bruke på variable ting
+  const variableCats = cfg.categories.filter(c => c.type === "variable");
+  const variableKeys = variableCats.map(c => c.key);
+  const totalBudget = variableCats.reduce((s, c) => s + getCategoryCap(c, emKey), 0);
   const start = emStart(emKey), end = emEnd(emKey);
   const spent = loadTransactions()
-    .filter(t => t.date >= start && t.date <= end)
+    .filter(t => variableKeys.includes(t.category) && t.date >= start && t.date <= end)
     .reduce((s, t) => s + t.amount, 0);
   const pct = totalBudget ? Math.min(100, Math.round(100 * spent / totalBudget)) : 0;
   const over = spent > totalBudget;
@@ -6365,7 +6335,7 @@ const BACKUP_KEYS = [
   FORGOTTEN_SAVINGS_KEY, BADDAY_LOG_KEY, EXTRAS_KEY, WATER_KEY, STREAK_BEST_KEY,
   SETTINGS_KEY, WHY_KEY, VACATION_KEY, CUSTOM_MEALS_KEY, MEAL_LOG_KEY, INVEST_FUND_KEY,
   SAVINGS_GOALS_KEY, CUSTOM_INGREDIENTS_KEY, MEAL_ING_OVERRIDES_KEY, MISSED_DAY_ACK_KEY, RPE_LOG_KEY,
-  UNPLANNED_CARDIO_ACK_KEY, FIXED_AUTOLOG_KEY, SOCIAL_BUDGET_KEY, FREEZE_CARDS_USED_KEY, FREEZE_NOTICE_ACK_KEY,
+  UNPLANNED_CARDIO_ACK_KEY, SOCIAL_BUDGET_KEY, FREEZE_CARDS_USED_KEY, FREEZE_NOTICE_ACK_KEY,
 ];
 window.BACKUP_KEYS = BACKUP_KEYS;
 
