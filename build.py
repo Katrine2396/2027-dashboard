@@ -1710,6 +1710,7 @@ TEMPLATE = r"""<!DOCTYPE html>
     <div id="hjem-aon-banner"></div>
     <div id="hjem-mvd-sunday"></div>
     <div id="hjem-freeze-notice"></div>
+    <div id="hjem-monthly-insight-nudge"></div>
 
     <div class="hjem-main-grid">
       <div class="hjem-rail">
@@ -1785,6 +1786,7 @@ TEMPLATE = r"""<!DOCTYPE html>
       <button class="btn secondary small report-tab-btn" data-report="morning">☀️ Morgenrapport</button>
       <button class="btn secondary small report-tab-btn" data-report="evening">🌙 Kveldsrapport</button>
       <button class="btn secondary small report-tab-btn" data-report="weekly">📊 Ukens innsikt</button>
+      <button class="btn secondary small report-tab-btn" data-report="monthly">📅 Månedens innsikt</button>
     </div>
     <div class="card report-card" id="report-output"></div>
   </section>
@@ -5748,6 +5750,7 @@ function renderHjem() {
   renderHjemAllOrNothing();
   renderHjemMvdSunday();
   renderHjemFreezeNotice();
+  renderHjemMonthlyInsightNudge();
   renderHjemSocialBudget();
   renderHjemSession();
   renderHjemKcalRing();
@@ -6271,16 +6274,201 @@ function renderWeeklyReport(targetId) {
   `;
 }
 
+// start/end (inclusive) of the calendar month `monthsAgo` months before today - used for
+// training/kosthold/søvn, which don't follow the økonomimåned cycle
+function calendarMonthRange(monthsAgo) {
+  const d = new Date(todayISO() + "T00:00:00");
+  const y = d.getFullYear(), m = d.getMonth() - monthsAgo;
+  const start = new Date(y, m, 1);
+  const end = new Date(y, m + 1, 0);
+  const fmt = dt => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+  return { start: fmt(start), end: fmt(end) };
+}
+
+// Månedens innsikt: training/kosthold/søvn use the last full calendar month, budsjett uses
+// the last fully completed økonomimåned (15.-14.) - she explicitly wanted these to follow
+// their own natural cycles rather than being forced onto one shared date range. No PR section
+// here (that's covered weekly already).
+function renderMonthlyReport(targetId) {
+  const out = document.getElementById(targetId || "report-output");
+  if (!out) return;
+  const todayStr = todayISO();
+  const { start: calStart, end: calEnd } = calendarMonthRange(1);
+  const emKeyNow = emKeyForDate(todayStr);
+  const emKeyLast = emAddMonths(emKeyNow, -1);
+  const emLastStart = emStart(emKeyLast), emLastEnd = emEnd(emKeyLast);
+
+  const history = (DATA.dailyHistory || []).filter(d => d.date >= calStart && d.date <= calEnd);
+  const setLog = loadSetLog();
+  const tx = loadTransactions();
+  const extras = loadExtras();
+
+  function volumeOn(date) {
+    return setLog.filter(s => s.date === date).reduce((s, x) => s + (x.weight || 0) * x.reps, 0);
+  }
+
+  const patterns = [];
+  const lowSleepDays = history.filter(d => d.sleepHours != null && d.sleepHours < 7);
+  const okSleepDays = history.filter(d => d.sleepHours != null && d.sleepHours >= 7);
+  if (lowSleepDays.length >= 4 && okSleepDays.length >= 4) {
+    const avgLow = lowSleepDays.reduce((s, d) => s + volumeOn(d.date), 0) / lowSleepDays.length;
+    const avgOk = okSleepDays.reduce((s, d) => s + volumeOn(d.date), 0) / okSleepDays.length;
+    if (avgOk > 0) {
+      const pctDrop = Math.round(100 * (avgOk - avgLow) / avgOk);
+      if (Math.abs(pctDrop) >= 10) {
+        patterns.push(pctDrop > 0
+          ? `På dager med under 7 timer søvn trente du i snitt ${pctDrop}% mindre volum enn på dager med mer søvn.`
+          : "Du trente faktisk mer på dager med mindre søvn denne måneden - gøy å se, men følg med at det ikke går på bekostning av restitusjonen over tid.");
+      }
+    }
+  }
+
+  const spendByWeekday = {};
+  tx.filter(t => t.date >= emLastStart && t.date <= emLastEnd && !isSavingsCategory(t.category)).forEach(t => {
+    const wd = new Date(t.date + "T00:00:00").getDay();
+    spendByWeekday[wd] = (spendByWeekday[wd] || 0) + t.amount;
+  });
+  const weekdayLabels = ["Søndag", "Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag"];
+  const spendEntries = Object.entries(spendByWeekday).sort((a, b) => b[1] - a[1]);
+  if (spendEntries.length && spendEntries[0][1] > 0) {
+    patterns.push(`Du brukte mest penger på ${weekdayLabels[spendEntries[0][0]]}er denne økonomimåneden (${Math.round(spendEntries[0][1])} kr totalt).`);
+  }
+
+  const extrasThisMonth = extras.filter(e => e.date >= calStart && e.date <= calEnd);
+  if (extrasThisMonth.length >= 15) {
+    patterns.push(`Du logget noe utenom planen ${extrasThisMonth.length} ganger denne måneden.`);
+  }
+
+  const highStressDays = history.filter(d => d.stress != null && d.stress >= 40);
+  const lowStressDays = history.filter(d => d.stress != null && d.stress < 40);
+  if (highStressDays.length >= 4 && lowStressDays.length >= 4) {
+    const variableKeysForReport = loadBudgetConfig().categories.filter(c => c.type === "variable" && !c.savings).map(c => c.key);
+    const spendOn = date => tx.filter(t => t.date === date && variableKeysForReport.includes(t.category)).reduce((s, t) => s + t.amount, 0);
+    const avgHigh = highStressDays.reduce((s, d) => s + spendOn(d.date), 0) / highStressDays.length;
+    const avgLow = lowStressDays.reduce((s, d) => s + spendOn(d.date), 0) / lowStressDays.length;
+    if (avgLow > 0 && avgHigh > avgLow * 1.15) {
+      const pctMore = Math.round(100 * (avgHigh - avgLow) / avgLow);
+      patterns.push(`I dager med høyt stress brukte du i snitt ${Math.round(avgHigh)} kr på variable utgifter, mot ${Math.round(avgLow)} kr i roligere dager (${pctMore}% mer).`);
+    }
+  }
+
+  const stepSleepDays = history.filter(d => d.steps != null && d.sleepHours != null);
+  if (stepSleepDays.length >= 8) {
+    const sorted = [...stepSleepDays].sort((a, b) => a.steps - b.steps);
+    const lowHalf = sorted.slice(0, Math.floor(sorted.length / 2));
+    const highHalf = sorted.slice(Math.ceil(sorted.length / 2));
+    const avgSleepLow = lowHalf.reduce((s, d) => s + d.sleepHours, 0) / lowHalf.length;
+    const avgSleepHigh = highHalf.reduce((s, d) => s + d.sleepHours, 0) / highHalf.length;
+    const sleepDiff = avgSleepHigh - avgSleepLow;
+    if (Math.abs(sleepDiff) >= 0.4) {
+      patterns.push(sleepDiff > 0
+        ? `I dager med mange skritt sov du i snitt ${sleepDiff.toFixed(1)} t mer enn på de rolige dagene.`
+        : `Dagene med flest skritt ga faktisk ${Math.abs(sleepDiff).toFixed(1)} t mindre søvn i snitt - følg med på at aktive dager ikke går på bekostning av søvnen.`);
+    }
+  }
+
+  if (!patterns.length) {
+    patterns.push("Ikke nok data til tydelige mønstre denne måneden ennå - fortsett å logge, og du får dypere innsikt neste måned.");
+  }
+
+  const patternsHtml = `
+    <div class="report-section">
+      <h3>🔍 Mønstre</h3>
+      <ul>${patterns.map(p => `<li>${p}</li>`).join("")}</ul>
+    </div>`;
+
+  const highlights = [];
+  const savingsKeysForReport = loadBudgetConfig().categories.filter(c => c.savings).map(c => c.key);
+  const savedThisMonth = tx.filter(t => t.date >= emLastStart && t.date <= emLastEnd && savingsKeysForReport.includes(t.category)).reduce((s, t) => s + t.amount, 0);
+  if (savedThisMonth > 0) highlights.push(`🐶 Du la ${Math.round(savedThisMonth).toLocaleString()} kr i sparing denne økonomimåneden.`);
+  const bestSleepDay = history.filter(d => d.sleepScore != null).sort((a, b) => b.sleepScore - a.sleepScore)[0];
+  if (bestSleepDay) highlights.push(`😴 Beste natt denne måneden: ${fmtShort(bestSleepDay.date)} med søvnscore ${bestSleepDay.sleepScore}.`);
+  const sessionsThisMonth = (DATA.trainingHistory || []).filter(d => d.date >= calStart && d.date <= calEnd && d.sessionType !== "rest" && d.loggedTypes.includes(d.sessionType)).length;
+  if (sessionsThisMonth > 0) highlights.push(`🏋️ Du fullførte ${sessionsThisMonth} treningsøkt${sessionsThisMonth === 1 ? "" : "er"} denne måneden.`);
+  const monthDates = [];
+  for (let d = calStart; d <= calEnd; d = isoAddDays(d, 1)) monthDates.push(d);
+  const monthKcalTotals = monthDates.map(d => dayNutritionTotals(d).kcal).filter(k => k > 0);
+  if (monthKcalTotals.length) {
+    const avgKcal = Math.round(monthKcalTotals.reduce((s, k) => s + k, 0) / monthKcalTotals.length);
+    const diff = avgKcal - DATA.nutritionPlan.dailyKcal;
+    highlights.push(diff > 0
+      ? `🍽️ Snitt denne måneden: ${avgKcal} kcal/dag (mål ${DATA.nutritionPlan.dailyKcal}) - ${diff} over i snitt, men det er måneden totalt som teller.`
+      : `🍽️ Snitt denne måneden: ${avgKcal} kcal/dag (mål ${DATA.nutritionPlan.dailyKcal}) - i snitt innenfor målet.`);
+  }
+  if (!highlights.length) highlights.push("En stille måned uten de store toppene - det er også en måned som teller.");
+
+  const highlightsHtml = `
+    <div class="report-section">
+      <h3>🏆 Høydepunkter</h3>
+      <ul>${highlights.map(h => `<li>${h}</li>`).join("")}</ul>
+    </div>`;
+
+  const learnings = [];
+  const lowProteinDays = history.filter(d => dayNutritionTotals(d.date).protein < DATA.nutritionPlan.proteinMin * 0.8).length;
+  if (lowProteinDays >= 10) {
+    learnings.push(`Du lå under proteinmålet ${lowProteinDays} dager denne måneden - sjekk ut proteinrundstykke-lunsjen eller en av kyllingmiddagene for et enkelt løft.`);
+  }
+  if (!learnings.length) learnings.push("Ingenting som trenger store endringer - hold kursen videre.");
+
+  const learningsHtml = `
+    <div class="report-section">
+      <h3>📘 Læringspunkt</h3>
+      <ul>${learnings.slice(0, 2).map(l => `<li>${l}</li>`).join("")}</ul>
+    </div>`;
+
+  const why = loadWhy();
+  const streak = computeStreak();
+  let conclusion = `Denne måneden fikk du gjennomført ${sessionsThisMonth} treningsøkt${sessionsThisMonth === 1 ? "" : "er"}`;
+  if (streak > 0) conclusion += `, og holder en streak på ${streak} dager akkurat nå`;
+  conclusion += `. ${why ? `Husk hvorfor du gjør dette: ${why}. ` : ""}Du bygger noe som varer - fortsett sånn inn i neste måned! 💪`;
+
+  const conclusionHtml = `
+    <div class="report-section">
+      <h3>💬 Konklusjon</h3>
+      <p>${conclusion}</p>
+    </div>`;
+
+  out.innerHTML = `
+    <div class="report-title">Månedens innsikt · ${fmtShort(calStart)} - ${fmtShort(calEnd)} (trening/kosthold) · ${fmtShort(emLastStart)} - ${fmtShort(emLastEnd)} (økonomi)</div>
+    ${patternsHtml}${highlightsHtml}${learningsHtml}${conclusionHtml}
+  `;
+}
+
 function showReport(key) {
   document.querySelectorAll(".report-tab-btn").forEach(b => b.classList.toggle("active", b.dataset.report === key));
   if (key === "morning") renderMorningReport();
   else if (key === "evening") renderEveningReport();
+  else if (key === "monthly") renderMonthlyReport();
   else renderWeeklyReport();
 }
 document.querySelectorAll(".report-tab-btn").forEach(btn => {
   btn.addEventListener("click", () => showReport(btn.dataset.report));
 });
 showReport("morning");
+
+// nudge toward the monthly report the first few days of a new month, since there's no
+// real push notification to tell her it's ready - she has to be told inside the app
+function renderHjemMonthlyInsightNudge() {
+  const el = document.getElementById("hjem-monthly-insight-nudge");
+  if (!el) return;
+  if (new Date().getDate() > 3) { el.innerHTML = ""; return; }
+  const { start: calStart } = calendarMonthRange(1);
+  const monthName = NO_MONTHS_FULL[parseInt(calStart.slice(5, 7), 10) - 1];
+  const monthLabel = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+  el.innerHTML = `
+    <div class="hjem-reminder-banner">
+      <span>📅 ${monthLabel}-oversikten din er klar.</span>
+      <button id="hjem-monthly-insight-link">Se den</button>
+    </div>
+  `;
+  document.getElementById("hjem-monthly-insight-link").addEventListener("click", () => {
+    showTab("rapport");
+    setTimeout(() => {
+      showReport("monthly");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }, 50);
+  });
+}
 
 // ---------------------------------------------------------------- fremgang (long-term trends/goals)
 document.querySelectorAll("#body-period-tabs .period-btn").forEach(btn => {
