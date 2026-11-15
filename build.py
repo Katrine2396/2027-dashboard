@@ -3380,7 +3380,7 @@ function mealRowHtml(type, idx, opt, meta, focus) {
       const key = ingOverrideKey(todayISO(), type, idx, item.itemIdx);
       return `<span class="meal-item-ing${item.overridden ? " meal-item-overridden" : ""}">
         ${item.display} ${item.label}
-        <button class="meal-ing-swap-btn" data-swap-key="${key}">Bytt</button>
+        <button class="meal-ing-swap-btn" data-swap-key="${key}">Endre</button>
         ${item.overridden ? `<button class="meal-ing-reset-btn" data-type="${type}" data-opt-idx="${idx}" data-item-idx="${item.itemIdx}">↺</button>` : ""}
       </span>`;
     }).join("");
@@ -3390,6 +3390,7 @@ function mealRowHtml(type, idx, opt, meta, focus) {
       const key = ingOverrideKey(todayISO(), type, idx, item.itemIdx);
       if (openIngSwapKey !== key) return;
       swapFormHtml = `<div class="ing-swap-form">
+        <div class="section-sub" style="margin:0 0 2px;">Behold samme ingrediens og bare endre gram, eller velg en annen - begge deler oppdaterer kcal/protein.</div>
         <div class="ing-swap-row">
           <select class="ing-swap-select">${ingredientOptionsForSelect(item.ing)}</select>
           <input type="number" class="ing-swap-amount" value="${item.amount}"> g
