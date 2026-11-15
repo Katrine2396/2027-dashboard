@@ -1134,7 +1134,7 @@ TEMPLATE = r"""<!DOCTYPE html>
   .meal-option .meal-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
   .meal-option .meal-head b { font-size: 14px; }
   .meal-option .meal-macro { font-size: 12px; color: var(--muted); white-space: nowrap; }
-  .meal-option .meal-items { font-size: 12px; color: var(--muted); margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px 10px; }
+  .meal-items { font-size: 12px; color: var(--muted); margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px 10px; }
   .meal-item-text { white-space: nowrap; }
   .meal-item-ing { white-space: nowrap; }
   .meal-item-ing.meal-item-overridden { color: var(--accent); font-weight: 700; }
@@ -1166,10 +1166,11 @@ TEMPLATE = r"""<!DOCTYPE html>
   }
   .plan-meal-day .wd { color: var(--muted); text-transform: uppercase; font-size: 11px; letter-spacing: .04em; margin-bottom: 8px; }
   .plan-meal-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
-  .plan-meal-field { display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: var(--muted); }
+  .plan-meal-field { display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: var(--muted); min-width: 0; }
   .plan-meal-field select, .plan-next-swap {
     font-family: inherit; font-size: 12.5px; border: 1px solid var(--line); border-radius: 8px;
     padding: 6px 6px; background: #fff; color: var(--ink);
+    width: 100%; min-width: 0; box-sizing: border-box;
   }
   .mealprep-dept { margin-bottom: 10px; }
   .mealprep-dept-label { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-bottom: 4px; }
