@@ -98,6 +98,9 @@ INGREDIENT_CATALOG = {
     "skyr": {"label": "Høyprotein yoghurt/skyr", "kcal100": 60, "protein100": 10, "dept": "Meieri"},
     "kakaogranola": {"label": "Kakaogranola", "kcal100": 450, "protein100": 8, "dept": "Tørrvarer"},
     "chiafro": {"label": "Chiafrø", "kcal100": 486, "protein100": 17, "dept": "Tørrvarer"},
+    "brokkoli": {"label": "Brokkoli", "kcal100": 34, "protein100": 2.8, "dept": "Frukt og grønt"},
+    "sotpotet": {"label": "Søtpotet", "kcal100": 86, "protein100": 1.6, "dept": "Frukt og grønt"},
+    "kikerter": {"label": "Kikerter (avrent, boks)", "kcal100": 164, "protein100": 8.9, "dept": "Tørrvarer"},
 }
 
 # Each recipe's "items" are either a structured, swappable ingredient line
@@ -133,7 +136,7 @@ NUTRITION_PLAN = {
                 {"text": "agurk og paprika"},
                 {"text": "1 ss lett rømme/yoghurtdressing"},
             ], "kcal": 400, "protein": 35},
-            {"name": "Karbonadedeig med ris", "items": [
+            {"name": "Karbonadedeig med ris", "mealprep": True, "items": [
                 {"ing": "karbonadedeig", "amount": 120},
                 {"ing": "ris", "amount": 60, "display": "60 g ris (tørrvekt)"},
                 {"text": "agurk og paprika"},
@@ -156,6 +159,12 @@ NUTRITION_PLAN = {
                 {"text": "agurk og paprika"},
                 {"text": "litt lett dressing"},
             ], "kcal": 380, "protein": 30},
+            {"name": "Kylling-bowl med quinoa og brokkoli", "mealprep": True, "items": [
+                {"ing": "kyllingfilet", "amount": 120},
+                {"ing": "quinoa", "amount": 50, "display": "50 g quinoa (tørrvekt)"},
+                {"ing": "brokkoli", "amount": 100},
+                {"text": "litt olivenolje og sitron"},
+            ], "kcal": 460, "protein": 47},
         ],
     },
     "snack": {
@@ -179,34 +188,45 @@ NUTRITION_PLAN = {
     "dinner": {
         "label": "Middag - velg én, rullér gjennom uken",
         "options": [
-            {"name": "Kyllingkjøttdeig-stekt ris", "items": [
+            {"name": "Kyllingkjøttdeig-stekt ris", "mealprep": True, "items": [
                 {"ing": "kyllingkjottdeig", "amount": 150},
                 {"ing": "ris", "amount": 70, "display": "70 g ris (tørrvekt)"},
                 {"text": "amerikansk grønnsaksblanding (frossen)"},
                 {"text": "litt soyasaus"},
             ], "kcal": 520, "protein": 42},
-            {"name": "Pasta med kjøttsaus", "items": [
+            {"name": "Pasta med kjøttsaus", "mealprep": True, "items": [
                 {"ing": "pasta", "amount": 80, "display": "80 g pasta (tørrvekt)"},
                 {"ing": "karbonadedeig", "amount": 130},
                 {"text": "litt tomatsaus"},
                 {"text": "paprika"},
             ], "kcal": 560, "protein": 33},
-            {"name": "Kylling med ris", "items": [
+            {"name": "Kylling med ris", "mealprep": True, "items": [
                 {"ing": "kyllingfilet", "amount": 150},
                 {"ing": "ris", "amount": 70, "display": "70 g ris (tørrvekt)"},
                 {"text": "agurk og paprika"},
             ], "kcal": 480, "protein": 44},
-            {"name": "Laks med poteter", "items": [
+            {"name": "Laks med poteter", "mealprep": True, "items": [
                 {"ing": "laksefilet", "amount": 150},
                 {"ing": "poteter", "amount": 200},
                 {"text": "brokkoli"},
             ], "kcal": 490, "protein": 38},
-            {"name": "Taco-gryte", "items": [
+            {"name": "Taco-gryte", "mealprep": True, "items": [
                 {"ing": "kyllingkjottdeig", "amount": 150},
                 {"text": "100 g mais og bønner"},
                 {"text": "1 dl lettrømme"},
                 {"text": "liten porsjon tortillachips"},
             ], "kcal": 540, "protein": 36},
+            {"name": "Ovnsbakt laks med søtpotet og brokkoli", "mealprep": True, "items": [
+                {"ing": "laksefilet", "amount": 150},
+                {"ing": "sotpotet", "amount": 200, "display": "200 g søtpotet"},
+                {"ing": "brokkoli", "amount": 150},
+            ], "kcal": 540, "protein": 38},
+            {"name": "Kyllinggryte med kikerter og ris", "mealprep": True, "items": [
+                {"ing": "kyllingfilet", "amount": 100},
+                {"ing": "kikerter", "amount": 120, "display": "120 g kikerter (avrent)"},
+                {"ing": "ris", "amount": 40, "display": "40 g ris (tørrvekt)"},
+                {"text": "karripasta og litt kokosmelk"},
+            ], "kcal": 520, "protein": 46},
         ],
     },
 }
@@ -1138,6 +1158,29 @@ TEMPLATE = r"""<!DOCTYPE html>
   .nutrition-note { font-size: 11px; color: var(--muted); margin-top: 14px; font-style: italic; }
   .meal-eaten-btn { margin-top: 8px; }
   .meal-option-eaten { border-left: 3px solid var(--accent); }
+  .meal-planned-badge { font-size: 11px; color: var(--accent); font-weight: 700; }
+
+  .plan-meal-day {
+    background: var(--card); border-radius: 14px; box-shadow: var(--shadow);
+    padding: 12px 16px; margin-bottom: 8px;
+  }
+  .plan-meal-day .wd { color: var(--muted); text-transform: uppercase; font-size: 11px; letter-spacing: .04em; margin-bottom: 8px; }
+  .plan-meal-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
+  .plan-meal-field { display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: var(--muted); }
+  .plan-meal-field select, .plan-next-swap {
+    font-family: inherit; font-size: 12.5px; border: 1px solid var(--line); border-radius: 8px;
+    padding: 6px 6px; background: #fff; color: var(--ink);
+  }
+  .mealprep-dept { margin-bottom: 10px; }
+  .mealprep-dept-label { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-bottom: 4px; }
+  .mealprep-ing-check { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; margin: 0 10px 6px 0; }
+  .mealprep-suggestion {
+    background: var(--bg); border: 1px solid var(--line); border-radius: 12px;
+    padding: 12px 14px; margin-top: 10px;
+  }
+  .meal-item-ing.mealprep-missing { color: var(--muted); font-style: italic; }
+  .mealprep-days { display: flex; flex-wrap: wrap; gap: 4px 10px; margin: 8px 0; }
+  .mealprep-day-check { font-size: 12px; display: inline-flex; align-items: center; gap: 3px; }
 
   .report-tabs { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
   .report-tab-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
@@ -1719,6 +1762,7 @@ TEMPLATE = r"""<!DOCTYPE html>
     <button data-tab="kosthold">Kosthold</button>
     <button data-tab="budsjett">Budsjett</button>
     <button data-tab="trening">Treningsplan</button>
+    <button data-tab="planlegg">📝 Planlegg</button>
     <button data-tab="fremgang">Fremgang</button>
     <button data-tab="handleliste">Handleliste</button>
     <button data-tab="rapport">Rapport</button>
@@ -1858,6 +1902,35 @@ TEMPLATE = r"""<!DOCTYPE html>
     <h2>🏆 Rekorder</h2>
     <div class="section-sub">Dine beste løft, oppdateres automatisk når du logger sett</div>
     <div class="card" id="pr-board-card"></div>
+  </section>
+  </div>
+
+  <div class="tab-panel" data-tab="planlegg">
+  <section>
+    <h2>📝 Planlegg neste uke</h2>
+    <div class="section-sub" id="plan-week-sub"></div>
+
+    <h3 style="margin:24px 0 4px;font-size:15px;">Trening</h3>
+    <div class="section-sub" style="margin-top:-2px;margin-bottom:10px;">Bytt type økt for en dag med nedtrekksmenyen</div>
+    <div class="week-row" id="plan-next-week-training"></div>
+
+    <h3 style="margin:28px 0 4px;font-size:15px;">Måltider</h3>
+    <div class="section-sub" style="margin-top:-2px;margin-bottom:10px;">Velg hvilken rett som er planen for hver dag - du logger som vanlig i Kosthold når dagen kommer</div>
+    <div id="plan-next-week-meals"></div>
+
+    <h3 style="margin:28px 0 4px;font-size:15px;">🥘 Mealprep for uken</h3>
+    <div class="card" id="plan-mealprep-card">
+      <div class="section-sub" style="margin-bottom:8px;">Kryss av det du har hjemme akkurat nå, så foreslår vi retter som passer</div>
+      <div id="plan-mealprep-have"></div>
+      <button class="btn ghost small" id="plan-mealprep-find-btn" style="margin-top:4px;">Finn forslag</button>
+      <div id="plan-mealprep-suggestions"></div>
+      <div class="badday-saved-msg" id="plan-mealprep-saved-msg"></div>
+    </div>
+
+    <h3 style="margin:28px 0 4px;font-size:15px;">📌 Ukens planer/avtaler</h3>
+    <div class="section-sub" style="margin-top:-2px;margin-bottom:8px;">Sosiale avtaler, reiser eller annet som påvirker uken</div>
+    <textarea id="plan-agenda-text" rows="3" style="width:100%;box-sizing:border-box;font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:10px;padding:10px;" placeholder="F.eks. bursdagsmiddag torsdag, bortreist i helgen..."></textarea>
+    <div class="badday-saved-msg" id="plan-agenda-saved-msg"></div>
   </section>
   </div>
 
@@ -2419,7 +2492,10 @@ function showTab(tab) {
   localStorage.setItem(ACTIVE_TAB_KEY, tab);
 }
 document.querySelectorAll("#tab-nav button").forEach(btn => {
-  btn.addEventListener("click", () => showTab(btn.dataset.tab));
+  btn.addEventListener("click", () => {
+    showTab(btn.dataset.tab);
+    if (btn.dataset.tab === "planlegg") renderPlanlegg();
+  });
 });
 const rememberedTab = localStorage.getItem(ACTIVE_TAB_KEY);
 const validTabs = Array.from(document.querySelectorAll(".tab-panel")).map(p => p.dataset.tab);
@@ -3097,6 +3173,24 @@ renderRestTimer();
 const EXTRAS_KEY = "garminDashboardExtras_v1";
 const CUSTOM_MEALS_KEY = "garminDashboardCustomMeals_v1";
 const MEAL_LOG_KEY = "garminDashboardMealLog_v1";
+// planlagt rett per dag+måltidstype (satt i Planlegg-fanen) - definert her, før
+// renderNutrition() sitt første kall lenger ned, siden den leser plannedMealFor()
+// for å vise "📌 Planlagt"-merket
+const MEAL_PLAN_OVERRIDES_KEY = "garminDashboardMealPlanOverrides_v1";
+function loadMealPlanOverrides() { return loadLS(MEAL_PLAN_OVERRIDES_KEY, {}); }
+function saveMealPlanOverrides(o) { saveLS(MEAL_PLAN_OVERRIDES_KEY, o); }
+function mealPlanKey(date, type) { return `${date}|${type}`; }
+function plannedMealFor(date, type) { return loadMealPlanOverrides()[mealPlanKey(date, type)] || null; }
+function setPlannedMeal(date, type, name) {
+  const o = loadMealPlanOverrides();
+  o[mealPlanKey(date, type)] = name;
+  saveMealPlanOverrides(o);
+}
+function clearPlannedMeal(date, type) {
+  const o = loadMealPlanOverrides();
+  delete o[mealPlanKey(date, type)];
+  saveMealPlanOverrides(o);
+}
 const CUSTOM_INGREDIENTS_KEY = "garminDashboardCustomIngredients_v1";
 const MEAL_ING_OVERRIDES_KEY = "garminDashboardMealIngOverrides_v1";
 function loadCustomMeals() { return Object.assign({ breakfast: [], lunch: [], snack: [], dinner: [] }, loadLS(CUSTOM_MEALS_KEY, {})); }
@@ -3231,7 +3325,7 @@ function mealOptionHtml(opt, removeId, toggle, swapCtx) {
   }
 
   return `<div class="meal-option${eaten ? " meal-option-eaten" : ""}">
-    <div class="meal-head"><b>${opt.name}</b><span class="meal-macro">${opt.kcal} kcal · ${opt.protein} g protein${removeId ? `<button class="meal-option-remove" data-meal-remove="${removeId}">✕</button>` : ""}</span></div>
+    <div class="meal-head"><b>${opt.name}</b>${opt.planned ? ` <span class="meal-planned-badge">📌 Planlagt</span>` : ""}<span class="meal-macro">${opt.kcal} kcal · ${opt.protein} g protein${removeId ? `<button class="meal-option-remove" data-meal-remove="${removeId}">✕</button>` : ""}</span></div>
     ${itemsHtml ? `<div class="meal-items">${itemsHtml}</div>` : ""}
     ${swapFormHtml}
     ${toggle ? `<button class="btn ghost small meal-eaten-btn" data-meal-type="${toggle.type}" data-meal-idx="${toggle.idx}">${eaten ? "✓ Spist i dag" : "Merk som spist i dag"}</button>` : ""}
@@ -3288,8 +3382,16 @@ function renderNutrition() {
       : "";
     html += `<div class="meal-group"><h4>${group.label}</h4>
       ${repeatHtml}
-      ${group.options.map((o, idx) => mealOptionHtml(effectiveMealOption(key, idx, o, today), null, { type: key, idx, eaten: isMealEatenToday(key, o.name) }, { type: key, optIdx: idx })).join("")}
-      ${customOpts.map((o, i) => mealOptionHtml(effectiveMealOption(key, group.options.length + i, o, today), o.id, { type: key, idx: group.options.length + i, eaten: isMealEatenToday(key, o.name) }, null)).join("")}
+      ${group.options.map((o, idx) => {
+        const eOpt = effectiveMealOption(key, idx, o, today);
+        eOpt.planned = plannedMealFor(today, key) === o.name;
+        return mealOptionHtml(eOpt, null, { type: key, idx, eaten: isMealEatenToday(key, o.name) }, { type: key, optIdx: idx });
+      }).join("")}
+      ${customOpts.map((o, i) => {
+        const eOpt = effectiveMealOption(key, group.options.length + i, o, today);
+        eOpt.planned = plannedMealFor(today, key) === o.name;
+        return mealOptionHtml(eOpt, o.id, { type: key, idx: group.options.length + i, eaten: isMealEatenToday(key, o.name) }, null);
+      }).join("")}
       <div class="log-form meal-add-form">
         <input type="text" id="meal-add-name-${key}" placeholder="Eget forslag - navn">
         <input type="number" step="10" id="meal-add-kcal-${key}" placeholder="kcal">
@@ -4199,8 +4301,15 @@ function renderHjemNextWeekPreview() {
       <div class="hjem-body-group-label">📅 Neste treningsuke</div>
       <div class="section-sub" style="margin-bottom:8px;">${weekTag}</div>
       <div class="week-row">${days}</div>
+      <button class="btn ghost small hjem-plan-next-week-btn" style="margin-top:10px;">📝 Planlegg neste uke</button>
     </div>
   `;
+  const btn = el.querySelector(".hjem-plan-next-week-btn");
+  if (btn) btn.addEventListener("click", () => {
+    showTab("planlegg");
+    renderPlanlegg();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
 }
 
 function renderBadDayPanel() {
@@ -4391,6 +4500,206 @@ document.getElementById("shop-clear-all").addEventListener("click", () => {
   saveShopList([]);
   renderShopList();
 });
+
+// ---------------------------------------------------------------- søndagsplanlegger (neste uke)
+const MEALPREP_HAVE_KEY = "garminDashboardMealprepHave_v1";
+const WEEK_AGENDA_KEY = "garminDashboardWeekAgenda_v1";
+const MEAL_TYPE_LABELS = { breakfast: "Frokost", lunch: "Lunsj", snack: "Mellommåltid", dinner: "Middag" };
+
+function loadMealprepHave() { return loadLS(MEALPREP_HAVE_KEY, []); }
+function saveMealprepHave(arr) { saveLS(MEALPREP_HAVE_KEY, arr); }
+
+function loadWeekAgenda() { return loadLS(WEEK_AGENDA_KEY, {}); }
+function saveWeekAgenda(m) { saveLS(WEEK_AGENDA_KEY, m); }
+
+// bytte av øktype for neste uke - egen select-klasse (ikke "swap") og scoped lytting,
+// slik at den ikke krasjer med renderPlan() sin globale "select.swap"-lytter (som bare
+// kjenner til p.week, ikke p.nextWeek)
+function planSwapSelectHtml(date, resolvedKey) {
+  const selKey = SWAP_OPTIONS.includes(resolvedKey) ? resolvedKey : "rest";
+  const opts = SWAP_OPTIONS.map(k => `<option value="${k}" ${k === selKey ? "selected" : ""}>${SWAP_NAMES[k]}</option>`).join("");
+  return `<select class="plan-next-swap" data-date="${date}" aria-label="Bytt økt">${opts}</select>`;
+}
+function renderPlanNextWeekTraining() {
+  const el = document.getElementById("plan-next-week-training");
+  if (!el) return;
+  const p = DATA.program;
+  if (!p || !p.nextWeek) { el.innerHTML = ""; return; }
+  const overrides = loadPlanOverrides();
+  el.innerHTML = p.nextWeek.map(d => {
+    const r = resolvePlanDay(d, overrides);
+    return `<div class="week-day" data-date="${d.date}">
+      <div class="wd"><span>${d.weekday}</span></div>
+      <div class="sess">${r.label}</div>
+      ${planSwapSelectHtml(d.date, r.key)}
+    </div>`;
+  }).join("");
+  el.querySelectorAll(".plan-next-swap").forEach(sel => {
+    sel.addEventListener("change", () => {
+      const current = loadPlanOverrides();
+      const day = p.nextWeek.find(x => x.date === sel.dataset.date);
+      if (isDefaultKeyForDay(day, sel.value)) delete current[sel.dataset.date];
+      else current[sel.dataset.date] = sel.value;
+      savePlanOverrides(current);
+      renderPlanNextWeekTraining();
+      renderHjemNextWeekPreview();
+    });
+  });
+}
+
+function renderPlanNextWeekMeals() {
+  const el = document.getElementById("plan-next-week-meals");
+  if (!el) return;
+  const p = DATA.program;
+  if (!p || !p.nextWeek) { el.innerHTML = ""; return; }
+  const n = DATA.nutritionPlan;
+  const custom = loadCustomMeals();
+  el.innerHTML = p.nextWeek.map(d => {
+    const fieldsHtml = ["breakfast", "lunch", "snack", "dinner"].map(type => {
+      const names = (n[type].options || []).map(o => o.name).concat((custom[type] || []).map(o => o.name));
+      const planned = plannedMealFor(d.date, type);
+      const optsHtml = `<option value="">–</option>` + names.map(name =>
+        `<option value="${name}" ${planned === name ? "selected" : ""}>${name}</option>`
+      ).join("");
+      return `<label class="plan-meal-field">${MEAL_TYPE_LABELS[type]}<select class="plan-meal-select" data-date="${d.date}" data-type="${type}">${optsHtml}</select></label>`;
+    }).join("");
+    return `<div class="plan-meal-day"><div class="wd">${d.weekday} ${fmtShort(d.date)}</div><div class="plan-meal-fields">${fieldsHtml}</div></div>`;
+  }).join("");
+  el.querySelectorAll(".plan-meal-select").forEach(sel => {
+    sel.addEventListener("change", () => {
+      if (sel.value) setPlannedMeal(sel.dataset.date, sel.dataset.type, sel.value);
+      else clearPlannedMeal(sel.dataset.date, sel.dataset.type);
+    });
+  });
+}
+
+function mealprepCandidates() {
+  const n = DATA.nutritionPlan;
+  const out = [];
+  ["lunch", "dinner"].forEach(type => {
+    (n[type].options || []).forEach((opt, idx) => {
+      if (opt.mealprep) out.push({ type, idx, opt });
+    });
+  });
+  return out;
+}
+function scoreMealprepOption(opt, haveSet) {
+  const ingItems = (opt.items || []).filter(i => i.ing);
+  if (!ingItems.length) return 0;
+  return ingItems.filter(i => haveSet.has(i.ing)).length / ingItems.length;
+}
+function renderMealprepHaveForm() {
+  const el = document.getElementById("plan-mealprep-have");
+  if (!el) return;
+  const all = Object.assign({}, DATA.ingredientCatalog, loadCustomIngredients());
+  const have = new Set(loadMealprepHave());
+  const byDept = {};
+  Object.entries(all).forEach(([key, ing]) => {
+    const dept = ing.dept || "Annet";
+    (byDept[dept] = byDept[dept] || []).push({ key, label: ing.label });
+  });
+  el.innerHTML = SHOP_DEPT_ORDER.filter(d => byDept[d]).map(dept => `
+    <div class="mealprep-dept">
+      <div class="mealprep-dept-label">${dept}</div>
+      ${byDept[dept].sort((a, b) => a.label.localeCompare(b.label, "no")).map(i =>
+        `<label class="mealprep-ing-check"><input type="checkbox" value="${i.key}" ${have.has(i.key) ? "checked" : ""}> ${i.label}</label>`
+      ).join("")}
+    </div>
+  `).join("");
+  el.querySelectorAll("input[type=checkbox]").forEach(cb => {
+    cb.addEventListener("change", () => {
+      const cur = new Set(loadMealprepHave());
+      if (cb.checked) cur.add(cb.value); else cur.delete(cb.value);
+      saveMealprepHave(Array.from(cur));
+    });
+  });
+}
+function renderMealprepSuggestions() {
+  const el = document.getElementById("plan-mealprep-suggestions");
+  if (!el) return;
+  const have = new Set(loadMealprepHave());
+  const scored = mealprepCandidates()
+    .map(c => Object.assign({}, c, { score: scoreMealprepOption(c.opt, have) }))
+    .filter(c => c.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
+  if (!scored.length) {
+    el.innerHTML = `<div class="section-sub" style="margin-top:10px;">Kryss av noen ingredienser du har hjemme, og trykk "Finn forslag".</div>`;
+    return;
+  }
+  const nextWeek = (DATA.program && DATA.program.nextWeek) || [];
+  el.innerHTML = scored.map(c => {
+    const itemsHtml = (c.opt.items || []).map(item => {
+      if (!item.ing) return `<span class="meal-item-text">${item.text}</span>`;
+      const ing = getIngredient(item.ing);
+      const haveIt = have.has(item.ing);
+      return `<span class="meal-item-ing${haveIt ? "" : " mealprep-missing"}">${item.display || `${item.amount} g`} ${ing ? ing.label : item.ing}${haveIt ? " ✓" : ""}</span>`;
+    }).join("");
+    const dayChecks = nextWeek.map(d => `<label class="mealprep-day-check"><input type="checkbox" value="${d.date}"> ${d.weekday}</label>`).join("");
+    return `<div class="mealprep-suggestion" data-type="${c.type}" data-idx="${c.idx}">
+      <div class="meal-head"><b>${c.opt.name}</b><span class="meal-macro">${c.opt.kcal} kcal · ${c.opt.protein} g protein</span></div>
+      <div class="meal-items">${itemsHtml}</div>
+      <div class="mealprep-days">${dayChecks}</div>
+      <button class="btn ghost small mealprep-assign-btn">Legg til i planen</button>
+    </div>`;
+  }).join("");
+
+  el.querySelectorAll(".mealprep-assign-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const card = btn.closest(".mealprep-suggestion");
+      const type = card.dataset.type;
+      const idx = parseInt(card.dataset.idx, 10);
+      const opt = DATA.nutritionPlan[type].options[idx];
+      if (!opt) return;
+      const checkedDays = Array.from(card.querySelectorAll(".mealprep-days input:checked")).map(cb => cb.value);
+      if (!checkedDays.length) {
+        flashSaved("plan-mealprep-saved-msg", "Velg minst én dag først");
+        return;
+      }
+      checkedDays.forEach(date => setPlannedMeal(date, type, opt.name));
+      // tekstlinjer (uten "ing") kan ikke krysses av som "har hjemme", så de regnes
+      // som manglende som standard - bedre med én overflødig handlelistelinje enn
+      // at noe mangler på butikken
+      const missingNames = (opt.items || []).filter(i => !i.ing || !have.has(i.ing)).map(i => {
+        if (!i.ing) return i.text;
+        const ing = getIngredient(i.ing);
+        return i.display || `${i.amount} g ${ing ? ing.label : i.ing}`;
+      });
+      if (missingNames.length) addShopItems(missingNames);
+      renderPlanNextWeekMeals();
+      flashSaved("plan-mealprep-saved-msg", `Lagt til for ${checkedDays.length} dag${checkedDays.length === 1 ? "" : "er"} ✓${missingNames.length ? " - manglende ingredienser lagt i handlelisten" : ""}`);
+    });
+  });
+}
+document.getElementById("plan-mealprep-find-btn").addEventListener("click", renderMealprepSuggestions);
+
+function renderPlanAgenda() {
+  const ta = document.getElementById("plan-agenda-text");
+  if (!ta) return;
+  const p = DATA.program;
+  const weekKey = p && p.nextWeek && p.nextWeek[0] ? p.nextWeek[0].date : null;
+  if (!weekKey) return;
+  ta.value = loadWeekAgenda()[weekKey] || "";
+  ta.onblur = () => {
+    const m = loadWeekAgenda();
+    if (ta.value.trim()) m[weekKey] = ta.value.trim(); else delete m[weekKey];
+    saveWeekAgenda(m);
+    flashSaved("plan-agenda-saved-msg", "Lagret ✓");
+  };
+}
+
+function renderPlanlegg() {
+  const p = DATA.program;
+  const sub = document.getElementById("plan-week-sub");
+  if (sub && p && p.nextWeek && p.nextWeek.length) {
+    sub.textContent = `${fmtShort(p.nextWeek[0].date)} – ${fmtShort(p.nextWeek[6].date)} · ${p.nextWeekIsDeload ? "Deload-uke" : p.nextWeekFocus}`;
+  }
+  renderPlanNextWeekTraining();
+  renderPlanNextWeekMeals();
+  renderMealprepHaveForm();
+  renderMealprepSuggestions();
+  renderPlanAgenda();
+}
 
 // ---------------------------------------------------------------- budget
 let currentEconMonth = emKeyForDate(todayISO());
@@ -5924,6 +6233,7 @@ document.querySelectorAll("#quicklog-bar button[data-ql]").forEach(btn => {
 
 renderHjem();
 renderNutritionCoach();
+renderPlanlegg();
 
 // ---- Hjem live refresh: re-fetch own published page for fresh Garmin data ----
 async function refreshGarminData() {
@@ -6348,6 +6658,38 @@ function renderWeeklyReport(targetId) {
 
   const why = loadWhy();
   const sessionsThisWeek = (DATA.trainingHistory || []).filter(d => d.date >= weekStart && d.date <= todayStr && d.sessionType !== "rest" && d.loggedTypes.includes(d.sessionType)).length;
+
+  // ---- tips til neste uke - konkrete, handlingsorienterte forslag basert på denne ukens data ----
+  const tips = [];
+  const kcalOverDays = weekDates.filter(d => dayNutritionTotals(d).kcal > DATA.nutritionPlan.dailyKcal * 1.1).length;
+  const plannedNonRestThisWeek = (DATA.trainingHistory || []).filter(d => d.date >= weekStart && d.date <= todayStr && d.sessionType !== "rest").length;
+  const trainingGoodThisWeek = plannedNonRestThisWeek > 0 && sessionsThisWeek / plannedNonRestThisWeek >= 0.7;
+  const matCatForTips = loadBudgetConfig().categories.find(c => c.key === "mat");
+  const matCapWeekShare = matCatForTips ? getCategoryCap(matCatForTips, emKeyForDate(todayStr)) / 30 * 7 : null;
+  const matSpentThisWeek = tx.filter(t => t.date >= weekStart && t.category === "mat").reduce((s, t) => s + t.amount, 0);
+
+  if (lowSleepDays.length >= 2 && kcalOverDays >= 2) {
+    tips.push("Neste uke: Prøv en proteinrik frokost for å holde deg mettere og mer stabil utover dagen, og legg inn en rolig tur en av kveldene du pleier å sove dårligst.");
+  }
+  if (trainingGoodThisWeek && matCapWeekShare != null && matSpentThisWeek > matCapWeekShare * 1.15) {
+    tips.push(`Du har vært flink til å trene denne uken, men matbudsjettet sprakk litt. Neste uke: prøv å forberede lunsj eller middag hjemme et par dager (se mealprep-forslag i Planlegg-fanen) for å holde deg innenfor budsjettet.`);
+  }
+  if (!tips.length && lowProteinDays >= 3) {
+    tips.push("Neste uke: Fokuser spesielt på proteinet til frokost - det er måltidet du oftest bommer på.");
+  }
+  if (!tips.length && extrasThisWeek.length >= 5) {
+    tips.push("Neste uke: Ha et planlagt, proteinrikt mellommåltid klart i kjøleskapet - det gjør det lettere å styre unna impulsvalg.");
+  }
+  if (!tips.length) {
+    tips.push("Ingen spesielle justeringer denne gangen - fortsett som nå, du er på god vei.");
+  }
+
+  const tipsHtml = `
+    <div class="report-section">
+      <h3>💡 Tips til neste uke</h3>
+      <ul>${tips.slice(0, 2).map(t => `<li>${t}</li>`).join("")}</ul>
+    </div>`;
+
   let conclusion = `Denne uken fikk du gjennomført ${sessionsThisWeek} treningsøkt${sessionsThisWeek === 1 ? "" : "er"}`;
   if (streak > 0) conclusion += ` og holder en streak på ${streak} dager`;
   conclusion += `. ${why ? `Husk hvorfor du gjør dette: ${why}. ` : ""}Du bygger noe som varer - fortsett sånn inn i neste uke! 💪`;
@@ -6358,9 +6700,13 @@ function renderWeeklyReport(targetId) {
       <p>${conclusion}</p>
     </div>`;
 
+  const thisWeekMonday = (DATA.program && DATA.program.week && DATA.program.week[0]) ? DATA.program.week[0].date : null;
+  const agendaNote = thisWeekMonday ? loadWeekAgenda()[thisWeekMonday] : null;
+  const agendaHtml = agendaNote ? `<div class="report-section"><h3>📌 Det du planla for uken</h3><p>${agendaNote}</p></div>` : "";
+
   out.innerHTML = `
     <div class="report-title">Ukens innsikt · ${fmtShort(weekStart)} - ${fmtShort(todayStr)}</div>
-    ${patternsHtml}${highlightsHtml}${learningsHtml}${conclusionHtml}
+    ${agendaHtml}${patternsHtml}${highlightsHtml}${learningsHtml}${tipsHtml}${conclusionHtml}
   `;
 }
 
@@ -6506,6 +6852,37 @@ function renderMonthlyReport(targetId) {
       <ul>${learnings.slice(0, 2).map(l => `<li>${l}</li>`).join("")}</ul>
     </div>`;
 
+  // ---- tips til neste måned - konkrete, handlingsorienterte forslag basert på denne månedens data ----
+  const tips = [];
+  const kcalOverDays = monthDates.filter(d => dayNutritionTotals(d).kcal > DATA.nutritionPlan.dailyKcal * 1.1).length;
+  const plannedNonRestThisMonth = (DATA.trainingHistory || []).filter(d => d.date >= calStart && d.date <= calEnd && d.sessionType !== "rest").length;
+  const trainingGoodThisMonth = plannedNonRestThisMonth > 0 && sessionsThisMonth / plannedNonRestThisMonth >= 0.7;
+  const matCatForTips = loadBudgetConfig().categories.find(c => c.key === "mat");
+  const matCapLastMonth = matCatForTips ? getCategoryCap(matCatForTips, emKeyLast) : null;
+  const matSpentLastMonth = tx.filter(t => t.date >= emLastStart && t.date <= emLastEnd && t.category === "mat").reduce((s, t) => s + t.amount, 0);
+
+  if (lowSleepDays.length >= 4 && kcalOverDays >= 4) {
+    tips.push("Neste måned: Prøv en proteinrik frokost på faste tider for å holde deg mettere og mer stabil utover dagen, og prioriter en rolig kveldstur de dagene søvnen pleier å svikte.");
+  }
+  if (trainingGoodThisMonth && matCapLastMonth != null && matSpentLastMonth > matCapLastMonth * 1.15) {
+    tips.push("Du har vært flink til å trene, men matbudsjettet har vært utfordrende. Neste måned: prøv å forberede lunsj eller middag hjemme 2-3 dager i uken (se mealprep-forslag i Planlegg-fanen) for å holde deg innenfor budsjettet.");
+  }
+  if (!tips.length && lowProteinDays >= 10) {
+    tips.push("Neste måned: Fokuser spesielt på proteinet til frokost - det er måltidet du oftest bommer på gjennom måneden.");
+  }
+  if (!tips.length && extrasThisMonth.length >= 15) {
+    tips.push("Neste måned: Ha planlagte, proteinrike mellommåltider klare - det gjør det lettere å styre unna impulsvalg.");
+  }
+  if (!tips.length) {
+    tips.push("Ingen spesielle justeringer denne gangen - fortsett som nå, du er på god vei.");
+  }
+
+  const tipsHtml = `
+    <div class="report-section">
+      <h3>💡 Tips til neste måned</h3>
+      <ul>${tips.slice(0, 2).map(t => `<li>${t}</li>`).join("")}</ul>
+    </div>`;
+
   const why = loadWhy();
   const streak = computeStreak();
   let conclusion = `Denne måneden fikk du gjennomført ${sessionsThisMonth} treningsøkt${sessionsThisMonth === 1 ? "" : "er"}`;
@@ -6520,7 +6897,7 @@ function renderMonthlyReport(targetId) {
 
   out.innerHTML = `
     <div class="report-title">Månedens innsikt · ${fmtShort(calStart)} - ${fmtShort(calEnd)} (trening/kosthold) · ${fmtShort(emLastStart)} - ${fmtShort(emLastEnd)} (økonomi)</div>
-    ${patternsHtml}${highlightsHtml}${learningsHtml}${conclusionHtml}
+    ${patternsHtml}${highlightsHtml}${learningsHtml}${tipsHtml}${conclusionHtml}
   `;
 }
 
