@@ -2,7 +2,10 @@ name: Update dashboard
 
 on:
   schedule:
-    - cron: "*/30 * * * *"
+    # GitHub's scheduler is busiest right at :00 and :30 (its own docs warn these are
+    # the most likely times for a scheduled run to be delayed or dropped entirely) -
+    # offset to :07/:37 instead, still effectively every 30 min.
+    - cron: "7,37 * * * *"
   workflow_dispatch: {}
 
 permissions:
