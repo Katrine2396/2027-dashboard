@@ -1488,6 +1488,21 @@ TEMPLATE = r"""<!DOCTYPE html>
   .badday-expense-row input { flex: 1; min-width: 0; padding: 12px; font-size: 15px; border: 1px solid var(--line); border-radius: 10px; font-family: Nunito, sans-serif; box-sizing: border-box; }
   .badday-expense-row button { flex: 1; padding: 12px; font-size: 15px; }
   .badday-saved-msg { font-size: 12px; color: var(--muted); min-height: 16px; margin-top: 4px; }
+
+  .freeday-panel { display: none; max-width: 420px; margin: 24px auto; text-align: left; }
+  body.freeday-active header,
+  body.freeday-active .quicklog-bar,
+  body.freeday-active .wrap > *:not(.freeday-panel) { display: none !important; }
+  body.freeday-active .freeday-panel { display: block; }
+  .freeday-task-card {
+    background: var(--card); border-radius: 14px; box-shadow: var(--shadow);
+    padding: 20px; margin-top: 16px; text-align: center;
+  }
+  .freeday-task-name { font-family: "Playfair Display", serif; font-size: 17px; margin-bottom: 8px; }
+  .freeday-microstep { font-size: 15px; color: var(--ink); margin-bottom: 4px; line-height: 1.5; }
+  .freeday-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+  .freeday-actions > button { padding: 14px; font-size: 15px; }
+  .freeday-rest-list { margin-top: 10px; font-size: 13px; color: var(--muted); text-align: left; padding-left: 18px; }
   .mvd-box { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; text-align: left; }
   .mvd-title { font-family: "Playfair Display", serif; font-size: 17px; font-weight: 700; margin-bottom: 8px; }
   .mvd-list { list-style: none; margin: 0; padding: 0; font-size: 14px; }
@@ -1795,6 +1810,18 @@ TEMPLATE = r"""<!DOCTYPE html>
     <button class="btn ghost" id="badday-exit" style="display:block;margin-top:24px;">Tilbake til vanlig visning</button>
   </div>
 
+  <div class="freeday-panel" id="freeday-panel">
+    <h2 style="margin-top:0;">🌤️ Fri dag</h2>
+    <div class="section-sub">Skriv inn det du har tenkt å gjøre i dag. Vi viser bare én ting om gangen, brutt ned til et lite første steg - resten er gjemt til du er klar for det.</div>
+    <div class="log-form" style="margin-top:14px;">
+      <input type="text" id="freeday-add-input" placeholder="Hva skal du gjøre?">
+      <button class="btn" id="freeday-add-btn">Legg til</button>
+    </div>
+    <div id="freeday-current"></div>
+    <div id="freeday-rest-toggle"></div>
+    <button class="btn ghost" id="freeday-exit" style="display:block;margin-top:24px;">Tilbake til vanlig visning</button>
+  </div>
+
   <div class="tab-panel" data-tab="hjem">
   <div class="hjem-dash" id="hjem-dash">
     <div class="hjem-topbar">
@@ -1802,6 +1829,7 @@ TEMPLATE = r"""<!DOCTYPE html>
       <div class="hjem-topbar-btns">
         <button class="hjem-refresh-btn" id="hjem-refresh-btn" title="Oppdater">⟳</button>
         <button class="hjem-badday-toggle" id="hjem-badday-toggle">🌱 Minimumsdag</button>
+        <button class="hjem-badday-toggle" id="hjem-freeday-toggle">🌤️ Fri dag</button>
       </div>
     </div>
 
@@ -4534,10 +4562,21 @@ function renderBadDayPanel() {
   document.getElementById("badday-saved-msg").textContent = "";
 }
 
+// ---- Fri dag: for valgfrie/ikke-presserende oppgaver (farge hår, mealprep, rydde...) der
+// tankekaos lett fører til at ingenting blir gjort. Viser kun én oppgave om gangen, automatisk
+// brutt ned til et lite første fysisk steg - resten er gjemt til hun er klar for det.
+// Nøklene defineres her, før setBadDayMode (som refererer FREEDAY_MODE_KEY) kalles lenger ned.
+const FREEDAY_MODE_KEY = "garminDashboardFreedayActive_v1";
+const FREEDAY_LOG_KEY = "garminDashboardFreedayLog_v1";
+
 function setBadDayMode(active) {
   document.body.classList.toggle("badday-active", active);
   saveLS(BADDAY_MODE_KEY, active);
-  if (active) renderBadDayPanel();
+  if (active) {
+    document.body.classList.remove("freeday-active");
+    saveLS(FREEDAY_MODE_KEY, false);
+    renderBadDayPanel();
+  }
 }
 
 document.getElementById("badday-btn").addEventListener("click", () => setBadDayMode(true));
@@ -4545,6 +4584,133 @@ document.getElementById("hjem-badday-toggle").addEventListener("click", () => se
 document.getElementById("badday-exit").addEventListener("click", () => setBadDayMode(false));
 
 if (loadLS(BADDAY_MODE_KEY, false)) setBadDayMode(true);
+
+function loadFreedayLog() { return loadLS(FREEDAY_LOG_KEY, {}); }
+function saveFreedayLog(l) { saveLS(FREEDAY_LOG_KEY, l); }
+function freedayTasksToday() { return loadFreedayLog()[todayISO()] || []; }
+function saveFreedayTasksToday(tasks) {
+  const log = loadFreedayLog();
+  log[todayISO()] = tasks;
+  saveFreedayLog(log);
+}
+
+// enkle nøkkelord -> et konkret, lite første steg (ikke ekte AI - appen er en statisk fil),
+// med et generisk fallback-steg for alt annet
+const FREEDAY_MICROSTEPS = [
+  [["dusj"], "Gå til badet og skru på vannet."],
+  [["hår", "farge"], "Finn frem det du trenger (farge, børste, håndkle)."],
+  [["mealprep", "middag", "lunsj", "frokost", "lage mat", "matlaging"], "Gå til kjøkkenet og finn frem én ingrediens."],
+  [["vask", "klesvask", "stryk"], "Samle sammen det som skal vaskes eller strykes."],
+  [["rydd"], "Plukk opp én ting og sett den på plass."],
+  [["støvsug", "vaske gulv"], "Finn frem støvsugeren eller moppen."],
+  [["handle", "butikk", "dagligvare"], "Lag en kjapp liste på 3 ting du trenger."],
+  [["tren"], "Ta på deg treningsklærne."],
+  [["epost", "mail", "papirarbeid", "regning"], "Åpne det første du ser øverst."],
+  [["ring", "telefon"], "Finn frem telefonen og nummeret."],
+];
+function guessMicroStep(text) {
+  const t = text.toLowerCase();
+  for (const [keywords, step] of FREEDAY_MICROSTEPS) {
+    if (keywords.some(k => t.includes(k))) return step;
+  }
+  return "Reis deg og ta ett lite fysisk steg mot den.";
+}
+
+function addFreedayTask(text) {
+  const tasks = freedayTasksToday();
+  tasks.push({ id: "fd-" + Date.now() + Math.random(), text, microStep: guessMicroStep(text), status: "todo" });
+  saveFreedayTasksToday(tasks);
+}
+function setFreedayTaskStatus(id, status) {
+  const tasks = freedayTasksToday();
+  const t = tasks.find(x => x.id === id);
+  if (t) t.status = status;
+  saveFreedayTasksToday(tasks);
+}
+function updateFreedayMicroStep(id, microStep) {
+  const tasks = freedayTasksToday();
+  const t = tasks.find(x => x.id === id);
+  if (t) t.microStep = microStep;
+  saveFreedayTasksToday(tasks);
+}
+
+let freedayMicroEditOpen = null;
+let freedayRestOpen = false;
+
+function renderFreedayPanel() {
+  const tasks = freedayTasksToday();
+  const current = tasks.find(t => t.status === "todo" || t.status === "started");
+  const upcoming = tasks.filter(t => t.id !== (current && current.id) && t.status !== "done" && t.status !== "skipped");
+
+  const currentEl = document.getElementById("freeday-current");
+  if (!current) {
+    currentEl.innerHTML = tasks.length
+      ? `<div class="freeday-task-card"><div class="freeday-task-name">Alt er gjennomgått for i dag 🌤️</div><div class="section-sub">Det du ikke fikk til er helt greit - det kan vente til en annen dag.</div></div>`
+      : `<div class="section-sub" style="margin-top:14px;">Ingenting lagt til ennå - skriv inn den første oppgaven over.</div>`;
+  } else {
+    const started = current.status === "started";
+    currentEl.innerHTML = `
+      <div class="freeday-task-card">
+        <div class="freeday-task-name">${current.text}</div>
+        <div class="freeday-microstep">${started ? "Du er i gang - fortsett i ditt eget tempo." : current.microStep}</div>
+        ${freedayMicroEditOpen === current.id
+          ? `<div class="log-form"><input type="text" id="freeday-microstep-input" value="${current.microStep}"><button class="btn ghost small" id="freeday-microstep-save" data-id="${current.id}">Lagre</button></div>`
+          : (started ? "" : `<button class="btn ghost small" id="freeday-microstep-edit" data-id="${current.id}">Endre første steg</button>`)}
+        <div class="freeday-actions">
+          ${!started ? `<button class="btn" id="freeday-start-btn" data-id="${current.id}">Jeg er i gang 🚶</button>` : ""}
+          <button class="btn ${started ? "" : "ghost"}" id="freeday-done-btn" data-id="${current.id}">Ferdig ✓</button>
+          <button class="btn ghost" id="freeday-skip-btn" data-id="${current.id}">Ikke i dag</button>
+        </div>
+      </div>`;
+
+    const startBtn = document.getElementById("freeday-start-btn");
+    if (startBtn) startBtn.addEventListener("click", () => { setFreedayTaskStatus(startBtn.dataset.id, "started"); freedayMicroEditOpen = null; renderFreedayPanel(); });
+    document.getElementById("freeday-done-btn").addEventListener("click", (e) => { setFreedayTaskStatus(e.target.dataset.id, "done"); freedayMicroEditOpen = null; renderFreedayPanel(); });
+    document.getElementById("freeday-skip-btn").addEventListener("click", (e) => { setFreedayTaskStatus(e.target.dataset.id, "skipped"); freedayMicroEditOpen = null; renderFreedayPanel(); });
+    const editBtn = document.getElementById("freeday-microstep-edit");
+    if (editBtn) editBtn.addEventListener("click", () => { freedayMicroEditOpen = editBtn.dataset.id; renderFreedayPanel(); });
+    const saveBtn = document.getElementById("freeday-microstep-save");
+    if (saveBtn) saveBtn.addEventListener("click", () => {
+      const val = document.getElementById("freeday-microstep-input").value.trim();
+      if (val) updateFreedayMicroStep(saveBtn.dataset.id, val);
+      freedayMicroEditOpen = null;
+      renderFreedayPanel();
+    });
+  }
+
+  const restEl = document.getElementById("freeday-rest-toggle");
+  if (!upcoming.length) { restEl.innerHTML = ""; return; }
+  restEl.innerHTML = `<button class="btn ghost small" id="freeday-rest-show">${freedayRestOpen ? "Skjul resten" : `Vis resten (${upcoming.length})`}</button>`
+    + (freedayRestOpen ? `<ul class="freeday-rest-list">${upcoming.map(t => `<li>${t.text}</li>`).join("")}</ul>` : "");
+  document.getElementById("freeday-rest-show").addEventListener("click", () => { freedayRestOpen = !freedayRestOpen; renderFreedayPanel(); });
+}
+
+document.getElementById("freeday-add-btn").addEventListener("click", () => {
+  const input = document.getElementById("freeday-add-input");
+  const text = input.value.trim();
+  if (!text) return;
+  addFreedayTask(text);
+  input.value = "";
+  renderFreedayPanel();
+});
+document.getElementById("freeday-add-input").addEventListener("keydown", e => {
+  if (e.key === "Enter") document.getElementById("freeday-add-btn").click();
+});
+
+function setFreedayMode(active) {
+  document.body.classList.toggle("freeday-active", active);
+  saveLS(FREEDAY_MODE_KEY, active);
+  if (active) {
+    document.body.classList.remove("badday-active");
+    saveLS(BADDAY_MODE_KEY, false);
+    freedayMicroEditOpen = null;
+    renderFreedayPanel();
+  }
+}
+document.getElementById("hjem-freeday-toggle").addEventListener("click", () => setFreedayMode(true));
+document.getElementById("freeday-exit").addEventListener("click", () => setFreedayMode(false));
+
+if (loadLS(FREEDAY_MODE_KEY, false)) setFreedayMode(true);
 
 // ---------------------------------------------------------------- shopping list
 const SHOP_DEPT_ORDER = ["Frukt og grønt", "Meieri", "Kjøtt og fisk", "Tørrvarer", "Frys", "Annet"];
