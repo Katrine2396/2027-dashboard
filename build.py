@@ -2131,6 +2131,7 @@ TEMPLATE = r"""<!DOCTYPE html>
         <label class="mvd-settings-field">Minutter bevegelse<input type="number" step="5" id="mvd-minutes-input"></label>
         <button class="btn ghost small" id="mvd-settings-save">Lagre MVD</button>
       </div>
+      <div class="badday-saved-msg" id="mvd-settings-saved-msg"></div>
     </div>
 
     <div class="card sync-card" id="sync-card">
@@ -4088,12 +4089,14 @@ document.getElementById("overwhelm-btn").addEventListener("click", () => {
 function loadBadDayLog() { return loadLS(BADDAY_LOG_KEY, {}); }
 function saveBadDayLog(v) { saveLS(BADDAY_LOG_KEY, v); }
 
-function flashBadDaySaved(msg) {
-  const el = document.getElementById("badday-saved-msg");
+function flashSaved(elId, msg) {
+  const el = document.getElementById(elId);
   el.textContent = msg;
-  clearTimeout(flashBadDaySaved._t);
-  flashBadDaySaved._t = setTimeout(() => { el.textContent = ""; }, 2000);
+  clearTimeout(flashSaved._t[elId]);
+  flashSaved._t[elId] = setTimeout(() => { el.textContent = ""; }, 2000);
 }
+flashSaved._t = {};
+function flashBadDaySaved(msg) { flashSaved("badday-saved-msg", msg); }
 
 function badDayMarkTrained() {
   const log = loadBadDayLog();
@@ -6581,7 +6584,10 @@ document.getElementById("mvd-settings-save").addEventListener("click", () => {
   const protein = parseInt(document.getElementById("mvd-protein-input").value, 10);
   const steps = parseInt(document.getElementById("mvd-steps-input").value, 10);
   const minutes = parseInt(document.getElementById("mvd-minutes-input").value, 10);
-  if (!protein || !steps || !minutes) return;
+  if (!protein || !steps || !minutes) {
+    flashSaved("mvd-settings-saved-msg", "Fyll ut alle tre feltene");
+    return;
+  }
   const s = loadSettings();
   s.mvdProtein = protein;
   s.mvdSteps = steps;
@@ -6589,6 +6595,7 @@ document.getElementById("mvd-settings-save").addEventListener("click", () => {
   saveSettings(s);
   renderBadDayPanel();
   renderHjemMvdSunday();
+  flashSaved("mvd-settings-saved-msg", "Lagret ✓");
 });
 
 // ---------------------------------------------------------------- backup / export / import
