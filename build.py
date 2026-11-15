@@ -271,6 +271,7 @@ BUDGET_DEFAULTS = {
         {"key": "hundefond", "label": "Sparing: Hund", "type": "variable", "savings": True, "icon": "🐶", "cap": 1000},
         {"key": "sparing_pensjon", "label": "Sparing: Pensjon", "type": "variable", "savings": True, "icon": "👵", "cap": 1000},
         {"key": "sparing_hoyrente", "label": "Sparing: Høyrente", "type": "variable", "savings": True, "icon": "💰", "cap": 1000},
+        {"key": "sparing_buffer", "label": "Sparing: Bufferspar", "type": "variable", "savings": True, "icon": "🧯", "cap": 1000},
         {"key": "sparekrukke", "label": "Sparekrukka", "type": "variable", "savings": True, "icon": "🫙", "cap": 500},
     ],
 }
