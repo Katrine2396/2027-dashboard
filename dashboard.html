@@ -179,8 +179,10 @@
   }
   .kcal-chip b { color: var(--ink); font-size: 14px; display: block; }
 
-  .meal-group { margin-top: 18px; }
-  .meal-group h4 { font-size: 14px; margin: 0 0 8px; color: var(--ink); }
+  .kosthold-meal-card { margin-top: 14px; }
+  .kosthold-meal-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 8px; }
+  .kosthold-meal-card-head h4 { font-size: 14px; margin: 0; color: var(--ink); }
+  .kosthold-meal-done { font-size: 12px; color: var(--accent); font-weight: 700; }
   .meal-option {
     background: var(--card);
     border-radius: 14px;
@@ -188,9 +190,15 @@
     padding: 14px 16px;
     margin-bottom: 8px;
   }
-  .meal-option .meal-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
-  .meal-option .meal-head b { font-size: 14px; }
+  .meal-option .meal-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+  .meal-option .meal-head b { font-size: 14px; margin-right: auto; }
   .meal-option .meal-macro { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .meal-fav-btn {
+    background: none; border: none; cursor: pointer; font-size: 15px; line-height: 1;
+    padding: 0; color: var(--muted);
+  }
+  .meal-fav-btn.active { color: #d9a441; }
+  .meal-row-actions { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
   .meal-items { font-size: 12px; color: var(--muted); margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px 10px; }
   .meal-item-text { white-space: nowrap; }
   .meal-item-ing { white-space: nowrap; }
@@ -213,7 +221,6 @@
   .ing-new-form input[type="text"] { width: 140px; }
   .ing-new-form input[type="number"] { width: 90px; }
   .nutrition-note { font-size: 11px; color: var(--muted); margin-top: 14px; font-style: italic; }
-  .meal-eaten-btn { margin-top: 8px; }
   .meal-option-eaten { border-left: 3px solid var(--accent); }
   .meal-planned-badge { font-size: 11px; color: var(--accent); font-weight: 700; }
 
@@ -995,25 +1002,30 @@
   <div class="tab-panel" data-tab="kosthold">
   <section>
     <h2>Kosthold</h2>
-    <div class="section-sub">Faste, enkle alternativer - ingen logging nødvendig</div>
-    <div class="kcal-row" id="kcal-row"></div>
+    <div class="section-sub" id="kosthold-mode-note"></div>
+
+    <div class="card" id="kosthold-today-card" style="margin-top:14px;"></div>
+
+    <div id="kosthold-meal-cards"></div>
+
     <div class="card" id="extras-card" style="margin-top:14px;">
-      <h3 style="margin:0 0 4px;font-size:15px;">Utenom planen</h3>
-      <div class="section-sub" style="margin-bottom:10px;">Spiste eller drakk du noe ekstra - eller en hel lunsj/middag ute? Logg et anslag her, ingen fullstendig matdagbok nødvendig.</div>
-      <div class="extras-presets">
-        <button class="btn secondary small" data-extra-preset="Sjokolade" data-extra-kcal="250">+ Sjokolade</button>
-        <button class="btn secondary small" data-extra-preset="Glass vin" data-extra-kcal="120">+ Glass vin</button>
-        <button class="btn secondary small" data-extra-preset="Øl" data-extra-kcal="150">+ Øl</button>
-      </div>
+      <h3 style="margin:0 0 4px;font-size:15px;">Legg til noe annet</h3>
+      <div class="section-sub" style="margin-bottom:10px;">Noe utenom planen - en hel lunsj ute, noe ekstra, eller en helt egen rett. Ingen fullstendig matdagbok nødvendig.</div>
+      <div class="extras-presets" id="extras-presets"></div>
       <div class="log-form">
         <input type="text" id="extra-name" placeholder="Hva var det?">
         <input type="number" step="10" id="extra-kcal" placeholder="kcal (valgfritt)">
+        <input type="number" step="1" id="extra-protein" placeholder="protein g (valgfritt)">
         <button class="btn" id="extra-add">Legg til</button>
       </div>
+      <label class="settings-toggle-row" style="margin-top:8px;">
+        <input type="checkbox" id="extra-save-later">
+        <span>Lagre til senere, som egen snarvei over</span>
+      </label>
       <div id="extras-today-total"></div>
       <ul class="log-list" id="extras-list"></ul>
     </div>
-    <div id="meal-plan"></div>
+
     <div class="card" id="nutrition-coach-card" style="margin-top:14px;"></div>
   </section>
   </div>
@@ -1272,6 +1284,10 @@
         <input type="checkbox" id="settings-vacation-toggle">
         <span>Ferie/pause-modus - ingen påminnelser, streaken fryses</span>
       </label>
+      <label class="settings-toggle-row">
+        <input type="checkbox" id="settings-focus-mode-toggle">
+        <span>Fokusmodus på Kosthold (vis kalorier og protein). Av = Livsstilsmodus: tall skjules, men du kan fortsatt logge måltider og bruke favoritter som vanlig.</span>
+      </label>
     </div>
 
     <div class="card" id="mvd-settings-card">
@@ -1333,7 +1349,7 @@
 </nav>
 
 <script>
-const DATA = {"meta": {"generated": "2026-11-15T12:26:22", "dateRange": ["2018-11-13", "2026-11-14"], "units": "km", "totalActivities": 738}, "topStats": {"hrv": {"value": 44, "weeklyAvg": 43, "status": "BALANCED", "date": "2026-11-14", "trend": [42, 43, 42, 45, 39, 42, 42, 41, 44, 41, 38, 41, 40, 40, 40, 45, 40, 43, 46, 42, 38, 43, 48, 41, 48, 49, 38, 40, 45, 44]}, "sleep": {"hours": 9.4, "score": 86, "date": "2026-11-14", "trend": [8.8, 9.4, 7.8, 9.2, 7.2, 9.1, 8.4, 9.0, 10.0, 8.7, 8.4, 8.8, 8.0, 8.3, 7.7, 9.4, 9.9, 8.3, 8.5, 8.0, 7.2, 10.1, 9.4, 10.0, 8.0, 9.2, 7.0, 8.2, 9.1, 9.4]}, "calories": {"value": 1652, "date": "2026-11-14", "trend": [2311, 2321, 1999, 2747, 2405, 2513, 2127, 2180, 2212, 2505, 2443, 2639, 2218, 2516, 2293, 2588, 2307, 2247, 2422, 2409, 2389, 2232, 2496, 1875, 2370, 2561, 2288, 2125, 2405, 1652]}, "steps": {"value": 8922, "goal": 8000, "date": "2026-11-14", "trend": [8337, 8633, 2897, 13855, 13299, 11211, 5426, 6181, 8211, 8191, 9806, 13494, 9709, 17244, 10904, 16006, 9987, 8260, 10794, 12007, 10107, 9072, 8677, 970, 10360, 12713, 8303, 5931, 8585, 8922]}, "restingHR": {"value": 55, "date": "2026-11-14", "trend": [53, 55, 56, 53, 57, 55, 53, 55, 53, 55, 54, 53, 47, 53, 56, 53, 54, 54, 51, 55, 56, 54, 51, 52, 51, 52, 57, 54, 52, 55]}}, "reportMetrics": {"sleepHours": {"today": 9.4, "avg7": 8.7, "avg30": 8.7}, "deepSleepMin": {"today": 55, "avg7": 71.4, "avg30": 80.6}, "remSleepMin": {"today": 137, "avg7": 125.4, "avg30": 118.9}, "lightSleepMin": {"today": 371, "avg7": 327, "avg30": 321.7}, "sleepScore": {"today": 86, "avg7": 86.9, "avg30": 87.3}, "bodyBatteryCharged": {"today": 46, "avg7": 53.3, "avg30": 57.9}, "bodyBatteryLatest": {"today": 54, "avg7": 53, "avg30": 50.5}, "bodyBatteryMin": {"today": 48, "avg7": 37.4, "avg30": 34.7}, "bodyBatteryMax": {"today": 94, "avg7": 91.1, "avg30": 91.0}, "restingHR": {"today": 55, "avg7": 52.7, "avg30": 53.6}, "hrv": {"today": 44, "avg7": 44.1, "avg30": 42.3}, "steps": {"today": 8922, "avg7": 7934.1, "avg30": 9677.5}, "stress": {"today": 22, "avg7": 24.3, "avg30": 23.7}, "calories": {"today": 1652, "avg7": 2302.9, "avg30": 2354.9}, "activeCalories": {"today": 491, "avg7": 453.3, "avg30": 497.7}}, "dailyHistory": [{"date": "2026-10-11", "weekday": 6, "sleepHours": 8.8, "deepSleepMin": 92, "sleepScore": 92, "bodyBatteryCharged": 66, "bodyBatteryLatest": 65, "restingHR": 53, "hrv": 44, "steps": 2679, "stress": 18, "calories": 1922}, {"date": "2026-10-12", "weekday": 0, "sleepHours": 9.4, "deepSleepMin": 47, "sleepScore": 85, "bodyBatteryCharged": 63, "bodyBatteryLatest": 76, "restingHR": 52, "hrv": 41, "steps": 3024, "stress": 24, "calories": 2116}, {"date": "2026-10-13", "weekday": 1, "sleepHours": 7.8, "deepSleepMin": 48, "sleepScore": 80, "bodyBatteryCharged": 44, "bodyBatteryLatest": 59, "restingHR": 56, "hrv": 42, "steps": 4747, "stress": 26, "calories": 2132}, {"date": "2026-10-14", "weekday": 2, "sleepHours": 9.6, "deepSleepMin": 58, "sleepScore": 85, "bodyBatteryCharged": 57, "bodyBatteryLatest": 59, "restingHR": 54, "hrv": 43, "steps": 6090, "stress": 23, "calories": 2131}, {"date": "2026-10-15", "weekday": 3, "sleepHours": 9.2, "deepSleepMin": 92, "sleepScore": 84, "bodyBatteryCharged": 56, "bodyBatteryLatest": 51, "restingHR": 54, "hrv": 42, "steps": 11156, "stress": 21, "calories": 2505}, {"date": "2026-10-16", "weekday": 4, "sleepHours": 8.8, "deepSleepMin": 69, "sleepScore": 88, "bodyBatteryCharged": 67, "bodyBatteryLatest": 57, "restingHR": 53, "hrv": 42, "steps": 8337, "stress": 22, "calories": 2311}, {"date": "2026-10-17", "weekday": 5, "sleepHours": 9.4, "deepSleepMin": 79, "sleepScore": 88, "bodyBatteryCharged": 56, "bodyBatteryLatest": 51, "restingHR": 55, "hrv": 43, "steps": 8633, "stress": 23, "calories": 2321}, {"date": "2026-10-18", "weekday": 6, "sleepHours": 7.8, "deepSleepMin": 56, "sleepScore": 86, "bodyBatteryCharged": 63, "bodyBatteryLatest": 70, "restingHR": 56, "hrv": 42, "steps": 2897, "stress": 21, "calories": 1999}, {"date": "2026-10-19", "weekday": 0, "sleepHours": 9.2, "deepSleepMin": 98, "sleepScore": 91, "bodyBatteryCharged": 38, "bodyBatteryLatest": 33, "restingHR": 53, "hrv": 45, "steps": 13855, "stress": 26, "calories": 2747}, {"date": "2026-10-20", "weekday": 1, "sleepHours": 7.2, "deepSleepMin": 87, "sleepScore": 83, "bodyBatteryCharged": 62, "bodyBatteryLatest": 47, "restingHR": 57, "hrv": 39, "steps": 13299, "stress": 25, "calories": 2405}, {"date": "2026-10-21", "weekday": 2, "sleepHours": 9.1, "deepSleepMin": 89, "sleepScore": 90, "bodyBatteryCharged": 66, "bodyBatteryLatest": 46, "restingHR": 55, "hrv": 42, "steps": 11211, "stress": 25, "calories": 2513}, {"date": "2026-10-22", "weekday": 3, "sleepHours": 8.4, "deepSleepMin": 99, "sleepScore": 87, "bodyBatteryCharged": 59, "bodyBatteryLatest": 51, "restingHR": 53, "hrv": 42, "steps": 5426, "stress": 24, "calories": 2127}, {"date": "2026-10-23", "weekday": 4, "sleepHours": 9.0, "deepSleepMin": 90, "sleepScore": 89, "bodyBatteryCharged": 66, "bodyBatteryLatest": 63, "restingHR": 55, "hrv": 41, "steps": 6181, "stress": 21, "calories": 2180}, {"date": "2026-10-24", "weekday": 5, "sleepHours": 10.0, "deepSleepMin": 103, "sleepScore": 90, "bodyBatteryCharged": 47, "bodyBatteryLatest": 49, "restingHR": 53, "hrv": 44, "steps": 8211, "stress": 22, "calories": 2212}, {"date": "2026-10-25", "weekday": 6, "sleepHours": 8.7, "deepSleepMin": 24, "sleepScore": 79, "bodyBatteryCharged": 54, "bodyBatteryLatest": 45, "restingHR": 55, "hrv": 41, "steps": 8191, "stress": 25, "calories": 2505}, {"date": "2026-10-26", "weekday": 0, "sleepHours": 8.4, "deepSleepMin": 88, "sleepScore": 86, "bodyBatteryCharged": 56, "bodyBatteryLatest": 55, "restingHR": 54, "hrv": 38, "steps": 9806, "stress": 26, "calories": 2443}, {"date": "2026-10-27", "weekday": 1, "sleepHours": 8.8, "deepSleepMin": 48, "sleepScore": 87, "bodyBatteryCharged": 59, "bodyBatteryLatest": 45, "restingHR": 53, "hrv": 41, "steps": 13494, "stress": 24, "calories": 2639}, {"date": "2026-10-28", "weekday": 2, "sleepHours": 8.0, "deepSleepMin": 82, "sleepScore": 88, "bodyBatteryCharged": 61, "bodyBatteryLatest": 54, "restingHR": 47, "hrv": 40, "steps": 9709, "stress": 23, "calories": 2218}, {"date": "2026-10-29", "weekday": 3, "sleepHours": 8.3, "deepSleepMin": 75, "sleepScore": 90, "bodyBatteryCharged": 55, "bodyBatteryLatest": 44, "restingHR": 53, "hrv": 40, "steps": 17244, "stress": 24, "calories": 2516}, {"date": "2026-10-30", "weekday": 4, "sleepHours": 7.7, "deepSleepMin": 106, "sleepScore": 86, "bodyBatteryCharged": 64, "bodyBatteryLatest": 54, "restingHR": 56, "hrv": 40, "steps": 10904, "stress": 26, "calories": 2293}, {"date": "2026-10-31", "weekday": 5, "sleepHours": 9.4, "deepSleepMin": 93, "sleepScore": 90, "bodyBatteryCharged": 50, "bodyBatteryLatest": 6, "restingHR": 53, "hrv": 45, "steps": 16006, "stress": 25, "calories": 2588}, {"date": "2026-11-01", "weekday": 6, "sleepHours": 9.9, "deepSleepMin": 77, "sleepScore": 86, "bodyBatteryCharged": 97, "bodyBatteryLatest": 60, "restingHR": 54, "hrv": 40, "steps": 9987, "stress": 20, "calories": 2307}, {"date": "2026-11-02", "weekday": 0, "sleepHours": 8.3, "deepSleepMin": 106, "sleepScore": 94, "bodyBatteryCharged": 56, "bodyBatteryLatest": 59, "restingHR": 54, "hrv": 43, "steps": 8260, "stress": 20, "calories": 2247}, {"date": "2026-11-03", "weekday": 1, "sleepHours": 8.5, "deepSleepMin": 56, "sleepScore": 90, "bodyBatteryCharged": 56, "bodyBatteryLatest": 49, "restingHR": 51, "hrv": 46, "steps": 10794, "stress": 22, "calories": 2422}, {"date": "2026-11-04", "weekday": 2, "sleepHours": 8.0, "deepSleepMin": 94, "sleepScore": 86, "bodyBatteryCharged": 40, "bodyBatteryLatest": 22, "restingHR": 55, "hrv": 42, "steps": 12007, "stress": 31, "calories": 2409}, {"date": "2026-11-05", "weekday": 3, "sleepHours": 7.2, "deepSleepMin": 96, "sleepScore": 79, "bodyBatteryCharged": 76, "bodyBatteryLatest": 64, "restingHR": 56, "hrv": 38, "steps": 10107, "stress": 25, "calories": 2389}, {"date": "2026-11-06", "weekday": 4, "sleepHours": 10.1, "deepSleepMin": 112, "sleepScore": 94, "bodyBatteryCharged": 59, "bodyBatteryLatest": 70, "restingHR": 54, "hrv": 43, "steps": 9072, "stress": 21, "calories": 2232}, {"date": "2026-11-07", "weekday": 5, "sleepHours": 9.4, "deepSleepMin": 97, "sleepScore": 91, "bodyBatteryCharged": 45, "bodyBatteryLatest": 49, "restingHR": 51, "hrv": 48, "steps": 8677, "stress": 23, "calories": 2496}, {"date": "2026-11-08", "weekday": 6, "sleepHours": 10.0, "deepSleepMin": 72, "sleepScore": 79, "bodyBatteryCharged": 60, "bodyBatteryLatest": 73, "restingHR": 52, "hrv": 41, "steps": 970, "stress": 20, "calories": 1875}, {"date": "2026-11-09", "weekday": 0, "sleepHours": 8.0, "deepSleepMin": 82, "sleepScore": 93, "bodyBatteryCharged": 45, "bodyBatteryLatest": 57, "restingHR": 51, "hrv": 48, "steps": 10360, "stress": 22, "calories": 2370}, {"date": "2026-11-10", "weekday": 1, "sleepHours": 9.2, "deepSleepMin": 77, "sleepScore": 92, "bodyBatteryCharged": 49, "bodyBatteryLatest": 30, "restingHR": 52, "hrv": 49, "steps": 12713, "stress": 27, "calories": 2561}, {"date": "2026-11-11", "weekday": 2, "sleepHours": 7.0, "deepSleepMin": 65, "sleepScore": 78, "bodyBatteryCharged": 55, "bodyBatteryLatest": 51, "restingHR": 57, "hrv": 38, "steps": 8303, "stress": 27, "calories": 2288}, {"date": "2026-11-12", "weekday": 3, "sleepHours": 8.2, "deepSleepMin": 56, "sleepScore": 87, "bodyBatteryCharged": 66, "bodyBatteryLatest": 64, "restingHR": 54, "hrv": 40, "steps": 5931, "stress": 24, "calories": 2125}, {"date": "2026-11-13", "weekday": 4, "sleepHours": 9.1, "deepSleepMin": 51, "sleepScore": 88, "bodyBatteryCharged": 53, "bodyBatteryLatest": 47, "restingHR": 52, "hrv": 45, "steps": 8585, "stress": 27, "calories": 2405}, {"date": "2026-11-14", "weekday": 5, "sleepHours": 9.4, "deepSleepMin": 55, "sleepScore": 86, "bodyBatteryCharged": 46, "bodyBatteryLatest": 54, "restingHR": 55, "hrv": 44, "steps": 8922, "stress": 22, "calories": 1652}], "goal": {"type": "leaner", "recentActiveCaloriesPerWeek": 874, "priorActiveCaloriesPerWeek": 643, "caloriesPctChange": 36, "recentSessionsPerWeek": 4.6, "priorSessionsPerWeek": 2.6, "recentStepsPerDay": 7499, "priorStepsPerDay": 6824, "stepsPctChange": 10}, "program": {"currentWeek": 1, "weekFocus": "L\u00e6r \u00f8velsene, lett/moderat vekt, god teknikk og kontroll", "weekSetsNote": "2\u20133 sett", "weekCycleNote": "20\u201325 min", "weekIsDeload": false, "today": {"date": "2026-11-15", "readiness": "go", "reasons": ["HRV er balansert i natt (44 ms)"], "recoveryScore": 65, "strainScore": 0}, "week": [{"date": "2026-11-09", "weekday": "Man", "defaultKey": "gsA", "sessionLabel": "Styrke A: helkropp og kjerne", "sessionType": "strength", "isToday": false, "loggedActivities": [{"type": "cardio", "sport": "Running", "name": "L\u00f8ping p\u00e5 tredem\u00f8lle", "minutes": 31, "distanceKm": 2.2, "avgHr": 119, "calories": 194, "activityId": 25019335002}, {"type": "strength", "sport": "Strength", "name": "Styrke", "minutes": 29, "distanceKm": null, "avgHr": 90, "calories": 95, "activityId": 25018969465}]}, {"date": "2026-11-10", "weekday": "Tir", "defaultKey": "cyc", "sessionLabel": "Kondisjon (20\u201325 min)", "sessionType": "cardio", "isToday": false, "loggedActivities": [{"type": "cardio", "sport": "Cycling", "name": "Innend\u00f8rssykling", "minutes": 26, "distanceKm": null, "avgHr": 113, "calories": 144, "activityId": 25032393089}]}, {"date": "2026-11-11", "weekday": "Ons", "defaultKey": "gsB", "sessionLabel": "Styrke B: helkropp og kjerne", "sessionType": "strength", "isToday": false, "loggedActivities": []}, {"date": "2026-11-12", "weekday": "Tor", "defaultKey": "restW", "sessionLabel": "Hvile eller rolig g\u00e5tur", "sessionType": "rest", "isToday": false, "loggedActivities": []}, {"date": "2026-11-13", "weekday": "Fre", "defaultKey": "gsC", "sessionLabel": "Styrke C: helkropp og kjerne", "sessionType": "strength", "isToday": false, "loggedActivities": [{"type": "strength", "sport": "Strength", "name": "Styrke", "minutes": 44, "distanceKm": null, "avgHr": 104, "calories": 203, "activityId": 25067964319}]}, {"date": "2026-11-14", "weekday": "L\u00f8r", "defaultKey": "cycHard", "sessionLabel": "Kondisjon - intervaller (20\u201325 min)", "sessionType": "cardio", "isToday": false, "loggedActivities": [{"type": "cardio", "sport": "Other", "name": "Elliptisk maskin", "minutes": 30, "distanceKm": null, "avgHr": 141, "calories": 271, "activityId": 25074571921}]}, {"date": "2026-11-15", "weekday": "S\u00f8n", "defaultKey": "rest", "sessionLabel": "Hvile eller lett aktivitet", "sessionType": "rest", "isToday": true, "loggedActivities": []}], "nextWeek": [{"date": "2026-11-16", "weekday": "Man", "defaultKey": "gsA", "sessionLabel": "Styrke A: helkropp og kjerne", "sessionType": "strength", "isToday": false, "loggedActivities": []}, {"date": "2026-11-17", "weekday": "Tir", "defaultKey": "cyc", "sessionLabel": "Kondisjon (20\u201330 min)", "sessionType": "cardio", "isToday": false, "loggedActivities": []}, {"date": "2026-11-18", "weekday": "Ons", "defaultKey": "gsB", "sessionLabel": "Styrke B: helkropp og kjerne", "sessionType": "strength", "isToday": false, "loggedActivities": []}, {"date": "2026-11-19", "weekday": "Tor", "defaultKey": "restW", "sessionLabel": "Hvile eller rolig g\u00e5tur", "sessionType": "rest", "isToday": false, "loggedActivities": []}, {"date": "2026-11-20", "weekday": "Fre", "defaultKey": "gsC", "sessionLabel": "Styrke C: helkropp og kjerne", "sessionType": "strength", "isToday": false, "loggedActivities": []}, {"date": "2026-11-21", "weekday": "L\u00f8r", "defaultKey": "cycHard", "sessionLabel": "Kondisjon - intervaller (20\u201330 min)", "sessionType": "cardio", "isToday": false, "loggedActivities": []}, {"date": "2026-11-22", "weekday": "S\u00f8n", "defaultKey": "rest", "sessionLabel": "Hvile eller lett aktivitet", "sessionType": "rest", "isToday": false, "loggedActivities": []}], "nextWeekFocus": "\u00d8k vekten litt p\u00e5 \u00f8velsene som f\u00f8ltes greie forrige uke", "nextWeekIsDeload": false}, "sessionCatalog": {"gsA": {"label": "Styrke A: helkropp og kjerne", "type": "strength", "exercises": ["Glute bridge (aktivering - kjenn at rumpa jobber, ikke korsryggen) 2\u00d712", "Beinpress, kontrollert dybde 3\u00d710\u201312", "Benkpress i maskin 3\u00d78\u201310", "Sittende roing (kabel) 3\u00d710\u201312", "Hip thrust (stang/manualer) - pause og klem rumpa i toppen 3\u00d710\u201312", "Pallof press (kabel) 3\u00d78\u201310/side"]}, "gsB": {"label": "Styrke B: helkropp og kjerne", "type": "strength", "exercises": ["Supersett aktivering: Glute bridge 2\u00d712 + Fire hydrants 2\u00d710\u201312/side + Donkey kicks (spark bak p\u00e5 4 bein) 2\u00d710\u201312/side", "Rumensk markl\u00f8ft (manualer) - skyv hoftene bak, n\u00f8ytral rygg, kjenn baksiden av l\u00e5r/rumpe 3\u00d78\u201310", "Nedtrekk, bredt grep (kabel) 3\u00d78\u201310", "Skulderpress (manualer) 3\u00d78\u201310", "Sideplanke med hoftehev 3\u00d78\u201310/side"]}, "gsC": {"label": "Styrke C: helkropp og kjerne", "type": "strength", "exercises": ["Armhevinger mot benk/vegg (jobb mot gulvet over tid) 3\u00d78\u201312", "Goblet squat, moderat dybde innenfor smertefri rekkevidde 3\u00d710\u201312", "St\u00e5ende kabelrad 3\u00d710\u201312", "Step-up p\u00e5 lav kasse, kontrollert - skyv gjennom h\u00e6len, kjenn rumpa 3\u00d78/side", "Dead bug med vekt 3\u00d78/side", "Planke med skulderber\u00f8ring 3\u00d720\u201330 s"]}, "cyc": {"label": "Kondisjon", "type": "cardio", "note": "Egen takt - du skal kunne prate i hele setninger"}, "cycHard": {"label": "Kondisjon - intervaller", "type": "cardio", "note": "4\u00d74-intervaller: 4 min hardt (du skal IKKE kunne prate i hele setninger), 3 min rolig aktiv pause, gjenta 4 ganger. Sykkel, ellipse eller rask gange i bakke er sk\u00e5nsomt for kneet."}, "walk": {"label": "G\u00e5tur", "type": "cardio"}, "rest": {"label": "Hvile", "type": "rest"}}, "nutritionPlan": {"dailyKcal": 1750, "proteinMin": 140, "note": "Tallene er grove anslag basert p\u00e5 vanlige produktverdier (\u00b110%) - sjekk egne etiketter (proteinpulver, YT-produkter) for mer n\u00f8yaktige tall.", "breakfast": {"label": "Frokost - standard, eller velg et eget forslag", "options": [{"name": "Havregr\u00f8t med protein", "items": [{"ing": "havregryn", "amount": 40}, {"ing": "proteinpulver", "amount": 20}, {"ing": "proteinmelk", "amount": 100, "display": "1 dl proteinmelk"}, {"ing": "chiafro", "amount": 10}, {"ing": "gresk_yoghurt", "amount": 100}], "kcal": 450, "protein": 32, "extraKcal": 23, "extraProtein": -6.9}]}, "lunch": {"label": "Lunsj - velg \u00e9n, rull\u00e9r gjennom uken", "options": [{"name": "Kyllingfilet-wrap", "items": [{"ing": "kyllingfilet", "amount": 130}, {"text": "1 grovt pitabr\u00f8d"}, {"text": "agurk og paprika"}, {"text": "1 ss lett r\u00f8mme/yoghurtdressing"}], "kcal": 400, "protein": 35, "extraKcal": 186, "extraProtein": -5.3}, {"name": "Karbonadedeig med ris", "mealprep": true, "items": [{"ing": "karbonadedeig", "amount": 120}, {"ing": "ris", "amount": 60, "display": "60 g ris (t\u00f8rrvekt)"}, {"text": "agurk og paprika"}], "kcal": 430, "protein": 28, "extraKcal": -50, "extraProtein": 2.2}, {"name": "Kyllingkj\u00f8ttdeig-taco", "items": [{"ing": "kyllingkjottdeig", "amount": 130}, {"text": "2 extra thin tacolefser"}, {"text": "agurk og paprika"}, {"text": "litt mager kesam"}], "kcal": 400, "protein": 32, "extraKcal": 214, "extraProtein": 8.6}, {"name": "Proteinrundstykke med kyllingfilet", "items": [{"text": "1 proteinrundstykke"}, {"ing": "kyllingfilet", "amount": 80, "display": "80 g kyllingfilet-p\u00e5legg"}, {"text": "salat og tomat"}, {"text": "litt lett dressing"}], "kcal": 350, "protein": 30, "extraKcal": 218, "extraProtein": 5.2}, {"name": "Wrap med ferdigstekt kylling", "items": [{"text": "1 grov tortillalefse"}, {"ing": "kyllingfilet", "amount": 100, "display": "100 g ferdigstekt kyllingfilet (butikk)"}, {"text": "agurk og paprika"}, {"text": "litt lett dressing"}], "kcal": 380, "protein": 30, "extraKcal": 215, "extraProtein": -1.0}, {"name": "Kylling-bowl med quinoa og brokkoli", "mealprep": true, "items": [{"ing": "kyllingfilet", "amount": 120}, {"ing": "quinoa", "amount": 50, "display": "50 g quinoa (t\u00f8rrvekt)"}, {"ing": "brokkoli", "amount": 100}, {"text": "litt olivenolje og sitron"}], "kcal": 460, "protein": 47, "extraKcal": 44, "extraProtein": 0.0}]}, "snack": {"label": "Mellomm\u00e5ltid - velg \u00e9n", "options": [{"name": "Yoghurt med bringeb\u00e6r og granola", "items": [{"ing": "skyr", "amount": 150, "display": "150 g h\u00f8yprotein yoghurt/skyr"}, {"ing": "kakaogranola", "amount": 20}, {"text": "bringeb\u00e6r"}, {"text": "1 ts Biscoff"}], "kcal": 230, "protein": 18, "extraKcal": 50, "extraProtein": 1.4}, {"name": "YT proteinprodukt", "items": [{"text": "1 stk (sjekk etiketten for n\u00f8yaktige tall)"}], "kcal": 180, "protein": 20, "extraKcal": 180, "extraProtein": 20}, {"name": "Mager kesam med bringeb\u00e6r", "items": [{"ing": "mager_kesam", "amount": 150}, {"text": "bringeb\u00e6r"}], "kcal": 110, "protein": 18, "extraKcal": 5, "extraProtein": 0.0}]}, "dinner": {"label": "Middag - velg \u00e9n, rull\u00e9r gjennom uken", "options": [{"name": "Kyllingkj\u00f8ttdeig-stekt ris", "mealprep": true, "items": [{"ing": "kyllingkjottdeig", "amount": 150}, {"ing": "ris", "amount": 70, "display": "70 g ris (t\u00f8rrvekt)"}, {"text": "amerikansk gr\u00f8nnsaksblanding (frossen)"}, {"text": "litt soyasaus"}], "kcal": 520, "protein": 42, "extraKcal": 54, "extraProtein": 10.1}, {"name": "Pasta med kj\u00f8ttsaus", "mealprep": true, "items": [{"ing": "pasta", "amount": 80, "display": "80 g pasta (t\u00f8rrvekt)"}, {"ing": "karbonadedeig", "amount": 130}, {"text": "litt tomatsaus"}, {"text": "paprika"}], "kcal": 560, "protein": 33, "extraKcal": -6, "extraProtein": 0.0}, {"name": "Kylling med ris", "mealprep": true, "items": [{"ing": "kyllingfilet", "amount": 150}, {"ing": "ris", "amount": 70, "display": "70 g ris (t\u00f8rrvekt)"}, {"text": "agurk og paprika"}], "kcal": 480, "protein": 44, "extraKcal": -20, "extraProtein": -7.4}, {"name": "Laks med poteter", "mealprep": true, "items": [{"ing": "laksefilet", "amount": 150}, {"ing": "poteter", "amount": 200}, {"text": "brokkoli"}], "kcal": 490, "protein": 38, "extraKcal": 24, "extraProtein": 4.0}, {"name": "Taco-gryte", "mealprep": true, "items": [{"ing": "kyllingkjottdeig", "amount": 150}, {"text": "100 g mais og b\u00f8nner"}, {"text": "1 dl lettr\u00f8mme"}, {"text": "liten porsjon tortillachips"}], "kcal": 540, "protein": 36, "extraKcal": 326, "extraProtein": 9.0}, {"name": "Ovnsbakt laks med s\u00f8tpotet og brokkoli", "mealprep": true, "items": [{"ing": "laksefilet", "amount": 150}, {"ing": "sotpotet", "amount": 200, "display": "200 g s\u00f8tpotet"}, {"ing": "brokkoli", "amount": 150}], "kcal": 540, "protein": 38, "extraKcal": 5, "extraProtein": 0.6}, {"name": "Kyllinggryte med kikerter og ris", "mealprep": true, "items": [{"ing": "kyllingfilet", "amount": 100}, {"ing": "kikerter", "amount": 120, "display": "120 g kikerter (avrent)"}, {"ing": "ris", "amount": 40, "display": "40 g ris (t\u00f8rrvekt)"}, {"text": "karripasta og litt kokosmelk"}], "kcal": 520, "protein": 46, "extraKcal": 14, "extraProtein": 1.5}]}}, "ingredientCatalog": {"kyllingfilet": {"label": "Kyllingfilet", "kcal100": 165, "protein100": 31, "dept": "Kj\u00f8tt og fisk"}, "kyllingkjottdeig": {"label": "Kyllingkj\u00f8ttdeig", "kcal100": 143, "protein100": 18, "dept": "Kj\u00f8tt og fisk"}, "karbonadedeig": {"label": "Karbonadedeig", "kcal100": 220, "protein100": 18, "dept": "Kj\u00f8tt og fisk"}, "kalkunfilet": {"label": "Kalkunfilet", "kcal100": 135, "protein100": 29, "dept": "Kj\u00f8tt og fisk"}, "laksefilet": {"label": "Laksefilet", "kcal100": 208, "protein100": 20, "dept": "Kj\u00f8tt og fisk"}, "torsk": {"label": "Torsk/hvit fisk", "kcal100": 82, "protein100": 18, "dept": "Kj\u00f8tt og fisk"}, "egg": {"label": "Egg", "kcal100": 155, "protein100": 13, "dept": "Meieri"}, "ris": {"label": "Ris (t\u00f8rrvekt)", "kcal100": 360, "protein100": 7, "dept": "T\u00f8rrvarer"}, "quinoa": {"label": "Quinoa (t\u00f8rrvekt)", "kcal100": 368, "protein100": 14, "dept": "T\u00f8rrvarer"}, "pasta": {"label": "Pasta (t\u00f8rrvekt)", "kcal100": 350, "protein100": 12, "dept": "T\u00f8rrvarer"}, "poteter": {"label": "Poteter", "kcal100": 77, "protein100": 2, "dept": "Frukt og gr\u00f8nt"}, "havregryn": {"label": "Havregryn", "kcal100": 375, "protein100": 13, "dept": "T\u00f8rrvarer"}, "proteinpulver": {"label": "Proteinpulver", "kcal100": 380, "protein100": 75, "dept": "T\u00f8rrvarer"}, "proteinmelk": {"label": "Proteinmelk", "kcal100": 55, "protein100": 8, "dept": "Meieri"}, "gresk_yoghurt": {"label": "Gresk yoghurt", "kcal100": 97, "protein100": 9, "dept": "Meieri"}, "mager_kesam": {"label": "Mager kesam", "kcal100": 70, "protein100": 12, "dept": "Meieri"}, "cottage_cheese": {"label": "Cottage cheese", "kcal100": 98, "protein100": 11, "dept": "Meieri"}, "skyr": {"label": "H\u00f8yprotein yoghurt/skyr", "kcal100": 60, "protein100": 10, "dept": "Meieri"}, "kakaogranola": {"label": "Kakaogranola", "kcal100": 450, "protein100": 8, "dept": "T\u00f8rrvarer"}, "chiafro": {"label": "Chiafr\u00f8", "kcal100": 486, "protein100": 17, "dept": "T\u00f8rrvarer"}, "brokkoli": {"label": "Brokkoli", "kcal100": 34, "protein100": 2.8, "dept": "Frukt og gr\u00f8nt"}, "sotpotet": {"label": "S\u00f8tpotet", "kcal100": 86, "protein100": 1.6, "dept": "Frukt og gr\u00f8nt"}, "kikerter": {"label": "Kikerter (avrent, boks)", "kcal100": 164, "protein100": 8.9, "dept": "T\u00f8rrvarer"}}, "weeklyBySport": [{"week": "2026-08-03", "sports": {"Running": {"sessions": 1, "minutes": 33, "distanceKm": 4.3, "calories": 334}}}, {"week": "2026-09-14", "sports": {"Strength": {"sessions": 4, "minutes": 142, "distanceKm": 0.0, "calories": 644}, "Running": {"sessions": 3, "minutes": 74, "distanceKm": 8.2, "calories": 658}}}, {"week": "2026-09-21", "sports": {"Strength": {"sessions": 1, "minutes": 37, "distanceKm": 0.0, "calories": 110}}}, {"week": "2026-09-28", "sports": {"Running": {"sessions": 1, "minutes": 21, "distanceKm": 2.7, "calories": 215}}}, {"week": "2026-10-05", "sports": {"Strength": {"sessions": 2, "minutes": 57, "distanceKm": 0.0, "calories": 191}, "Running": {"sessions": 2, "minutes": 59, "distanceKm": 7.0, "calories": 530}}}, {"week": "2026-10-12", "sports": {"Strength": {"sessions": 3, "minutes": 131, "distanceKm": 0.0, "calories": 367}, "Running": {"sessions": 1, "minutes": 30, "distanceKm": 3.5, "calories": 280}, "Walking": {"sessions": 1, "minutes": 28, "distanceKm": 2.6, "calories": 193}}}, {"week": "2026-10-19", "sports": {"Strength": {"sessions": 4, "minutes": 150, "distanceKm": 0.0, "calories": 614}, "Running": {"sessions": 3, "minutes": 90, "distanceKm": 11.0, "calories": 883}}}, {"week": "2026-10-26", "sports": {"Strength": {"sessions": 3, "minutes": 126, "distanceKm": 0.0, "calories": 455}, "Running": {"sessions": 3, "minutes": 97, "distanceKm": 12.0, "calories": 845}, "Walking": {"sessions": 1, "minutes": 52, "distanceKm": 4.6, "calories": 304}}}, {"week": "2026-11-02", "sports": {"Strength": {"sessions": 3, "minutes": 126, "distanceKm": 0.0, "calories": 430}, "Cycling": {"sessions": 2, "minutes": 56, "distanceKm": 0.0, "calories": 377}, "Running": {"sessions": 2, "minutes": 48, "distanceKm": 4.9, "calories": 294}}}, {"week": "2026-11-09", "sports": {"Strength": {"sessions": 2, "minutes": 73, "distanceKm": 0.0, "calories": 298}, "Cycling": {"sessions": 1, "minutes": 26, "distanceKm": 0.0, "calories": 144}, "Running": {"sessions": 1, "minutes": 31, "distanceKm": 2.2, "calories": 194}, "Other": {"sessions": 1, "minutes": 30, "distanceKm": 0.0, "calories": 271}}}], "trends": {"trainingLoad": {"weeks": ["2025-04-14", "2025-04-21", "2025-04-28", "2025-05-05", "2025-05-12", "2025-05-19", "2025-05-26", "2025-06-02", "2025-06-09", "2025-06-16", "2025-06-23", "2025-06-30", "2025-07-07", "2025-07-14", "2025-07-21", "2025-07-28", "2025-08-04", "2025-08-11", "2025-08-18", "2025-08-25", "2025-09-01", "2025-09-08", "2025-09-15", "2025-09-22", "2025-09-29", "2025-10-06", "2025-10-13", "2025-11-03", "2025-11-10", "2025-11-17", "2025-11-24", "2025-12-01", "2025-12-08", "2025-12-22", "2026-01-05", "2026-01-12", "2026-01-19", "2026-01-26", "2026-02-02", "2026-02-16", "2026-02-23", "2026-03-02", "2026-03-09", "2026-04-06", "2026-05-18", "2026-05-25", "2026-06-15", "2026-06-29", "2026-07-20", "2026-07-27", "2026-08-03", "2026-09-14", "2026-09-21", "2026-09-28", "2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-02", "2026-11-09"], "values": [241, 57, 485, 547, 3, 586, 435, 264, 262, 21, 180, 282, 21, 35, 283, 383, 111, 14, 177, 107, 59, 58, 53, 83, 31, 221, 268, 214, 167, 164, 291, 277, 12, 585, 506, 123, 271, 346, 10, 69, 293, 258, 106, 57, 97, 123, 140, 94, 5, 83, 66, 209, 3, 58, 143, 96, 283, 218, 97, 91]}, "restingHR": {"weeks": ["2024-10-14", "2024-10-21", "2024-10-28", "2024-11-04", "2024-11-11", "2024-11-18", "2024-11-25", "2024-12-02", "2024-12-09", "2024-12-16", "2024-12-23", "2024-12-30", "2025-01-06", "2025-01-13", "2025-01-20", "2025-01-27", "2025-02-03", "2025-02-10", "2025-02-17", "2025-02-24", "2025-03-03", "2025-03-10", "2025-03-17", "2025-03-24", "2025-03-31", "2025-04-07", "2025-04-14", "2025-04-21", "2025-04-28", "2025-05-05", "2025-05-12", "2025-05-19", "2025-05-26", "2025-06-02", "2025-06-09", "2025-06-16", "2025-06-23", "2025-06-30", "2025-07-07", "2025-07-14", "2025-07-21", "2025-07-28", "2025-08-04", "2025-08-11", "2025-08-18", "2025-08-25", "2025-09-01", "2025-09-08", "2025-09-15", "2025-09-22", "2025-09-29", "2025-10-06", "2025-10-13", "2025-10-20", "2025-10-27", "2025-11-03", "2025-11-10", "2025-11-17", "2025-11-24", "2025-12-01", "2025-12-08", "2025-12-15", "2025-12-22", "2025-12-29", "2026-01-05", "2026-01-12", "2026-01-19", "2026-01-26", "2026-02-02", "2026-02-09", "2026-02-16", "2026-02-23", "2026-03-02", "2026-03-09", "2026-03-16", "2026-03-23", "2026-04-06", "2026-04-13", "2026-05-18", "2026-05-25", "2026-06-01", "2026-06-08", "2026-06-15", "2026-06-22", "2026-06-29", "2026-07-06", "2026-07-13", "2026-07-20", "2026-07-27", "2026-08-03", "2026-08-10", "2026-08-17", "2026-08-24", "2026-08-31", "2026-09-07", "2026-09-14", "2026-09-21", "2026-09-28", "2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-02", "2026-11-09"], "values": [53.8, 55, 53.5, 56.2, 60.3, 55, 57, 57.6, 55.3, 55.4, 54.8, 56.1, 53.1, 51.9, 52.3, 52.1, 51.4, 51.3, 50.1, 49.6, 48.9, 49.1, 48.6, 49.6, 47.6, 49, 54.4, 52.7, 52, 52.7, 52.1, 52.6, 53.9, 53.3, 55, 57.3, 55.9, 55.4, 57.4, 57.6, 55.3, 54, 56.7, 55.9, 56, 54.7, 54.6, 55.7, 55, 56.6, 58.3, 55, 56.4, 59.1, 57.9, 56, 54.7, 55.9, 55.7, 54.7, 54.7, 56.5, 59, 55, 56.4, 55.3, 56.1, 55.7, 54.6, 57.6, 54.7, 53.9, 54.5, 53.3, 56, 57.3, 58.2, 57, 57, 57.6, 60, 56.5, 56.7, 58.4, 55.9, 59, 58.3, 54.3, 54.3, 59.1, 57.7, 54.3, 54.4, 55.7, 55.6, 55.7, 54.9, 55.1, 54, 54.3, 54.4, 52.9, 53.3, 53.5]}, "hrv": {"weeks": ["2024-09-23", "2024-09-30", "2024-10-07", "2024-10-14", "2024-10-21", "2024-10-28", "2024-11-04", "2024-11-11", "2024-11-18", "2024-11-25", "2024-12-02", "2024-12-09", "2024-12-16", "2024-12-23", "2024-12-30", "2025-01-06", "2025-01-13", "2025-01-20", "2025-01-27", "2025-02-03", "2025-02-10", "2025-02-17", "2025-02-24", "2025-03-03", "2025-03-10", "2025-03-17", "2025-03-24", "2025-03-31", "2025-04-07", "2025-04-14", "2025-04-21", "2025-04-28", "2025-05-05", "2025-05-12", "2025-05-19", "2025-05-26", "2025-06-02", "2025-06-09", "2025-06-16", "2025-06-23", "2025-06-30", "2025-07-07", "2025-07-14", "2025-07-21", "2025-07-28", "2025-08-04", "2025-08-11", "2025-08-18", "2025-08-25", "2025-09-01", "2025-09-08", "2025-09-15", "2025-09-22", "2025-09-29", "2025-10-06", "2025-10-13", "2025-10-20", "2025-10-27", "2025-11-03", "2025-11-10", "2025-11-17", "2025-11-24", "2025-12-01", "2025-12-08", "2025-12-15", "2025-12-22", "2025-12-29", "2026-01-05", "2026-01-12", "2026-01-19", "2026-01-26", "2026-02-02", "2026-02-09", "2026-02-16", "2026-02-23", "2026-03-02", "2026-03-09", "2026-03-16", "2026-03-23", "2026-04-06", "2026-05-18", "2026-05-25", "2026-06-01", "2026-06-15", "2026-06-22", "2026-06-29", "2026-07-13", "2026-07-20", "2026-07-27", "2026-08-03", "2026-08-10", "2026-08-17", "2026-08-24", "2026-08-31", "2026-09-07", "2026-09-14", "2026-09-21", "2026-09-28", "2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-02", "2026-11-09"], "values": [48.3, 46.5, 51.8, 48.2, 46.8, 53.5, 46, 50, 51.3, 44.5, 56, 47.2, 50, 46.8, 47, 48.6, 53.3, 48.3, 48.1, 53.3, 55.1, 60.3, 51.9, 55.3, 59, 62.6, 59.9, 61, 57.9, 46.7, 50, 54.7, 55.3, 49.3, 51.4, 47.4, 50.9, 43.3, 43.5, 48.1, 46.7, 40.4, 46.1, 52.1, 52.3, 44.2, 46.6, 45, 51.4, 45.1, 46.6, 48.8, 48, 40.8, 44.4, 42.4, 47.6, 45.5, 48.9, 50.7, 46.7, 47, 49.5, 51.6, 46.8, 45.2, 49.3, 43.4, 43.9, 43.8, 46.6, 45.8, 39, 47.8, 47.1, 46.4, 44.6, 41.3, 42.5, 38.3, 40, 39.4, 33, 36.5, 37.3, 41.2, 38, 45.6, 44, 38.2, 36.5, 42.6, 43.6, 40.3, 40.7, 38.7, 38.3, 39.6, 40.9, 42.1, 42, 40.6, 43, 44]}, "sleepHours": {"weeks": ["2024-10-07", "2024-10-14", "2024-10-21", "2024-10-28", "2024-11-04", "2024-11-11", "2024-11-18", "2024-11-25", "2024-12-02", "2024-12-09", "2024-12-16", "2024-12-23", "2024-12-30", "2025-01-06", "2025-01-13", "2025-01-20", "2025-01-27", "2025-02-03", "2025-02-10", "2025-02-17", "2025-02-24", "2025-03-03", "2025-03-10", "2025-03-17", "2025-03-24", "2025-03-31", "2025-04-07", "2025-04-14", "2025-04-21", "2025-04-28", "2025-05-05", "2025-05-12", "2025-05-19", "2025-05-26", "2025-06-02", "2025-06-09", "2025-06-16", "2025-06-23", "2025-06-30", "2025-07-07", "2025-07-14", "2025-07-21", "2025-07-28", "2025-08-04", "2025-08-11", "2025-08-18", "2025-08-25", "2025-09-01", "2025-09-08", "2025-09-15", "2025-09-22", "2025-09-29", "2025-10-06", "2025-10-13", "2025-10-20", "2025-10-27", "2025-11-03", "2025-11-10", "2025-11-17", "2025-11-24", "2025-12-01", "2025-12-08", "2025-12-15", "2025-12-22", "2025-12-29", "2026-01-05", "2026-01-12", "2026-01-19", "2026-01-26", "2026-02-02", "2026-02-09", "2026-02-16", "2026-02-23", "2026-03-02", "2026-03-09", "2026-03-16", "2026-03-23", "2026-04-06", "2026-05-18", "2026-05-25", "2026-06-01", "2026-06-08", "2026-06-15", "2026-06-22", "2026-06-29", "2026-07-06", "2026-07-13", "2026-07-20", "2026-07-27", "2026-08-03", "2026-08-10", "2026-08-17", "2026-08-24", "2026-08-31", "2026-09-07", "2026-09-14", "2026-09-21", "2026-09-28", "2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-02", "2026-11-09"], "values": [8.8, 8.8, 9.4, 9.9, 8.4, 8.9, 9.0, 9.1, 9.6, 9.1, 8.6, 8.4, 8.4, 8.0, 8.4, 7.1, 8.8, 8.1, 8.4, 8.0, 8.6, 8.1, 7.8, 8.0, 8.5, 8.0, 8.2, 7.7, 9.1, 8.7, 7.6, 8.7, 8.4, 8.0, 7.8, 7.5, 9.5, 8.0, 7.7, 6.8, 8.2, 7.9, 8.4, 7.8, 7.4, 7.7, 9.1, 8.0, 8.7, 8.2, 8.0, 10.2, 9.2, 8.1, 7.9, 6.5, 7.9, 8.0, 8.2, 8.1, 8.1, 8.4, 7.5, 8.8, 8.5, 8.5, 9.6, 7.7, 7.9, 7.8, 7.7, 8.4, 8.7, 8.3, 8.4, 8.2, 9.8, 9.7, 7.6, 7.0, 8.3, 8.0, 8.0, 8.3, 8.1, 7.4, 8.8, 8.5, 8.0, 7.7, 10.1, 8.4, 9.0, 9.6, 9.3, 8.6, 8.5, 9.2, 8.8, 8.9, 8.8, 8.7, 8.8, 8.5]}, "sleepScore": {"weeks": ["2024-10-07", "2024-10-14", "2024-10-21", "2024-10-28", "2024-11-04", "2024-11-11", "2024-11-18", "2024-11-25", "2024-12-02", "2024-12-09", "2024-12-16", "2024-12-23", "2024-12-30", "2025-01-06", "2025-01-13", "2025-01-20", "2025-01-27", "2025-02-03", "2025-02-10", "2025-02-17", "2025-02-24", "2025-03-03", "2025-03-10", "2025-03-17", "2025-03-24", "2025-03-31", "2025-04-07", "2025-04-14", "2025-04-21", "2025-04-28", "2025-05-05", "2025-05-12", "2025-05-19", "2025-05-26", "2025-06-02", "2025-06-09", "2025-06-16", "2025-06-23", "2025-06-30", "2025-07-07", "2025-07-14", "2025-07-21", "2025-07-28", "2025-08-04", "2025-08-11", "2025-08-18", "2025-08-25", "2025-09-01", "2025-09-08", "2025-09-15", "2025-09-22", "2025-09-29", "2025-10-06", "2025-10-13", "2025-10-20", "2025-10-27", "2025-11-03", "2025-11-10", "2025-11-17", "2025-11-24", "2025-12-01", "2025-12-08", "2025-12-15", "2025-12-22", "2025-12-29", "2026-01-05", "2026-01-12", "2026-01-19", "2026-01-26", "2026-02-02", "2026-02-09", "2026-02-16", "2026-02-23", "2026-03-02", "2026-03-09", "2026-03-16", "2026-03-23", "2026-04-06", "2026-05-18", "2026-05-25", "2026-06-01", "2026-06-08", "2026-06-15", "2026-06-22", "2026-06-29", "2026-07-06", "2026-07-13", "2026-07-20", "2026-07-27", "2026-08-03", "2026-08-10", "2026-08-17", "2026-08-24", "2026-08-31", "2026-09-07", "2026-09-14", "2026-09-21", "2026-09-28", "2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-02", "2026-11-09"], "values": [83.7, 83.6, 79.5, 88.5, 79.6, 81.5, 88, 75.2, 91, 83, 85.8, 81.2, 84.4, 88.1, 88.4, 82.9, 89.6, 84.6, 83.9, 88.1, 90.6, 88.6, 85.6, 88.4, 92.7, 90.9, 90.7, 81.3, 85.2, 81, 83.3, 76.6, 84.1, 79.7, 85.3, 69.4, 77.2, 82, 82, 70.1, 78.4, 85.4, 90, 83, 82.9, 79.4, 86.3, 81.4, 83.1, 85.8, 83.2, 63.4, 77.6, 83.6, 83, 71.2, 81, 86.4, 85, 82.6, 84.3, 90.4, 80.2, 78.8, 82.6, 85.3, 76.3, 75.3, 79.3, 83.4, 75.7, 85.8, 84.6, 86.6, 82.6, 78.9, 84.5, 82.3, 84.2, 73.3, 75.6, 87.3, 76.7, 79.8, 72.7, 76.8, 73.8, 86.1, 84.1, 79.8, 81, 87.1, 81, 81.9, 84, 82.6, 86.1, 79.4, 84.4, 85.1, 87, 87.6, 87.6, 87.3]}, "steps": {"weeks": ["2024-10-14", "2024-10-21", "2024-10-28", "2024-11-04", "2024-11-11", "2024-11-18", "2024-11-25", "2024-12-02", "2024-12-09", "2024-12-16", "2024-12-23", "2024-12-30", "2025-01-06", "2025-01-13", "2025-01-20", "2025-01-27", "2025-02-03", "2025-02-10", "2025-02-17", "2025-02-24", "2025-03-03", "2025-03-10", "2025-03-17", "2025-03-24", "2025-03-31", "2025-04-07", "2025-04-14", "2025-04-21", "2025-04-28", "2025-05-05", "2025-05-12", "2025-05-19", "2025-05-26", "2025-06-02", "2025-06-09", "2025-06-16", "2025-06-23", "2025-06-30", "2025-07-07", "2025-07-14", "2025-07-21", "2025-07-28", "2025-08-04", "2025-08-11", "2025-08-18", "2025-08-25", "2025-09-01", "2025-09-08", "2025-09-15", "2025-09-22", "2025-09-29", "2025-10-06", "2025-10-13", "2025-10-20", "2025-10-27", "2025-11-03", "2025-11-10", "2025-11-17", "2025-11-24", "2025-12-01", "2025-12-08", "2025-12-15", "2025-12-22", "2025-12-29", "2026-01-05", "2026-01-12", "2026-01-19", "2026-01-26", "2026-02-02", "2026-02-09", "2026-02-16", "2026-02-23", "2026-03-02", "2026-03-09", "2026-03-16", "2026-03-23", "2026-04-06", "2026-04-13", "2026-05-18", "2026-05-25", "2026-06-01", "2026-06-08", "2026-06-15", "2026-06-22", "2026-06-29", "2026-07-06", "2026-07-13", "2026-07-20", "2026-07-27", "2026-08-03", "2026-08-10", "2026-08-17", "2026-08-24", "2026-08-31", "2026-09-07", "2026-09-14", "2026-09-21", "2026-09-28", "2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-02", "2026-11-09"], "values": [8026.2, 7164.9, 5270, 6600, 7952.5, 8251.2, 5287, 6580.2, 6665.8, 5705, 3308.3, 9776, 12051.1, 12353, 13490.4, 11121.7, 12826.3, 13149.4, 11963.1, 12729.9, 12840.6, 13302.9, 14620.4, 14780.7, 13910.3, 13985.9, 11497.4, 8598.1, 13645.6, 13352.4, 7706, 13321.1, 13993.6, 10383.4, 11238, 6290.1, 7548.1, 11588.3, 9239.7, 10358.1, 11675.7, 12715.6, 8518.9, 6903.7, 9931.3, 7081.1, 7636.4, 8141.7, 6691.8, 5660.6, 4778.3, 9974.4, 7542.6, 14657.2, 7824.9, 8650.4, 7540.7, 7521.6, 6400.4, 8751.1, 5917.5, 5781.8, 3420.4, 4653.4, 11412.1, 5787.4, 6060.6, 7252.6, 6927.6, 5068.4, 5568.7, 6554.3, 6767.5, 5084.6, 7181.6, 911.2, 4052, 3748.5, 5440.3, 7370.3, 3685.3, 3487, 8556.7, 5809.6, 7611.3, 5582.5, 3792.3, 5568, 8102, 3926.9, 4245.6, 6439.3, 3259.4, 4638, 6113.1, 8012.7, 6080.1, 3980.1, 4131.3, 6412, 9482, 12450, 8555.3, 9135.7]}, "activeCalories": {"weeks": ["2024-10-21", "2024-10-28", "2024-11-04", "2024-11-11", "2024-11-18", "2024-11-25", "2024-12-02", "2024-12-09", "2024-12-16", "2024-12-23", "2024-12-30", "2025-01-06", "2025-01-13", "2025-01-20", "2025-01-27", "2025-02-03", "2025-02-10", "2025-02-17", "2025-02-24", "2025-03-03", "2025-03-10", "2025-03-17", "2025-03-24", "2025-03-31", "2025-04-07", "2025-04-14", "2025-04-21", "2025-04-28", "2025-05-05", "2025-05-12", "2025-05-19", "2025-05-26", "2025-06-02", "2025-06-09", "2025-06-16", "2025-06-23", "2025-06-30", "2025-07-07", "2025-07-14", "2025-07-21", "2025-07-28", "2025-08-04", "2025-08-11", "2025-08-18", "2025-08-25", "2025-09-01", "2025-09-08", "2025-09-15", "2025-09-22", "2025-09-29", "2025-10-06", "2025-10-13", "2025-10-20", "2025-10-27", "2025-11-03", "2025-11-10", "2025-11-17", "2025-11-24", "2025-12-01", "2025-12-08", "2025-12-15", "2025-12-22", "2025-12-29", "2026-01-05", "2026-01-12", "2026-01-19", "2026-01-26", "2026-02-02", "2026-02-09", "2026-02-16", "2026-02-23", "2026-03-02", "2026-03-09", "2026-03-16", "2026-03-23", "2026-03-30", "2026-04-06", "2026-04-13", "2026-05-18", "2026-05-25", "2026-06-01", "2026-06-08", "2026-06-15", "2026-06-22", "2026-06-29", "2026-07-06", "2026-07-13", "2026-07-20", "2026-07-27", "2026-08-03", "2026-08-10", "2026-08-17", "2026-08-24", "2026-08-31", "2026-09-07", "2026-09-14", "2026-09-21", "2026-09-28", "2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-02", "2026-11-09"], "values": [426.1, 95.6, 374.3, 543, 242.9, 227.9, 193.1, 375.4, 206.6, 328.4, 602.4, 610.1, 614.6, 662, 528.7, 627.7, 674.4, 561.7, 577.9, 560.7, 628.4, 688.9, 657.7, 621.9, 686.3, 597.9, 456.6, 705.1, 687.1, 473, 631.3, 677.6, 487, 849.3, 315.9, 407.6, 587.4, 502.7, 565.7, 630.1, 747, 483.3, 334.3, 623.9, 402.6, 387, 385.3, 225.9, 362.3, 273.6, 634, 520.7, 504.1, 329, 480, 399.1, 448.6, 428.9, 452.3, 236.6, 272.6, 348.7, 176.1, 708.1, 369.3, 373.1, 404.3, 223.4, 314.4, 244.4, 359, 268.4, 225.4, 304.6, 24.9, 0, 231, 124.2, 279.1, 535.3, 181.7, 107.8, 442, 325.6, 348.9, 130.4, 189.1, 242.7, 380.6, 282, 202.4, 240.6, 121.7, 182, 308.1, 496.3, 253.1, 183, 171, 356.4, 524.1, 570, 438.3, 500]}, "stress": {"weeks": ["2024-10-21", "2024-10-28", "2024-11-04", "2024-11-11", "2024-11-18", "2024-11-25", "2024-12-02", "2024-12-09", "2024-12-16", "2024-12-23", "2024-12-30", "2025-01-06", "2025-01-13", "2025-01-20", "2025-01-27", "2025-02-03", "2025-02-10", "2025-02-17", "2025-02-24", "2025-03-03", "2025-03-10", "2025-03-17", "2025-03-24", "2025-03-31", "2025-04-07", "2025-04-14", "2025-04-21", "2025-04-28", "2025-05-05", "2025-05-12", "2025-05-19", "2025-05-26", "2025-06-02", "2025-06-09", "2025-06-16", "2025-06-23", "2025-06-30", "2025-07-07", "2025-07-14", "2025-07-21", "2025-07-28", "2025-08-04", "2025-08-11", "2025-08-18", "2025-08-25", "2025-09-01", "2025-09-08", "2025-09-15", "2025-09-22", "2025-09-29", "2025-10-06", "2025-10-13", "2025-10-20", "2025-10-27", "2025-11-03", "2025-11-10", "2025-11-17", "2025-11-24", "2025-12-01", "2025-12-08", "2025-12-15", "2025-12-22", "2025-12-29", "2026-01-05", "2026-01-12", "2026-01-19", "2026-01-26", "2026-02-02", "2026-02-09", "2026-02-16", "2026-02-23", "2026-03-02", "2026-03-09", "2026-03-16", "2026-03-23", "2026-03-30", "2026-04-06", "2026-04-13", "2026-05-18", "2026-05-25", "2026-06-01", "2026-06-08", "2026-06-15", "2026-06-22", "2026-06-29", "2026-07-06", "2026-07-13", "2026-07-20", "2026-07-27", "2026-08-03", "2026-08-10", "2026-08-17", "2026-08-24", "2026-08-31", "2026-09-07", "2026-09-14", "2026-09-21", "2026-09-28", "2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-02", "2026-11-09"], "values": [29.1, 7.4, 29.4, 44.9, 26.9, 34.7, 18.9, 28.3, 21.1, 26.7, 30, 27.3, 25, 29.4, 28.9, 28.3, 26.9, 25.6, 26.6, 27.7, 29.1, 29, 26, 28.1, 29.6, 36.1, 38.1, 32.7, 31.4, 38.6, 31.1, 30.4, 34, 39.7, 33.1, 35, 31.7, 39, 36.7, 30.7, 30.1, 35.6, 31.4, 37, 30.6, 35.3, 34.3, 25.7, 37.9, 30.4, 34.4, 33.6, 30.4, 30.1, 32.3, 31.4, 31.7, 34.7, 29.4, 25.6, 36.1, 34.9, 31.4, 28.4, 29.3, 29.7, 29.7, 22.1, 33.3, 25.3, 24.1, 22.4, 26.1, 30.7, 14.9, -1, 35.2, 20.3, 25.7, 32.4, 31, 18.4, 31.3, 34.7, 23.3, 20.9, 28.3, 23.9, 26.7, 36.3, 34.1, 26.6, 25, 24.3, 27.4, 27.3, 24.9, 25.4, 22.3, 22.9, 24, 24, 23.1, 24.8]}}, "records": {"longestRide": {"value": 62, "unit": "min", "date": "2020-04-02", "name": "Innend\u00f8rssykling"}, "longestRun": {"value": 12.0, "unit": "km", "date": "2025-03-29", "name": "Oslo L\u00f8ping"}, "longestStrength": {"value": 139, "unit": "min", "date": "2020-03-12", "name": "Styrke"}, "highestTrainingLoad": {"value": 232, "unit": "load", "date": "2025-05-25", "name": "Oslo - Lett l\u00f8petur"}, "mostSteps": {"value": 28897, "date": "2025-10-26"}, "mostCalories": {"value": 4495, "date": "2020-06-13"}, "longestSleep": {"value": 21.0, "date": "2025-09-29"}, "bestHRV": {"value": 70, "date": "2025-03-22"}}, "sportColors": {"Strength": "#7a1f3d", "Cycling": "#9b3456", "Running": "#a46cc0", "Walking": "#e8a3b6", "Other": "#d9a441"}, "sportOrder": ["Strength", "Cycling", "Running", "Walking", "Other"], "budgetDefaults": {"income": 32000, "categories": [{"key": "husleie", "label": "Husleie", "type": "fixed", "icon": "\ud83c\udfe0", "cap": 13500}, {"key": "strom", "label": "Str\u00f8m", "type": "fixed", "icon": "\u26a1", "cap": 1000}, {"key": "forsikring", "label": "Forsikring", "type": "fixed", "icon": "\ud83d\udee1\ufe0f", "cap": 764}, {"key": "mobil_internett", "label": "Mobil og internett", "type": "fixed", "icon": "\ud83d\udcf1", "cap": 299}, {"key": "abonnementer", "label": "Abonnementer", "type": "fixed", "icon": "\ud83d\udd01", "cap": 496}, {"key": "treningssenter", "label": "Treningssenter", "type": "fixed", "icon": "\ud83c\udfcb\ufe0f", "cap": 449}, {"key": "studielan", "label": "Studiel\u00e5n", "type": "fixed", "icon": "\ud83c\udf93", "cap": 3730}, {"key": "ruter", "label": "Ruter", "type": "fixed", "icon": "\ud83d\ude8c", "cap": 495}, {"key": "mat", "label": "Mat og dagligvarer", "type": "variable", "icon": "\ud83d\uded2", "cap": 3800}, {"key": "transport", "label": "Transport", "type": "variable", "icon": "\ud83d\ude97", "cap": 900}, {"key": "klaer_velvare", "label": "Kl\u00e6r og velv\u00e6re", "type": "variable", "icon": "\ud83d\udc57", "cap": 700}, {"key": "fritid_sosialt", "label": "Fritid og sosialt", "type": "variable", "icon": "\ud83c\udf89", "cap": 800}, {"key": "gaver", "label": "Gaver", "type": "variable", "icon": "\ud83c\udf81", "cap": 500}, {"key": "snus", "label": "Snus", "type": "variable", "icon": "\ud83d\udeac", "cap": 500}, {"key": "annet", "label": "Annet", "type": "variable", "icon": "\ud83d\udce6", "cap": 500}, {"key": "hundefond", "label": "Sparing: Hund", "type": "variable", "savings": true, "icon": "\ud83d\udc36", "cap": 1000}, {"key": "sparing_pensjon", "label": "Sparing: Pensjon", "type": "variable", "savings": true, "icon": "\ud83d\udc75", "cap": 1000}, {"key": "sparing_hoyrente", "label": "Sparing: H\u00f8yrente", "type": "variable", "savings": true, "icon": "\ud83d\udcb0", "cap": 1000}, {"key": "sparekrukke", "label": "Sparekrukka", "type": "variable", "savings": true, "icon": "\ud83e\uded9", "cap": 500}]}, "dogFund": {"target": 30000, "startSaved": 5000, "category": "hundefond"}, "vo2Max": {"vo2Max": 45.0, "date": "2026-10-15", "sport": "L\u00f8ping"}, "activeCalGoalDefault": 400, "pointsConfig": {"levelThreshold": 600, "perCompletedSession": 15, "perStepGoalDay": 5, "perWeightWeek": 10, "perMeasurementMonth": 15, "perNewRecord": 20, "perFundMilestone": 50, "levelNames": ["Fr\u00f8", "Spire", "Knopp", "Blomst", "Bukett", "Hage", "Rosekongen"], "levelRewards": ["Start! \ud83c\udf31", "Nye treningssokker eller fin h\u00e5rklype", "Et lite s\u00f8lvsmykke, f.eks. \u00f8redobber eller et armb\u00e5nd", "Ny spilleliste og fin vannflaske til treningsbagen", "Manikyr eller en bukett blomster til deg selv", "Noe fint til leiligheten, f.eks. en plante eller pute", "En hel dag fri fra alt, akkurat som du vil \ud83d\udc51"]}, "trainingHistory": [{"date": "2026-11-09", "sessionType": "strength", "loggedTypes": ["cardio", "strength"], "stepGoalMet": true}, {"date": "2026-11-10", "sessionType": "cardio", "loggedTypes": ["cardio"], "stepGoalMet": true}, {"date": "2026-11-11", "sessionType": "strength", "loggedTypes": [], "stepGoalMet": true}, {"date": "2026-11-12", "sessionType": "rest", "loggedTypes": [], "stepGoalMet": true}, {"date": "2026-11-13", "sessionType": "strength", "loggedTypes": ["strength"], "stepGoalMet": true}, {"date": "2026-11-14", "sessionType": "cardio", "loggedTypes": ["cardio"], "stepGoalMet": true}, {"date": "2026-11-15", "sessionType": "rest", "loggedTypes": [], "stepGoalMet": false}], "programStart": "2026-11-09"};
+const DATA = {"meta": {"generated": "2026-11-15T12:43:10", "dateRange": ["2018-11-13", "2026-11-14"], "units": "km", "totalActivities": 738}, "topStats": {"hrv": {"value": 44, "weeklyAvg": 43, "status": "BALANCED", "date": "2026-11-14", "trend": [42, 43, 42, 45, 39, 42, 42, 41, 44, 41, 38, 41, 40, 40, 40, 45, 40, 43, 46, 42, 38, 43, 48, 41, 48, 49, 38, 40, 45, 44]}, "sleep": {"hours": 9.4, "score": 86, "date": "2026-11-14", "trend": [8.8, 9.4, 7.8, 9.2, 7.2, 9.1, 8.4, 9.0, 10.0, 8.7, 8.4, 8.8, 8.0, 8.3, 7.7, 9.4, 9.9, 8.3, 8.5, 8.0, 7.2, 10.1, 9.4, 10.0, 8.0, 9.2, 7.0, 8.2, 9.1, 9.4]}, "calories": {"value": 1652, "date": "2026-11-14", "trend": [2311, 2321, 1999, 2747, 2405, 2513, 2127, 2180, 2212, 2505, 2443, 2639, 2218, 2516, 2293, 2588, 2307, 2247, 2422, 2409, 2389, 2232, 2496, 1875, 2370, 2561, 2288, 2125, 2405, 1652]}, "steps": {"value": 8922, "goal": 8000, "date": "2026-11-14", "trend": [8337, 8633, 2897, 13855, 13299, 11211, 5426, 6181, 8211, 8191, 9806, 13494, 9709, 17244, 10904, 16006, 9987, 8260, 10794, 12007, 10107, 9072, 8677, 970, 10360, 12713, 8303, 5931, 8585, 8922]}, "restingHR": {"value": 55, "date": "2026-11-14", "trend": [53, 55, 56, 53, 57, 55, 53, 55, 53, 55, 54, 53, 47, 53, 56, 53, 54, 54, 51, 55, 56, 54, 51, 52, 51, 52, 57, 54, 52, 55]}}, "reportMetrics": {"sleepHours": {"today": 9.4, "avg7": 8.7, "avg30": 8.7}, "deepSleepMin": {"today": 55, "avg7": 71.4, "avg30": 80.6}, "remSleepMin": {"today": 137, "avg7": 125.4, "avg30": 118.9}, "lightSleepMin": {"today": 371, "avg7": 327, "avg30": 321.7}, "sleepScore": {"today": 86, "avg7": 86.9, "avg30": 87.3}, "bodyBatteryCharged": {"today": 46, "avg7": 53.3, "avg30": 57.9}, "bodyBatteryLatest": {"today": 54, "avg7": 53, "avg30": 50.5}, "bodyBatteryMin": {"today": 48, "avg7": 37.4, "avg30": 34.7}, "bodyBatteryMax": {"today": 94, "avg7": 91.1, "avg30": 91.0}, "restingHR": {"today": 55, "avg7": 52.7, "avg30": 53.6}, "hrv": {"today": 44, "avg7": 44.1, "avg30": 42.3}, "steps": {"today": 8922, "avg7": 7934.1, "avg30": 9677.5}, "stress": {"today": 22, "avg7": 24.3, "avg30": 23.7}, "calories": {"today": 1652, "avg7": 2302.9, "avg30": 2354.9}, "activeCalories": {"today": 491, "avg7": 453.3, "avg30": 497.7}}, "dailyHistory": [{"date": "2026-10-11", "weekday": 6, "sleepHours": 8.8, "deepSleepMin": 92, "sleepScore": 92, "bodyBatteryCharged": 66, "bodyBatteryLatest": 65, "restingHR": 53, "hrv": 44, "steps": 2679, "stress": 18, "calories": 1922}, {"date": "2026-10-12", "weekday": 0, "sleepHours": 9.4, "deepSleepMin": 47, "sleepScore": 85, "bodyBatteryCharged": 63, "bodyBatteryLatest": 76, "restingHR": 52, "hrv": 41, "steps": 3024, "stress": 24, "calories": 2116}, {"date": "2026-10-13", "weekday": 1, "sleepHours": 7.8, "deepSleepMin": 48, "sleepScore": 80, "bodyBatteryCharged": 44, "bodyBatteryLatest": 59, "restingHR": 56, "hrv": 42, "steps": 4747, "stress": 26, "calories": 2132}, {"date": "2026-10-14", "weekday": 2, "sleepHours": 9.6, "deepSleepMin": 58, "sleepScore": 85, "bodyBatteryCharged": 57, "bodyBatteryLatest": 59, "restingHR": 54, "hrv": 43, "steps": 6090, "stress": 23, "calories": 2131}, {"date": "2026-10-15", "weekday": 3, "sleepHours": 9.2, "deepSleepMin": 92, "sleepScore": 84, "bodyBatteryCharged": 56, "bodyBatteryLatest": 51, "restingHR": 54, "hrv": 42, "steps": 11156, "stress": 21, "calories": 2505}, {"date": "2026-10-16", "weekday": 4, "sleepHours": 8.8, "deepSleepMin": 69, "sleepScore": 88, "bodyBatteryCharged": 67, "bodyBatteryLatest": 57, "restingHR": 53, "hrv": 42, "steps": 8337, "stress": 22, "calories": 2311}, {"date": "2026-10-17", "weekday": 5, "sleepHours": 9.4, "deepSleepMin": 79, "sleepScore": 88, "bodyBatteryCharged": 56, "bodyBatteryLatest": 51, "restingHR": 55, "hrv": 43, "steps": 8633, "stress": 23, "calories": 2321}, {"date": "2026-10-18", "weekday": 6, "sleepHours": 7.8, "deepSleepMin": 56, "sleepScore": 86, "bodyBatteryCharged": 63, "bodyBatteryLatest": 70, "restingHR": 56, "hrv": 42, "steps": 2897, "stress": 21, "calories": 1999}, {"date": "2026-10-19", "weekday": 0, "sleepHours": 9.2, "deepSleepMin": 98, "sleepScore": 91, "bodyBatteryCharged": 38, "bodyBatteryLatest": 33, "restingHR": 53, "hrv": 45, "steps": 13855, "stress": 26, "calories": 2747}, {"date": "2026-10-20", "weekday": 1, "sleepHours": 7.2, "deepSleepMin": 87, "sleepScore": 83, "bodyBatteryCharged": 62, "bodyBatteryLatest": 47, "restingHR": 57, "hrv": 39, "steps": 13299, "stress": 25, "calories": 2405}, {"date": "2026-10-21", "weekday": 2, "sleepHours": 9.1, "deepSleepMin": 89, "sleepScore": 90, "bodyBatteryCharged": 66, "bodyBatteryLatest": 46, "restingHR": 55, "hrv": 42, "steps": 11211, "stress": 25, "calories": 2513}, {"date": "2026-10-22", "weekday": 3, "sleepHours": 8.4, "deepSleepMin": 99, "sleepScore": 87, "bodyBatteryCharged": 59, "bodyBatteryLatest": 51, "restingHR": 53, "hrv": 42, "steps": 5426, "stress": 24, "calories": 2127}, {"date": "2026-10-23", "weekday": 4, "sleepHours": 9.0, "deepSleepMin": 90, "sleepScore": 89, "bodyBatteryCharged": 66, "bodyBatteryLatest": 63, "restingHR": 55, "hrv": 41, "steps": 6181, "stress": 21, "calories": 2180}, {"date": "2026-10-24", "weekday": 5, "sleepHours": 10.0, "deepSleepMin": 103, "sleepScore": 90, "bodyBatteryCharged": 47, "bodyBatteryLatest": 49, "restingHR": 53, "hrv": 44, "steps": 8211, "stress": 22, "calories": 2212}, {"date": "2026-10-25", "weekday": 6, "sleepHours": 8.7, "deepSleepMin": 24, "sleepScore": 79, "bodyBatteryCharged": 54, "bodyBatteryLatest": 45, "restingHR": 55, "hrv": 41, "steps": 8191, "stress": 25, "calories": 2505}, {"date": "2026-10-26", "weekday": 0, "sleepHours": 8.4, "deepSleepMin": 88, "sleepScore": 86, "bodyBatteryCharged": 56, "bodyBatteryLatest": 55, "restingHR": 54, "hrv": 38, "steps": 9806, "stress": 26, "calories": 2443}, {"date": "2026-10-27", "weekday": 1, "sleepHours": 8.8, "deepSleepMin": 48, "sleepScore": 87, "bodyBatteryCharged": 59, "bodyBatteryLatest": 45, "restingHR": 53, "hrv": 41, "steps": 13494, "stress": 24, "calories": 2639}, {"date": "2026-10-28", "weekday": 2, "sleepHours": 8.0, "deepSleepMin": 82, "sleepScore": 88, "bodyBatteryCharged": 61, "bodyBatteryLatest": 54, "restingHR": 47, "hrv": 40, "steps": 9709, "stress": 23, "calories": 2218}, {"date": "2026-10-29", "weekday": 3, "sleepHours": 8.3, "deepSleepMin": 75, "sleepScore": 90, "bodyBatteryCharged": 55, "bodyBatteryLatest": 44, "restingHR": 53, "hrv": 40, "steps": 17244, "stress": 24, "calories": 2516}, {"date": "2026-10-30", "weekday": 4, "sleepHours": 7.7, "deepSleepMin": 106, "sleepScore": 86, "bodyBatteryCharged": 64, "bodyBatteryLatest": 54, "restingHR": 56, "hrv": 40, "steps": 10904, "stress": 26, "calories": 2293}, {"date": "2026-10-31", "weekday": 5, "sleepHours": 9.4, "deepSleepMin": 93, "sleepScore": 90, "bodyBatteryCharged": 50, "bodyBatteryLatest": 6, "restingHR": 53, "hrv": 45, "steps": 16006, "stress": 25, "calories": 2588}, {"date": "2026-11-01", "weekday": 6, "sleepHours": 9.9, "deepSleepMin": 77, "sleepScore": 86, "bodyBatteryCharged": 97, "bodyBatteryLatest": 60, "restingHR": 54, "hrv": 40, "steps": 9987, "stress": 20, "calories": 2307}, {"date": "2026-11-02", "weekday": 0, "sleepHours": 8.3, "deepSleepMin": 106, "sleepScore": 94, "bodyBatteryCharged": 56, "bodyBatteryLatest": 59, "restingHR": 54, "hrv": 43, "steps": 8260, "stress": 20, "calories": 2247}, {"date": "2026-11-03", "weekday": 1, "sleepHours": 8.5, "deepSleepMin": 56, "sleepScore": 90, "bodyBatteryCharged": 56, "bodyBatteryLatest": 49, "restingHR": 51, "hrv": 46, "steps": 10794, "stress": 22, "calories": 2422}, {"date": "2026-11-04", "weekday": 2, "sleepHours": 8.0, "deepSleepMin": 94, "sleepScore": 86, "bodyBatteryCharged": 40, "bodyBatteryLatest": 22, "restingHR": 55, "hrv": 42, "steps": 12007, "stress": 31, "calories": 2409}, {"date": "2026-11-05", "weekday": 3, "sleepHours": 7.2, "deepSleepMin": 96, "sleepScore": 79, "bodyBatteryCharged": 76, "bodyBatteryLatest": 64, "restingHR": 56, "hrv": 38, "steps": 10107, "stress": 25, "calories": 2389}, {"date": "2026-11-06", "weekday": 4, "sleepHours": 10.1, "deepSleepMin": 112, "sleepScore": 94, "bodyBatteryCharged": 59, "bodyBatteryLatest": 70, "restingHR": 54, "hrv": 43, "steps": 9072, "stress": 21, "calories": 2232}, {"date": "2026-11-07", "weekday": 5, "sleepHours": 9.4, "deepSleepMin": 97, "sleepScore": 91, "bodyBatteryCharged": 45, "bodyBatteryLatest": 49, "restingHR": 51, "hrv": 48, "steps": 8677, "stress": 23, "calories": 2496}, {"date": "2026-11-08", "weekday": 6, "sleepHours": 10.0, "deepSleepMin": 72, "sleepScore": 79, "bodyBatteryCharged": 60, "bodyBatteryLatest": 73, "restingHR": 52, "hrv": 41, "steps": 970, "stress": 20, "calories": 1875}, {"date": "2026-11-09", "weekday": 0, "sleepHours": 8.0, "deepSleepMin": 82, "sleepScore": 93, "bodyBatteryCharged": 45, "bodyBatteryLatest": 57, "restingHR": 51, "hrv": 48, "steps": 10360, "stress": 22, "calories": 2370}, {"date": "2026-11-10", "weekday": 1, "sleepHours": 9.2, "deepSleepMin": 77, "sleepScore": 92, "bodyBatteryCharged": 49, "bodyBatteryLatest": 30, "restingHR": 52, "hrv": 49, "steps": 12713, "stress": 27, "calories": 2561}, {"date": "2026-11-11", "weekday": 2, "sleepHours": 7.0, "deepSleepMin": 65, "sleepScore": 78, "bodyBatteryCharged": 55, "bodyBatteryLatest": 51, "restingHR": 57, "hrv": 38, "steps": 8303, "stress": 27, "calories": 2288}, {"date": "2026-11-12", "weekday": 3, "sleepHours": 8.2, "deepSleepMin": 56, "sleepScore": 87, "bodyBatteryCharged": 66, "bodyBatteryLatest": 64, "restingHR": 54, "hrv": 40, "steps": 5931, "stress": 24, "calories": 2125}, {"date": "2026-11-13", "weekday": 4, "sleepHours": 9.1, "deepSleepMin": 51, "sleepScore": 88, "bodyBatteryCharged": 53, "bodyBatteryLatest": 47, "restingHR": 52, "hrv": 45, "steps": 8585, "stress": 27, "calories": 2405}, {"date": "2026-11-14", "weekday": 5, "sleepHours": 9.4, "deepSleepMin": 55, "sleepScore": 86, "bodyBatteryCharged": 46, "bodyBatteryLatest": 54, "restingHR": 55, "hrv": 44, "steps": 8922, "stress": 22, "calories": 1652}], "goal": {"type": "leaner", "recentActiveCaloriesPerWeek": 874, "priorActiveCaloriesPerWeek": 643, "caloriesPctChange": 36, "recentSessionsPerWeek": 4.6, "priorSessionsPerWeek": 2.6, "recentStepsPerDay": 7499, "priorStepsPerDay": 6824, "stepsPctChange": 10}, "program": {"currentWeek": 1, "weekFocus": "L\u00e6r \u00f8velsene, lett/moderat vekt, god teknikk og kontroll", "weekSetsNote": "2\u20133 sett", "weekCycleNote": "20\u201325 min", "weekIsDeload": false, "today": {"date": "2026-11-15", "readiness": "go", "reasons": ["HRV er balansert i natt (44 ms)"], "recoveryScore": 65, "strainScore": 0}, "week": [{"date": "2026-11-09", "weekday": "Man", "defaultKey": "gsA", "sessionLabel": "Styrke A: helkropp og kjerne", "sessionType": "strength", "isToday": false, "loggedActivities": [{"type": "cardio", "sport": "Running", "name": "L\u00f8ping p\u00e5 tredem\u00f8lle", "minutes": 31, "distanceKm": 2.2, "avgHr": 119, "calories": 194, "activityId": 25019335002}, {"type": "strength", "sport": "Strength", "name": "Styrke", "minutes": 29, "distanceKm": null, "avgHr": 90, "calories": 95, "activityId": 25018969465}]}, {"date": "2026-11-10", "weekday": "Tir", "defaultKey": "cyc", "sessionLabel": "Kondisjon (20\u201325 min)", "sessionType": "cardio", "isToday": false, "loggedActivities": [{"type": "cardio", "sport": "Cycling", "name": "Innend\u00f8rssykling", "minutes": 26, "distanceKm": null, "avgHr": 113, "calories": 144, "activityId": 25032393089}]}, {"date": "2026-11-11", "weekday": "Ons", "defaultKey": "gsB", "sessionLabel": "Styrke B: helkropp og kjerne", "sessionType": "strength", "isToday": false, "loggedActivities": []}, {"date": "2026-11-12", "weekday": "Tor", "defaultKey": "restW", "sessionLabel": "Hvile eller rolig g\u00e5tur", "sessionType": "rest", "isToday": false, "loggedActivities": []}, {"date": "2026-11-13", "weekday": "Fre", "defaultKey": "gsC", "sessionLabel": "Styrke C: helkropp og kjerne", "sessionType": "strength", "isToday": false, "loggedActivities": [{"type": "strength", "sport": "Strength", "name": "Styrke", "minutes": 44, "distanceKm": null, "avgHr": 104, "calories": 203, "activityId": 25067964319}]}, {"date": "2026-11-14", "weekday": "L\u00f8r", "defaultKey": "cycHard", "sessionLabel": "Kondisjon - intervaller (20\u201325 min)", "sessionType": "cardio", "isToday": false, "loggedActivities": [{"type": "cardio", "sport": "Other", "name": "Elliptisk maskin", "minutes": 30, "distanceKm": null, "avgHr": 141, "calories": 271, "activityId": 25074571921}]}, {"date": "2026-11-15", "weekday": "S\u00f8n", "defaultKey": "rest", "sessionLabel": "Hvile eller lett aktivitet", "sessionType": "rest", "isToday": true, "loggedActivities": []}], "nextWeek": [{"date": "2026-11-16", "weekday": "Man", "defaultKey": "gsA", "sessionLabel": "Styrke A: helkropp og kjerne", "sessionType": "strength", "isToday": false, "loggedActivities": []}, {"date": "2026-11-17", "weekday": "Tir", "defaultKey": "cyc", "sessionLabel": "Kondisjon (20\u201330 min)", "sessionType": "cardio", "isToday": false, "loggedActivities": []}, {"date": "2026-11-18", "weekday": "Ons", "defaultKey": "gsB", "sessionLabel": "Styrke B: helkropp og kjerne", "sessionType": "strength", "isToday": false, "loggedActivities": []}, {"date": "2026-11-19", "weekday": "Tor", "defaultKey": "restW", "sessionLabel": "Hvile eller rolig g\u00e5tur", "sessionType": "rest", "isToday": false, "loggedActivities": []}, {"date": "2026-11-20", "weekday": "Fre", "defaultKey": "gsC", "sessionLabel": "Styrke C: helkropp og kjerne", "sessionType": "strength", "isToday": false, "loggedActivities": []}, {"date": "2026-11-21", "weekday": "L\u00f8r", "defaultKey": "cycHard", "sessionLabel": "Kondisjon - intervaller (20\u201330 min)", "sessionType": "cardio", "isToday": false, "loggedActivities": []}, {"date": "2026-11-22", "weekday": "S\u00f8n", "defaultKey": "rest", "sessionLabel": "Hvile eller lett aktivitet", "sessionType": "rest", "isToday": false, "loggedActivities": []}], "nextWeekFocus": "\u00d8k vekten litt p\u00e5 \u00f8velsene som f\u00f8ltes greie forrige uke", "nextWeekIsDeload": false}, "sessionCatalog": {"gsA": {"label": "Styrke A: helkropp og kjerne", "type": "strength", "exercises": ["Glute bridge (aktivering - kjenn at rumpa jobber, ikke korsryggen) 2\u00d712", "Beinpress, kontrollert dybde 3\u00d710\u201312", "Benkpress i maskin 3\u00d78\u201310", "Sittende roing (kabel) 3\u00d710\u201312", "Hip thrust (stang/manualer) - pause og klem rumpa i toppen 3\u00d710\u201312", "Pallof press (kabel) 3\u00d78\u201310/side"]}, "gsB": {"label": "Styrke B: helkropp og kjerne", "type": "strength", "exercises": ["Supersett aktivering: Glute bridge 2\u00d712 + Fire hydrants 2\u00d710\u201312/side + Donkey kicks (spark bak p\u00e5 4 bein) 2\u00d710\u201312/side", "Rumensk markl\u00f8ft (manualer) - skyv hoftene bak, n\u00f8ytral rygg, kjenn baksiden av l\u00e5r/rumpe 3\u00d78\u201310", "Nedtrekk, bredt grep (kabel) 3\u00d78\u201310", "Skulderpress (manualer) 3\u00d78\u201310", "Sideplanke med hoftehev 3\u00d78\u201310/side"]}, "gsC": {"label": "Styrke C: helkropp og kjerne", "type": "strength", "exercises": ["Armhevinger mot benk/vegg (jobb mot gulvet over tid) 3\u00d78\u201312", "Goblet squat, moderat dybde innenfor smertefri rekkevidde 3\u00d710\u201312", "St\u00e5ende kabelrad 3\u00d710\u201312", "Step-up p\u00e5 lav kasse, kontrollert - skyv gjennom h\u00e6len, kjenn rumpa 3\u00d78/side", "Dead bug med vekt 3\u00d78/side", "Planke med skulderber\u00f8ring 3\u00d720\u201330 s"]}, "cyc": {"label": "Kondisjon", "type": "cardio", "note": "Egen takt - du skal kunne prate i hele setninger"}, "cycHard": {"label": "Kondisjon - intervaller", "type": "cardio", "note": "4\u00d74-intervaller: 4 min hardt (du skal IKKE kunne prate i hele setninger), 3 min rolig aktiv pause, gjenta 4 ganger. Sykkel, ellipse eller rask gange i bakke er sk\u00e5nsomt for kneet."}, "walk": {"label": "G\u00e5tur", "type": "cardio"}, "rest": {"label": "Hvile", "type": "rest"}}, "nutritionPlan": {"dailyKcal": 1750, "proteinMin": 140, "note": "Tallene er grove anslag basert p\u00e5 vanlige produktverdier (\u00b110%) - sjekk egne etiketter (proteinpulver, YT-produkter) for mer n\u00f8yaktige tall.", "breakfast": {"label": "Frokost - standard, eller velg et eget forslag", "options": [{"name": "Havregr\u00f8t med protein", "items": [{"ing": "havregryn", "amount": 40}, {"ing": "proteinpulver", "amount": 20}, {"ing": "proteinmelk", "amount": 100, "display": "1 dl proteinmelk"}, {"ing": "chiafro", "amount": 10}, {"ing": "gresk_yoghurt", "amount": 100}], "kcal": 450, "protein": 32, "extraKcal": 23, "extraProtein": -6.9}]}, "lunch": {"label": "Lunsj - velg \u00e9n, rull\u00e9r gjennom uken", "options": [{"name": "Kyllingfilet-wrap", "items": [{"ing": "kyllingfilet", "amount": 130}, {"text": "1 grovt pitabr\u00f8d"}, {"text": "agurk og paprika"}, {"text": "1 ss lett r\u00f8mme/yoghurtdressing"}], "kcal": 400, "protein": 35, "extraKcal": 186, "extraProtein": -5.3}, {"name": "Karbonadedeig med ris", "mealprep": true, "items": [{"ing": "karbonadedeig", "amount": 120}, {"ing": "ris", "amount": 60, "display": "60 g ris (t\u00f8rrvekt)"}, {"text": "agurk og paprika"}], "kcal": 430, "protein": 28, "extraKcal": -50, "extraProtein": 2.2}, {"name": "Kyllingkj\u00f8ttdeig-taco", "items": [{"ing": "kyllingkjottdeig", "amount": 130}, {"text": "2 extra thin tacolefser"}, {"text": "agurk og paprika"}, {"text": "litt mager kesam"}], "kcal": 400, "protein": 32, "extraKcal": 214, "extraProtein": 8.6}, {"name": "Proteinrundstykke med kyllingfilet", "items": [{"text": "1 proteinrundstykke"}, {"ing": "kyllingfilet", "amount": 80, "display": "80 g kyllingfilet-p\u00e5legg"}, {"text": "salat og tomat"}, {"text": "litt lett dressing"}], "kcal": 350, "protein": 30, "extraKcal": 218, "extraProtein": 5.2}, {"name": "Wrap med ferdigstekt kylling", "items": [{"text": "1 grov tortillalefse"}, {"ing": "kyllingfilet", "amount": 100, "display": "100 g ferdigstekt kyllingfilet (butikk)"}, {"text": "agurk og paprika"}, {"text": "litt lett dressing"}], "kcal": 380, "protein": 30, "extraKcal": 215, "extraProtein": -1.0}, {"name": "Kylling-bowl med quinoa og brokkoli", "mealprep": true, "items": [{"ing": "kyllingfilet", "amount": 120}, {"ing": "quinoa", "amount": 50, "display": "50 g quinoa (t\u00f8rrvekt)"}, {"ing": "brokkoli", "amount": 100}, {"text": "litt olivenolje og sitron"}], "kcal": 460, "protein": 47, "extraKcal": 44, "extraProtein": 0.0}]}, "snack": {"label": "Mellomm\u00e5ltid - velg \u00e9n", "options": [{"name": "Yoghurt med bringeb\u00e6r og granola", "items": [{"ing": "skyr", "amount": 150, "display": "150 g h\u00f8yprotein yoghurt/skyr"}, {"ing": "kakaogranola", "amount": 20}, {"text": "bringeb\u00e6r"}, {"text": "1 ts Biscoff"}], "kcal": 230, "protein": 18, "extraKcal": 50, "extraProtein": 1.4}, {"name": "YT proteinprodukt", "items": [{"text": "1 stk (sjekk etiketten for n\u00f8yaktige tall)"}], "kcal": 180, "protein": 20, "extraKcal": 180, "extraProtein": 20}, {"name": "Mager kesam med bringeb\u00e6r", "items": [{"ing": "mager_kesam", "amount": 150}, {"text": "bringeb\u00e6r"}], "kcal": 110, "protein": 18, "extraKcal": 5, "extraProtein": 0.0}]}, "dinner": {"label": "Middag - velg \u00e9n, rull\u00e9r gjennom uken", "options": [{"name": "Kyllingkj\u00f8ttdeig-stekt ris", "mealprep": true, "items": [{"ing": "kyllingkjottdeig", "amount": 150}, {"ing": "ris", "amount": 70, "display": "70 g ris (t\u00f8rrvekt)"}, {"text": "amerikansk gr\u00f8nnsaksblanding (frossen)"}, {"text": "litt soyasaus"}], "kcal": 520, "protein": 42, "extraKcal": 54, "extraProtein": 10.1}, {"name": "Pasta med kj\u00f8ttsaus", "mealprep": true, "items": [{"ing": "pasta", "amount": 80, "display": "80 g pasta (t\u00f8rrvekt)"}, {"ing": "karbonadedeig", "amount": 130}, {"text": "litt tomatsaus"}, {"text": "paprika"}], "kcal": 560, "protein": 33, "extraKcal": -6, "extraProtein": 0.0}, {"name": "Kylling med ris", "mealprep": true, "items": [{"ing": "kyllingfilet", "amount": 150}, {"ing": "ris", "amount": 70, "display": "70 g ris (t\u00f8rrvekt)"}, {"text": "agurk og paprika"}], "kcal": 480, "protein": 44, "extraKcal": -20, "extraProtein": -7.4}, {"name": "Laks med poteter", "mealprep": true, "items": [{"ing": "laksefilet", "amount": 150}, {"ing": "poteter", "amount": 200}, {"text": "brokkoli"}], "kcal": 490, "protein": 38, "extraKcal": 24, "extraProtein": 4.0}, {"name": "Taco-gryte", "mealprep": true, "items": [{"ing": "kyllingkjottdeig", "amount": 150}, {"text": "100 g mais og b\u00f8nner"}, {"text": "1 dl lettr\u00f8mme"}, {"text": "liten porsjon tortillachips"}], "kcal": 540, "protein": 36, "extraKcal": 326, "extraProtein": 9.0}, {"name": "Ovnsbakt laks med s\u00f8tpotet og brokkoli", "mealprep": true, "items": [{"ing": "laksefilet", "amount": 150}, {"ing": "sotpotet", "amount": 200, "display": "200 g s\u00f8tpotet"}, {"ing": "brokkoli", "amount": 150}], "kcal": 540, "protein": 38, "extraKcal": 5, "extraProtein": 0.6}, {"name": "Kyllinggryte med kikerter og ris", "mealprep": true, "items": [{"ing": "kyllingfilet", "amount": 100}, {"ing": "kikerter", "amount": 120, "display": "120 g kikerter (avrent)"}, {"ing": "ris", "amount": 40, "display": "40 g ris (t\u00f8rrvekt)"}, {"text": "karripasta og litt kokosmelk"}], "kcal": 520, "protein": 46, "extraKcal": 14, "extraProtein": 1.5}]}}, "ingredientCatalog": {"kyllingfilet": {"label": "Kyllingfilet", "kcal100": 165, "protein100": 31, "dept": "Kj\u00f8tt og fisk"}, "kyllingkjottdeig": {"label": "Kyllingkj\u00f8ttdeig", "kcal100": 143, "protein100": 18, "dept": "Kj\u00f8tt og fisk"}, "karbonadedeig": {"label": "Karbonadedeig", "kcal100": 220, "protein100": 18, "dept": "Kj\u00f8tt og fisk"}, "kalkunfilet": {"label": "Kalkunfilet", "kcal100": 135, "protein100": 29, "dept": "Kj\u00f8tt og fisk"}, "laksefilet": {"label": "Laksefilet", "kcal100": 208, "protein100": 20, "dept": "Kj\u00f8tt og fisk"}, "torsk": {"label": "Torsk/hvit fisk", "kcal100": 82, "protein100": 18, "dept": "Kj\u00f8tt og fisk"}, "egg": {"label": "Egg", "kcal100": 155, "protein100": 13, "dept": "Meieri"}, "ris": {"label": "Ris (t\u00f8rrvekt)", "kcal100": 360, "protein100": 7, "dept": "T\u00f8rrvarer"}, "quinoa": {"label": "Quinoa (t\u00f8rrvekt)", "kcal100": 368, "protein100": 14, "dept": "T\u00f8rrvarer"}, "pasta": {"label": "Pasta (t\u00f8rrvekt)", "kcal100": 350, "protein100": 12, "dept": "T\u00f8rrvarer"}, "poteter": {"label": "Poteter", "kcal100": 77, "protein100": 2, "dept": "Frukt og gr\u00f8nt"}, "havregryn": {"label": "Havregryn", "kcal100": 375, "protein100": 13, "dept": "T\u00f8rrvarer"}, "proteinpulver": {"label": "Proteinpulver", "kcal100": 380, "protein100": 75, "dept": "T\u00f8rrvarer"}, "proteinmelk": {"label": "Proteinmelk", "kcal100": 55, "protein100": 8, "dept": "Meieri"}, "gresk_yoghurt": {"label": "Gresk yoghurt", "kcal100": 97, "protein100": 9, "dept": "Meieri"}, "mager_kesam": {"label": "Mager kesam", "kcal100": 70, "protein100": 12, "dept": "Meieri"}, "cottage_cheese": {"label": "Cottage cheese", "kcal100": 98, "protein100": 11, "dept": "Meieri"}, "skyr": {"label": "H\u00f8yprotein yoghurt/skyr", "kcal100": 60, "protein100": 10, "dept": "Meieri"}, "kakaogranola": {"label": "Kakaogranola", "kcal100": 450, "protein100": 8, "dept": "T\u00f8rrvarer"}, "chiafro": {"label": "Chiafr\u00f8", "kcal100": 486, "protein100": 17, "dept": "T\u00f8rrvarer"}, "brokkoli": {"label": "Brokkoli", "kcal100": 34, "protein100": 2.8, "dept": "Frukt og gr\u00f8nt"}, "sotpotet": {"label": "S\u00f8tpotet", "kcal100": 86, "protein100": 1.6, "dept": "Frukt og gr\u00f8nt"}, "kikerter": {"label": "Kikerter (avrent, boks)", "kcal100": 164, "protein100": 8.9, "dept": "T\u00f8rrvarer"}}, "weeklyBySport": [{"week": "2026-08-03", "sports": {"Running": {"sessions": 1, "minutes": 33, "distanceKm": 4.3, "calories": 334}}}, {"week": "2026-09-14", "sports": {"Strength": {"sessions": 4, "minutes": 142, "distanceKm": 0.0, "calories": 644}, "Running": {"sessions": 3, "minutes": 74, "distanceKm": 8.2, "calories": 658}}}, {"week": "2026-09-21", "sports": {"Strength": {"sessions": 1, "minutes": 37, "distanceKm": 0.0, "calories": 110}}}, {"week": "2026-09-28", "sports": {"Running": {"sessions": 1, "minutes": 21, "distanceKm": 2.7, "calories": 215}}}, {"week": "2026-10-05", "sports": {"Strength": {"sessions": 2, "minutes": 57, "distanceKm": 0.0, "calories": 191}, "Running": {"sessions": 2, "minutes": 59, "distanceKm": 7.0, "calories": 530}}}, {"week": "2026-10-12", "sports": {"Strength": {"sessions": 3, "minutes": 131, "distanceKm": 0.0, "calories": 367}, "Running": {"sessions": 1, "minutes": 30, "distanceKm": 3.5, "calories": 280}, "Walking": {"sessions": 1, "minutes": 28, "distanceKm": 2.6, "calories": 193}}}, {"week": "2026-10-19", "sports": {"Strength": {"sessions": 4, "minutes": 150, "distanceKm": 0.0, "calories": 614}, "Running": {"sessions": 3, "minutes": 90, "distanceKm": 11.0, "calories": 883}}}, {"week": "2026-10-26", "sports": {"Strength": {"sessions": 3, "minutes": 126, "distanceKm": 0.0, "calories": 455}, "Running": {"sessions": 3, "minutes": 97, "distanceKm": 12.0, "calories": 845}, "Walking": {"sessions": 1, "minutes": 52, "distanceKm": 4.6, "calories": 304}}}, {"week": "2026-11-02", "sports": {"Strength": {"sessions": 3, "minutes": 126, "distanceKm": 0.0, "calories": 430}, "Cycling": {"sessions": 2, "minutes": 56, "distanceKm": 0.0, "calories": 377}, "Running": {"sessions": 2, "minutes": 48, "distanceKm": 4.9, "calories": 294}}}, {"week": "2026-11-09", "sports": {"Strength": {"sessions": 2, "minutes": 73, "distanceKm": 0.0, "calories": 298}, "Cycling": {"sessions": 1, "minutes": 26, "distanceKm": 0.0, "calories": 144}, "Running": {"sessions": 1, "minutes": 31, "distanceKm": 2.2, "calories": 194}, "Other": {"sessions": 1, "minutes": 30, "distanceKm": 0.0, "calories": 271}}}], "trends": {"trainingLoad": {"weeks": ["2025-04-14", "2025-04-21", "2025-04-28", "2025-05-05", "2025-05-12", "2025-05-19", "2025-05-26", "2025-06-02", "2025-06-09", "2025-06-16", "2025-06-23", "2025-06-30", "2025-07-07", "2025-07-14", "2025-07-21", "2025-07-28", "2025-08-04", "2025-08-11", "2025-08-18", "2025-08-25", "2025-09-01", "2025-09-08", "2025-09-15", "2025-09-22", "2025-09-29", "2025-10-06", "2025-10-13", "2025-11-03", "2025-11-10", "2025-11-17", "2025-11-24", "2025-12-01", "2025-12-08", "2025-12-22", "2026-01-05", "2026-01-12", "2026-01-19", "2026-01-26", "2026-02-02", "2026-02-16", "2026-02-23", "2026-03-02", "2026-03-09", "2026-04-06", "2026-05-18", "2026-05-25", "2026-06-15", "2026-06-29", "2026-07-20", "2026-07-27", "2026-08-03", "2026-09-14", "2026-09-21", "2026-09-28", "2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-02", "2026-11-09"], "values": [241, 57, 485, 547, 3, 586, 435, 264, 262, 21, 180, 282, 21, 35, 283, 383, 111, 14, 177, 107, 59, 58, 53, 83, 31, 221, 268, 214, 167, 164, 291, 277, 12, 585, 506, 123, 271, 346, 10, 69, 293, 258, 106, 57, 97, 123, 140, 94, 5, 83, 66, 209, 3, 58, 143, 96, 283, 218, 97, 91]}, "restingHR": {"weeks": ["2024-10-14", "2024-10-21", "2024-10-28", "2024-11-04", "2024-11-11", "2024-11-18", "2024-11-25", "2024-12-02", "2024-12-09", "2024-12-16", "2024-12-23", "2024-12-30", "2025-01-06", "2025-01-13", "2025-01-20", "2025-01-27", "2025-02-03", "2025-02-10", "2025-02-17", "2025-02-24", "2025-03-03", "2025-03-10", "2025-03-17", "2025-03-24", "2025-03-31", "2025-04-07", "2025-04-14", "2025-04-21", "2025-04-28", "2025-05-05", "2025-05-12", "2025-05-19", "2025-05-26", "2025-06-02", "2025-06-09", "2025-06-16", "2025-06-23", "2025-06-30", "2025-07-07", "2025-07-14", "2025-07-21", "2025-07-28", "2025-08-04", "2025-08-11", "2025-08-18", "2025-08-25", "2025-09-01", "2025-09-08", "2025-09-15", "2025-09-22", "2025-09-29", "2025-10-06", "2025-10-13", "2025-10-20", "2025-10-27", "2025-11-03", "2025-11-10", "2025-11-17", "2025-11-24", "2025-12-01", "2025-12-08", "2025-12-15", "2025-12-22", "2025-12-29", "2026-01-05", "2026-01-12", "2026-01-19", "2026-01-26", "2026-02-02", "2026-02-09", "2026-02-16", "2026-02-23", "2026-03-02", "2026-03-09", "2026-03-16", "2026-03-23", "2026-04-06", "2026-04-13", "2026-05-18", "2026-05-25", "2026-06-01", "2026-06-08", "2026-06-15", "2026-06-22", "2026-06-29", "2026-07-06", "2026-07-13", "2026-07-20", "2026-07-27", "2026-08-03", "2026-08-10", "2026-08-17", "2026-08-24", "2026-08-31", "2026-09-07", "2026-09-14", "2026-09-21", "2026-09-28", "2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-02", "2026-11-09"], "values": [53.8, 55, 53.5, 56.2, 60.3, 55, 57, 57.6, 55.3, 55.4, 54.8, 56.1, 53.1, 51.9, 52.3, 52.1, 51.4, 51.3, 50.1, 49.6, 48.9, 49.1, 48.6, 49.6, 47.6, 49, 54.4, 52.7, 52, 52.7, 52.1, 52.6, 53.9, 53.3, 55, 57.3, 55.9, 55.4, 57.4, 57.6, 55.3, 54, 56.7, 55.9, 56, 54.7, 54.6, 55.7, 55, 56.6, 58.3, 55, 56.4, 59.1, 57.9, 56, 54.7, 55.9, 55.7, 54.7, 54.7, 56.5, 59, 55, 56.4, 55.3, 56.1, 55.7, 54.6, 57.6, 54.7, 53.9, 54.5, 53.3, 56, 57.3, 58.2, 57, 57, 57.6, 60, 56.5, 56.7, 58.4, 55.9, 59, 58.3, 54.3, 54.3, 59.1, 57.7, 54.3, 54.4, 55.7, 55.6, 55.7, 54.9, 55.1, 54, 54.3, 54.4, 52.9, 53.3, 53.5]}, "hrv": {"weeks": ["2024-09-23", "2024-09-30", "2024-10-07", "2024-10-14", "2024-10-21", "2024-10-28", "2024-11-04", "2024-11-11", "2024-11-18", "2024-11-25", "2024-12-02", "2024-12-09", "2024-12-16", "2024-12-23", "2024-12-30", "2025-01-06", "2025-01-13", "2025-01-20", "2025-01-27", "2025-02-03", "2025-02-10", "2025-02-17", "2025-02-24", "2025-03-03", "2025-03-10", "2025-03-17", "2025-03-24", "2025-03-31", "2025-04-07", "2025-04-14", "2025-04-21", "2025-04-28", "2025-05-05", "2025-05-12", "2025-05-19", "2025-05-26", "2025-06-02", "2025-06-09", "2025-06-16", "2025-06-23", "2025-06-30", "2025-07-07", "2025-07-14", "2025-07-21", "2025-07-28", "2025-08-04", "2025-08-11", "2025-08-18", "2025-08-25", "2025-09-01", "2025-09-08", "2025-09-15", "2025-09-22", "2025-09-29", "2025-10-06", "2025-10-13", "2025-10-20", "2025-10-27", "2025-11-03", "2025-11-10", "2025-11-17", "2025-11-24", "2025-12-01", "2025-12-08", "2025-12-15", "2025-12-22", "2025-12-29", "2026-01-05", "2026-01-12", "2026-01-19", "2026-01-26", "2026-02-02", "2026-02-09", "2026-02-16", "2026-02-23", "2026-03-02", "2026-03-09", "2026-03-16", "2026-03-23", "2026-04-06", "2026-05-18", "2026-05-25", "2026-06-01", "2026-06-15", "2026-06-22", "2026-06-29", "2026-07-13", "2026-07-20", "2026-07-27", "2026-08-03", "2026-08-10", "2026-08-17", "2026-08-24", "2026-08-31", "2026-09-07", "2026-09-14", "2026-09-21", "2026-09-28", "2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-02", "2026-11-09"], "values": [48.3, 46.5, 51.8, 48.2, 46.8, 53.5, 46, 50, 51.3, 44.5, 56, 47.2, 50, 46.8, 47, 48.6, 53.3, 48.3, 48.1, 53.3, 55.1, 60.3, 51.9, 55.3, 59, 62.6, 59.9, 61, 57.9, 46.7, 50, 54.7, 55.3, 49.3, 51.4, 47.4, 50.9, 43.3, 43.5, 48.1, 46.7, 40.4, 46.1, 52.1, 52.3, 44.2, 46.6, 45, 51.4, 45.1, 46.6, 48.8, 48, 40.8, 44.4, 42.4, 47.6, 45.5, 48.9, 50.7, 46.7, 47, 49.5, 51.6, 46.8, 45.2, 49.3, 43.4, 43.9, 43.8, 46.6, 45.8, 39, 47.8, 47.1, 46.4, 44.6, 41.3, 42.5, 38.3, 40, 39.4, 33, 36.5, 37.3, 41.2, 38, 45.6, 44, 38.2, 36.5, 42.6, 43.6, 40.3, 40.7, 38.7, 38.3, 39.6, 40.9, 42.1, 42, 40.6, 43, 44]}, "sleepHours": {"weeks": ["2024-10-07", "2024-10-14", "2024-10-21", "2024-10-28", "2024-11-04", "2024-11-11", "2024-11-18", "2024-11-25", "2024-12-02", "2024-12-09", "2024-12-16", "2024-12-23", "2024-12-30", "2025-01-06", "2025-01-13", "2025-01-20", "2025-01-27", "2025-02-03", "2025-02-10", "2025-02-17", "2025-02-24", "2025-03-03", "2025-03-10", "2025-03-17", "2025-03-24", "2025-03-31", "2025-04-07", "2025-04-14", "2025-04-21", "2025-04-28", "2025-05-05", "2025-05-12", "2025-05-19", "2025-05-26", "2025-06-02", "2025-06-09", "2025-06-16", "2025-06-23", "2025-06-30", "2025-07-07", "2025-07-14", "2025-07-21", "2025-07-28", "2025-08-04", "2025-08-11", "2025-08-18", "2025-08-25", "2025-09-01", "2025-09-08", "2025-09-15", "2025-09-22", "2025-09-29", "2025-10-06", "2025-10-13", "2025-10-20", "2025-10-27", "2025-11-03", "2025-11-10", "2025-11-17", "2025-11-24", "2025-12-01", "2025-12-08", "2025-12-15", "2025-12-22", "2025-12-29", "2026-01-05", "2026-01-12", "2026-01-19", "2026-01-26", "2026-02-02", "2026-02-09", "2026-02-16", "2026-02-23", "2026-03-02", "2026-03-09", "2026-03-16", "2026-03-23", "2026-04-06", "2026-05-18", "2026-05-25", "2026-06-01", "2026-06-08", "2026-06-15", "2026-06-22", "2026-06-29", "2026-07-06", "2026-07-13", "2026-07-20", "2026-07-27", "2026-08-03", "2026-08-10", "2026-08-17", "2026-08-24", "2026-08-31", "2026-09-07", "2026-09-14", "2026-09-21", "2026-09-28", "2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-02", "2026-11-09"], "values": [8.8, 8.8, 9.4, 9.9, 8.4, 8.9, 9.0, 9.1, 9.6, 9.1, 8.6, 8.4, 8.4, 8.0, 8.4, 7.1, 8.8, 8.1, 8.4, 8.0, 8.6, 8.1, 7.8, 8.0, 8.5, 8.0, 8.2, 7.7, 9.1, 8.7, 7.6, 8.7, 8.4, 8.0, 7.8, 7.5, 9.5, 8.0, 7.7, 6.8, 8.2, 7.9, 8.4, 7.8, 7.4, 7.7, 9.1, 8.0, 8.7, 8.2, 8.0, 10.2, 9.2, 8.1, 7.9, 6.5, 7.9, 8.0, 8.2, 8.1, 8.1, 8.4, 7.5, 8.8, 8.5, 8.5, 9.6, 7.7, 7.9, 7.8, 7.7, 8.4, 8.7, 8.3, 8.4, 8.2, 9.8, 9.7, 7.6, 7.0, 8.3, 8.0, 8.0, 8.3, 8.1, 7.4, 8.8, 8.5, 8.0, 7.7, 10.1, 8.4, 9.0, 9.6, 9.3, 8.6, 8.5, 9.2, 8.8, 8.9, 8.8, 8.7, 8.8, 8.5]}, "sleepScore": {"weeks": ["2024-10-07", "2024-10-14", "2024-10-21", "2024-10-28", "2024-11-04", "2024-11-11", "2024-11-18", "2024-11-25", "2024-12-02", "2024-12-09", "2024-12-16", "2024-12-23", "2024-12-30", "2025-01-06", "2025-01-13", "2025-01-20", "2025-01-27", "2025-02-03", "2025-02-10", "2025-02-17", "2025-02-24", "2025-03-03", "2025-03-10", "2025-03-17", "2025-03-24", "2025-03-31", "2025-04-07", "2025-04-14", "2025-04-21", "2025-04-28", "2025-05-05", "2025-05-12", "2025-05-19", "2025-05-26", "2025-06-02", "2025-06-09", "2025-06-16", "2025-06-23", "2025-06-30", "2025-07-07", "2025-07-14", "2025-07-21", "2025-07-28", "2025-08-04", "2025-08-11", "2025-08-18", "2025-08-25", "2025-09-01", "2025-09-08", "2025-09-15", "2025-09-22", "2025-09-29", "2025-10-06", "2025-10-13", "2025-10-20", "2025-10-27", "2025-11-03", "2025-11-10", "2025-11-17", "2025-11-24", "2025-12-01", "2025-12-08", "2025-12-15", "2025-12-22", "2025-12-29", "2026-01-05", "2026-01-12", "2026-01-19", "2026-01-26", "2026-02-02", "2026-02-09", "2026-02-16", "2026-02-23", "2026-03-02", "2026-03-09", "2026-03-16", "2026-03-23", "2026-04-06", "2026-05-18", "2026-05-25", "2026-06-01", "2026-06-08", "2026-06-15", "2026-06-22", "2026-06-29", "2026-07-06", "2026-07-13", "2026-07-20", "2026-07-27", "2026-08-03", "2026-08-10", "2026-08-17", "2026-08-24", "2026-08-31", "2026-09-07", "2026-09-14", "2026-09-21", "2026-09-28", "2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-02", "2026-11-09"], "values": [83.7, 83.6, 79.5, 88.5, 79.6, 81.5, 88, 75.2, 91, 83, 85.8, 81.2, 84.4, 88.1, 88.4, 82.9, 89.6, 84.6, 83.9, 88.1, 90.6, 88.6, 85.6, 88.4, 92.7, 90.9, 90.7, 81.3, 85.2, 81, 83.3, 76.6, 84.1, 79.7, 85.3, 69.4, 77.2, 82, 82, 70.1, 78.4, 85.4, 90, 83, 82.9, 79.4, 86.3, 81.4, 83.1, 85.8, 83.2, 63.4, 77.6, 83.6, 83, 71.2, 81, 86.4, 85, 82.6, 84.3, 90.4, 80.2, 78.8, 82.6, 85.3, 76.3, 75.3, 79.3, 83.4, 75.7, 85.8, 84.6, 86.6, 82.6, 78.9, 84.5, 82.3, 84.2, 73.3, 75.6, 87.3, 76.7, 79.8, 72.7, 76.8, 73.8, 86.1, 84.1, 79.8, 81, 87.1, 81, 81.9, 84, 82.6, 86.1, 79.4, 84.4, 85.1, 87, 87.6, 87.6, 87.3]}, "steps": {"weeks": ["2024-10-14", "2024-10-21", "2024-10-28", "2024-11-04", "2024-11-11", "2024-11-18", "2024-11-25", "2024-12-02", "2024-12-09", "2024-12-16", "2024-12-23", "2024-12-30", "2025-01-06", "2025-01-13", "2025-01-20", "2025-01-27", "2025-02-03", "2025-02-10", "2025-02-17", "2025-02-24", "2025-03-03", "2025-03-10", "2025-03-17", "2025-03-24", "2025-03-31", "2025-04-07", "2025-04-14", "2025-04-21", "2025-04-28", "2025-05-05", "2025-05-12", "2025-05-19", "2025-05-26", "2025-06-02", "2025-06-09", "2025-06-16", "2025-06-23", "2025-06-30", "2025-07-07", "2025-07-14", "2025-07-21", "2025-07-28", "2025-08-04", "2025-08-11", "2025-08-18", "2025-08-25", "2025-09-01", "2025-09-08", "2025-09-15", "2025-09-22", "2025-09-29", "2025-10-06", "2025-10-13", "2025-10-20", "2025-10-27", "2025-11-03", "2025-11-10", "2025-11-17", "2025-11-24", "2025-12-01", "2025-12-08", "2025-12-15", "2025-12-22", "2025-12-29", "2026-01-05", "2026-01-12", "2026-01-19", "2026-01-26", "2026-02-02", "2026-02-09", "2026-02-16", "2026-02-23", "2026-03-02", "2026-03-09", "2026-03-16", "2026-03-23", "2026-04-06", "2026-04-13", "2026-05-18", "2026-05-25", "2026-06-01", "2026-06-08", "2026-06-15", "2026-06-22", "2026-06-29", "2026-07-06", "2026-07-13", "2026-07-20", "2026-07-27", "2026-08-03", "2026-08-10", "2026-08-17", "2026-08-24", "2026-08-31", "2026-09-07", "2026-09-14", "2026-09-21", "2026-09-28", "2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-02", "2026-11-09"], "values": [8026.2, 7164.9, 5270, 6600, 7952.5, 8251.2, 5287, 6580.2, 6665.8, 5705, 3308.3, 9776, 12051.1, 12353, 13490.4, 11121.7, 12826.3, 13149.4, 11963.1, 12729.9, 12840.6, 13302.9, 14620.4, 14780.7, 13910.3, 13985.9, 11497.4, 8598.1, 13645.6, 13352.4, 7706, 13321.1, 13993.6, 10383.4, 11238, 6290.1, 7548.1, 11588.3, 9239.7, 10358.1, 11675.7, 12715.6, 8518.9, 6903.7, 9931.3, 7081.1, 7636.4, 8141.7, 6691.8, 5660.6, 4778.3, 9974.4, 7542.6, 14657.2, 7824.9, 8650.4, 7540.7, 7521.6, 6400.4, 8751.1, 5917.5, 5781.8, 3420.4, 4653.4, 11412.1, 5787.4, 6060.6, 7252.6, 6927.6, 5068.4, 5568.7, 6554.3, 6767.5, 5084.6, 7181.6, 911.2, 4052, 3748.5, 5440.3, 7370.3, 3685.3, 3487, 8556.7, 5809.6, 7611.3, 5582.5, 3792.3, 5568, 8102, 3926.9, 4245.6, 6439.3, 3259.4, 4638, 6113.1, 8012.7, 6080.1, 3980.1, 4131.3, 6412, 9482, 12450, 8555.3, 9135.7]}, "activeCalories": {"weeks": ["2024-10-21", "2024-10-28", "2024-11-04", "2024-11-11", "2024-11-18", "2024-11-25", "2024-12-02", "2024-12-09", "2024-12-16", "2024-12-23", "2024-12-30", "2025-01-06", "2025-01-13", "2025-01-20", "2025-01-27", "2025-02-03", "2025-02-10", "2025-02-17", "2025-02-24", "2025-03-03", "2025-03-10", "2025-03-17", "2025-03-24", "2025-03-31", "2025-04-07", "2025-04-14", "2025-04-21", "2025-04-28", "2025-05-05", "2025-05-12", "2025-05-19", "2025-05-26", "2025-06-02", "2025-06-09", "2025-06-16", "2025-06-23", "2025-06-30", "2025-07-07", "2025-07-14", "2025-07-21", "2025-07-28", "2025-08-04", "2025-08-11", "2025-08-18", "2025-08-25", "2025-09-01", "2025-09-08", "2025-09-15", "2025-09-22", "2025-09-29", "2025-10-06", "2025-10-13", "2025-10-20", "2025-10-27", "2025-11-03", "2025-11-10", "2025-11-17", "2025-11-24", "2025-12-01", "2025-12-08", "2025-12-15", "2025-12-22", "2025-12-29", "2026-01-05", "2026-01-12", "2026-01-19", "2026-01-26", "2026-02-02", "2026-02-09", "2026-02-16", "2026-02-23", "2026-03-02", "2026-03-09", "2026-03-16", "2026-03-23", "2026-03-30", "2026-04-06", "2026-04-13", "2026-05-18", "2026-05-25", "2026-06-01", "2026-06-08", "2026-06-15", "2026-06-22", "2026-06-29", "2026-07-06", "2026-07-13", "2026-07-20", "2026-07-27", "2026-08-03", "2026-08-10", "2026-08-17", "2026-08-24", "2026-08-31", "2026-09-07", "2026-09-14", "2026-09-21", "2026-09-28", "2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-02", "2026-11-09"], "values": [426.1, 95.6, 374.3, 543, 242.9, 227.9, 193.1, 375.4, 206.6, 328.4, 602.4, 610.1, 614.6, 662, 528.7, 627.7, 674.4, 561.7, 577.9, 560.7, 628.4, 688.9, 657.7, 621.9, 686.3, 597.9, 456.6, 705.1, 687.1, 473, 631.3, 677.6, 487, 849.3, 315.9, 407.6, 587.4, 502.7, 565.7, 630.1, 747, 483.3, 334.3, 623.9, 402.6, 387, 385.3, 225.9, 362.3, 273.6, 634, 520.7, 504.1, 329, 480, 399.1, 448.6, 428.9, 452.3, 236.6, 272.6, 348.7, 176.1, 708.1, 369.3, 373.1, 404.3, 223.4, 314.4, 244.4, 359, 268.4, 225.4, 304.6, 24.9, 0, 231, 124.2, 279.1, 535.3, 181.7, 107.8, 442, 325.6, 348.9, 130.4, 189.1, 242.7, 380.6, 282, 202.4, 240.6, 121.7, 182, 308.1, 496.3, 253.1, 183, 171, 356.4, 524.1, 570, 438.3, 500]}, "stress": {"weeks": ["2024-10-21", "2024-10-28", "2024-11-04", "2024-11-11", "2024-11-18", "2024-11-25", "2024-12-02", "2024-12-09", "2024-12-16", "2024-12-23", "2024-12-30", "2025-01-06", "2025-01-13", "2025-01-20", "2025-01-27", "2025-02-03", "2025-02-10", "2025-02-17", "2025-02-24", "2025-03-03", "2025-03-10", "2025-03-17", "2025-03-24", "2025-03-31", "2025-04-07", "2025-04-14", "2025-04-21", "2025-04-28", "2025-05-05", "2025-05-12", "2025-05-19", "2025-05-26", "2025-06-02", "2025-06-09", "2025-06-16", "2025-06-23", "2025-06-30", "2025-07-07", "2025-07-14", "2025-07-21", "2025-07-28", "2025-08-04", "2025-08-11", "2025-08-18", "2025-08-25", "2025-09-01", "2025-09-08", "2025-09-15", "2025-09-22", "2025-09-29", "2025-10-06", "2025-10-13", "2025-10-20", "2025-10-27", "2025-11-03", "2025-11-10", "2025-11-17", "2025-11-24", "2025-12-01", "2025-12-08", "2025-12-15", "2025-12-22", "2025-12-29", "2026-01-05", "2026-01-12", "2026-01-19", "2026-01-26", "2026-02-02", "2026-02-09", "2026-02-16", "2026-02-23", "2026-03-02", "2026-03-09", "2026-03-16", "2026-03-23", "2026-03-30", "2026-04-06", "2026-04-13", "2026-05-18", "2026-05-25", "2026-06-01", "2026-06-08", "2026-06-15", "2026-06-22", "2026-06-29", "2026-07-06", "2026-07-13", "2026-07-20", "2026-07-27", "2026-08-03", "2026-08-10", "2026-08-17", "2026-08-24", "2026-08-31", "2026-09-07", "2026-09-14", "2026-09-21", "2026-09-28", "2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-02", "2026-11-09"], "values": [29.1, 7.4, 29.4, 44.9, 26.9, 34.7, 18.9, 28.3, 21.1, 26.7, 30, 27.3, 25, 29.4, 28.9, 28.3, 26.9, 25.6, 26.6, 27.7, 29.1, 29, 26, 28.1, 29.6, 36.1, 38.1, 32.7, 31.4, 38.6, 31.1, 30.4, 34, 39.7, 33.1, 35, 31.7, 39, 36.7, 30.7, 30.1, 35.6, 31.4, 37, 30.6, 35.3, 34.3, 25.7, 37.9, 30.4, 34.4, 33.6, 30.4, 30.1, 32.3, 31.4, 31.7, 34.7, 29.4, 25.6, 36.1, 34.9, 31.4, 28.4, 29.3, 29.7, 29.7, 22.1, 33.3, 25.3, 24.1, 22.4, 26.1, 30.7, 14.9, -1, 35.2, 20.3, 25.7, 32.4, 31, 18.4, 31.3, 34.7, 23.3, 20.9, 28.3, 23.9, 26.7, 36.3, 34.1, 26.6, 25, 24.3, 27.4, 27.3, 24.9, 25.4, 22.3, 22.9, 24, 24, 23.1, 24.8]}}, "records": {"longestRide": {"value": 62, "unit": "min", "date": "2020-04-02", "name": "Innend\u00f8rssykling"}, "longestRun": {"value": 12.0, "unit": "km", "date": "2025-03-29", "name": "Oslo L\u00f8ping"}, "longestStrength": {"value": 139, "unit": "min", "date": "2020-03-12", "name": "Styrke"}, "highestTrainingLoad": {"value": 232, "unit": "load", "date": "2025-05-25", "name": "Oslo - Lett l\u00f8petur"}, "mostSteps": {"value": 28897, "date": "2025-10-26"}, "mostCalories": {"value": 4495, "date": "2020-06-13"}, "longestSleep": {"value": 21.0, "date": "2025-09-29"}, "bestHRV": {"value": 70, "date": "2025-03-22"}}, "sportColors": {"Strength": "#7a1f3d", "Cycling": "#9b3456", "Running": "#a46cc0", "Walking": "#e8a3b6", "Other": "#d9a441"}, "sportOrder": ["Strength", "Cycling", "Running", "Walking", "Other"], "budgetDefaults": {"income": 32000, "categories": [{"key": "husleie", "label": "Husleie", "type": "fixed", "icon": "\ud83c\udfe0", "cap": 13500}, {"key": "strom", "label": "Str\u00f8m", "type": "fixed", "icon": "\u26a1", "cap": 1000}, {"key": "forsikring", "label": "Forsikring", "type": "fixed", "icon": "\ud83d\udee1\ufe0f", "cap": 764}, {"key": "mobil_internett", "label": "Mobil og internett", "type": "fixed", "icon": "\ud83d\udcf1", "cap": 299}, {"key": "abonnementer", "label": "Abonnementer", "type": "fixed", "icon": "\ud83d\udd01", "cap": 496}, {"key": "treningssenter", "label": "Treningssenter", "type": "fixed", "icon": "\ud83c\udfcb\ufe0f", "cap": 449}, {"key": "studielan", "label": "Studiel\u00e5n", "type": "fixed", "icon": "\ud83c\udf93", "cap": 3730}, {"key": "ruter", "label": "Ruter", "type": "fixed", "icon": "\ud83d\ude8c", "cap": 495}, {"key": "mat", "label": "Mat og dagligvarer", "type": "variable", "icon": "\ud83d\uded2", "cap": 3800}, {"key": "transport", "label": "Transport", "type": "variable", "icon": "\ud83d\ude97", "cap": 900}, {"key": "klaer_velvare", "label": "Kl\u00e6r og velv\u00e6re", "type": "variable", "icon": "\ud83d\udc57", "cap": 700}, {"key": "fritid_sosialt", "label": "Fritid og sosialt", "type": "variable", "icon": "\ud83c\udf89", "cap": 800}, {"key": "gaver", "label": "Gaver", "type": "variable", "icon": "\ud83c\udf81", "cap": 500}, {"key": "snus", "label": "Snus", "type": "variable", "icon": "\ud83d\udeac", "cap": 500}, {"key": "annet", "label": "Annet", "type": "variable", "icon": "\ud83d\udce6", "cap": 500}, {"key": "hundefond", "label": "Sparing: Hund", "type": "variable", "savings": true, "icon": "\ud83d\udc36", "cap": 1000}, {"key": "sparing_pensjon", "label": "Sparing: Pensjon", "type": "variable", "savings": true, "icon": "\ud83d\udc75", "cap": 1000}, {"key": "sparing_hoyrente", "label": "Sparing: H\u00f8yrente", "type": "variable", "savings": true, "icon": "\ud83d\udcb0", "cap": 1000}, {"key": "sparekrukke", "label": "Sparekrukka", "type": "variable", "savings": true, "icon": "\ud83e\uded9", "cap": 500}]}, "dogFund": {"target": 30000, "startSaved": 5000, "category": "hundefond"}, "vo2Max": {"vo2Max": 45.0, "date": "2026-10-15", "sport": "L\u00f8ping"}, "activeCalGoalDefault": 400, "pointsConfig": {"levelThreshold": 600, "perCompletedSession": 15, "perStepGoalDay": 5, "perWeightWeek": 10, "perMeasurementMonth": 15, "perNewRecord": 20, "perFundMilestone": 50, "levelNames": ["Fr\u00f8", "Spire", "Knopp", "Blomst", "Bukett", "Hage", "Rosekongen"], "levelRewards": ["Start! \ud83c\udf31", "Nye treningssokker eller fin h\u00e5rklype", "Et lite s\u00f8lvsmykke, f.eks. \u00f8redobber eller et armb\u00e5nd", "Ny spilleliste og fin vannflaske til treningsbagen", "Manikyr eller en bukett blomster til deg selv", "Noe fint til leiligheten, f.eks. en plante eller pute", "En hel dag fri fra alt, akkurat som du vil \ud83d\udc51"]}, "trainingHistory": [{"date": "2026-11-09", "sessionType": "strength", "loggedTypes": ["cardio", "strength"], "stepGoalMet": true}, {"date": "2026-11-10", "sessionType": "cardio", "loggedTypes": ["cardio"], "stepGoalMet": true}, {"date": "2026-11-11", "sessionType": "strength", "loggedTypes": [], "stepGoalMet": true}, {"date": "2026-11-12", "sessionType": "rest", "loggedTypes": [], "stepGoalMet": true}, {"date": "2026-11-13", "sessionType": "strength", "loggedTypes": ["strength"], "stepGoalMet": true}, {"date": "2026-11-14", "sessionType": "cardio", "loggedTypes": ["cardio"], "stepGoalMet": true}, {"date": "2026-11-15", "sessionType": "rest", "loggedTypes": [], "stepGoalMet": false}], "programStart": "2026-11-09"};
 
 // ---------------------------------------------------------------- settings
 const SETTINGS_KEY = "garminDashboardSettings_v1";
@@ -1347,6 +1363,7 @@ function loadSettings() {
     mvdProtein: 15,
     mvdSteps: 5000,
     mvdMinutes: 15,
+    kostholdFocusMode: true,
   }, loadLS(SETTINGS_KEY, {}));
 }
 function saveSettings(s) { saveLS(SETTINGS_KEY, s); }
@@ -1740,7 +1757,7 @@ function daysSinceDate(dateStr) {
 function isDeviationDay(date) {
   const totals = dayNutritionTotals(date);
   const goal = DATA.nutritionPlan.dailyKcal;
-  return (goal && totals.kcal > goal * 1.15) || (totals.extras || []).length >= 2;
+  return (goal && withKcalMargin(totals.kcal) > goal * 1.15) || (totals.extras || []).length >= 2;
 }
 function isEmptyLoggingDay(date) {
   const totals = dayNutritionTotals(date);
@@ -2231,6 +2248,15 @@ renderRestTimer();
 const EXTRAS_KEY = "garminDashboardExtras_v1";
 const CUSTOM_MEALS_KEY = "garminDashboardCustomMeals_v1";
 const MEAL_LOG_KEY = "garminDashboardMealLog_v1";
+const FAVORITE_MEALS_KEY = "garminDashboardFavoriteMeals_v1";
+const MEAL_TYPE_ORDER = ["breakfast", "lunch", "snack", "dinner"];
+const MEAL_TYPE_LABELS = { breakfast: "Frokost", lunch: "Lunsj", snack: "Mellommåltid", dinner: "Middag" };
+// Kalorianslag (spesielt for hjemmelagde/øyemål-retter) har lett for å bli satt litt lavt -
+// vis derfor alltid kalorier med en fast +10% margin, uansett hvor de vises i appen. Protein
+// og kalorimålet hennes vises alltid uendret (rått anslag). Legges kun på ved visning -
+// aldri lagret, og aldri lagt på igjen ved ny visning/summering av et allerede margin-justert tall.
+const KCAL_MARGIN = 1.1;
+function withKcalMargin(rawKcal) { return Math.round((rawKcal || 0) * KCAL_MARGIN); }
 // planlagt rett per dag+måltidstype (satt i Planlegg-fanen) - definert her, før
 // renderNutrition() sitt første kall lenger ned, siden den leser plannedMealFor()
 // for å vise "📌 Planlagt"-merket
@@ -2253,6 +2279,25 @@ const CUSTOM_INGREDIENTS_KEY = "garminDashboardCustomIngredients_v1";
 const MEAL_ING_OVERRIDES_KEY = "garminDashboardMealIngOverrides_v1";
 function loadCustomMeals() { return Object.assign({ breakfast: [], lunch: [], snack: [], dinner: [] }, loadLS(CUSTOM_MEALS_KEY, {})); }
 function saveCustomMeals(m) { saveLS(CUSTOM_MEALS_KEY, m); }
+
+function loadFavoriteMeals() { return Object.assign({ breakfast: [], lunch: [], snack: [], dinner: [] }, loadLS(FAVORITE_MEALS_KEY, {})); }
+function saveFavoriteMeals(f) { saveLS(FAVORITE_MEALS_KEY, f); }
+function isFavoriteMeal(type, name) { return loadFavoriteMeals()[type].includes(name); }
+function toggleFavoriteMeal(type, name) {
+  const f = loadFavoriteMeals();
+  const i = f[type].indexOf(name);
+  if (i === -1) f[type].push(name); else f[type].splice(i, 1);
+  saveFavoriteMeals(f);
+}
+
+// siste gang denne måltidstypen ble logget før `beforeDate`, innenfor et rimelig vindu -
+// så "gjenta"-forslaget ikke bare dekker i går, men også "sist jeg spiste dette"
+function mostRecentMealLog(type, beforeDate, lookbackDays) {
+  const cutoff = isoAddDays(beforeDate, -(lookbackDays || 14));
+  const hits = loadMealLog().filter(m => m.type === type && m.date < beforeDate && m.date >= cutoff);
+  hits.sort((a, b) => b.date.localeCompare(a.date));
+  return hits[0] || null;
+}
 
 function loadMealLog() { return loadLS(MEAL_LOG_KEY, []); }
 function saveMealLog(l) { saveLS(MEAL_LOG_KEY, l); }
@@ -2331,43 +2376,53 @@ function effectiveMealOption(type, optIdx, opt, date) {
 function dayNutritionTotals(date) {
   const meals = loadMealLog().filter(m => m.date === date);
   const extrasForDay = loadExtras().filter(e => e.date === date);
-  const extrasTotal = extrasForDay.reduce((s, e) => s + (e.kcal || 0), 0);
+  const extrasKcal = extrasForDay.reduce((s, e) => s + (e.kcal || 0), 0);
+  const extrasProtein = extrasForDay.reduce((s, e) => s + (e.protein || 0), 0);
   return {
-    kcal: meals.reduce((s, m) => s + (m.kcal || 0), 0) + extrasTotal,
-    protein: meals.reduce((s, m) => s + (m.protein || 0), 0),
+    kcal: meals.reduce((s, m) => s + (m.kcal || 0), 0) + extrasKcal,
+    protein: meals.reduce((s, m) => s + (m.protein || 0), 0) + extrasProtein,
     mealsLogged: meals,
     extras: extrasForDay,
   };
 }
 
-// transient UI state (not persisted) for which ingredient's swap-form is open
+// transient UI state (not persisted)
 let openIngSwapKey = null;
 let openIngSwapShowCustomForm = false;
+let kostholdExpandedDetail = null;
+const kostholdExpandedTypes = new Set();
+let kostholdNewOptionOpenType = null;
+let kostholdGoalEditOpen = false;
 
-function mealOptionHtml(opt, removeId, toggle, swapCtx) {
-  const eaten = !!(toggle && toggle.eaten);
-  const itemsHtml = (opt.effectiveItems || []).map(item => {
-    if (item.text) return `<span class="meal-item-text">${item.text}</span>`;
-    if (!swapCtx) return `<span class="meal-item-ing">${item.display} ${item.label}</span>`;
-    const key = ingOverrideKey(todayISO(), swapCtx.type, swapCtx.optIdx, item.itemIdx);
-    return `<span class="meal-item-ing${item.overridden ? " meal-item-overridden" : ""}">
-      ${item.display} ${item.label}
-      <button class="meal-ing-swap-btn" data-swap-key="${key}">Bytt</button>
-      ${item.overridden ? `<button class="meal-ing-reset-btn" data-type="${swapCtx.type}" data-opt-idx="${swapCtx.optIdx}" data-item-idx="${item.itemIdx}">↺</button>` : ""}
-    </span>`;
-  }).join("");
+// kompakt rad for ett måltidsforslag - utvides til ingredienser/bytte bare når "Detaljer" er åpnet
+function mealRowHtml(type, idx, opt, meta, focus) {
+  const eaten = !!meta.eaten;
+  const hasItems = (opt.effectiveItems || []).length > 0;
+  const detailKey = `${type}:${idx}`;
+  const expanded = hasItems && kostholdExpandedDetail === detailKey;
+  const isFav = isFavoriteMeal(type, opt.name);
 
-  let swapFormHtml = "";
-  if (swapCtx) {
-    (opt.effectiveItems || []).forEach(item => {
+  let detailHtml = "";
+  if (expanded) {
+    const itemsHtml = opt.effectiveItems.map(item => {
+      if (item.text) return `<span class="meal-item-text">${item.text}</span>`;
+      const key = ingOverrideKey(todayISO(), type, idx, item.itemIdx);
+      return `<span class="meal-item-ing${item.overridden ? " meal-item-overridden" : ""}">
+        ${item.display} ${item.label}
+        <button class="meal-ing-swap-btn" data-swap-key="${key}">Bytt</button>
+        ${item.overridden ? `<button class="meal-ing-reset-btn" data-type="${type}" data-opt-idx="${idx}" data-item-idx="${item.itemIdx}">↺</button>` : ""}
+      </span>`;
+    }).join("");
+    let swapFormHtml = "";
+    opt.effectiveItems.forEach(item => {
       if (item.text) return;
-      const key = ingOverrideKey(todayISO(), swapCtx.type, swapCtx.optIdx, item.itemIdx);
+      const key = ingOverrideKey(todayISO(), type, idx, item.itemIdx);
       if (openIngSwapKey !== key) return;
       swapFormHtml = `<div class="ing-swap-form">
         <div class="ing-swap-row">
           <select class="ing-swap-select">${ingredientOptionsForSelect(item.ing)}</select>
           <input type="number" class="ing-swap-amount" value="${item.amount}"> g
-          <button class="btn small ing-swap-save" data-type="${swapCtx.type}" data-opt-idx="${swapCtx.optIdx}" data-item-idx="${item.itemIdx}">Lagre</button>
+          <button class="btn small ing-swap-save" data-type="${type}" data-opt-idx="${idx}" data-item-idx="${item.itemIdx}">Lagre</button>
           <button class="btn ghost small ing-swap-cancel">Avbryt</button>
         </div>
         ${openIngSwapShowCustomForm
@@ -2375,93 +2430,194 @@ function mealOptionHtml(opt, removeId, toggle, swapCtx) {
               <input type="text" class="ing-new-name" placeholder="Navn på ny ingrediens">
               <input type="number" class="ing-new-kcal" placeholder="kcal/100g">
               <input type="number" class="ing-new-protein" placeholder="protein/100g">
-              <button class="btn ghost small ing-new-save" data-type="${swapCtx.type}" data-opt-idx="${swapCtx.optIdx}" data-item-idx="${item.itemIdx}">Legg til og bruk</button>
+              <button class="btn ghost small ing-new-save" data-type="${type}" data-opt-idx="${idx}" data-item-idx="${item.itemIdx}">Legg til og bruk</button>
             </div>`
           : `<button class="btn ghost small ing-swap-new-toggle">+ Legg til ny ingrediens</button>`}
       </div>`;
     });
+    detailHtml = `<div class="meal-items">${itemsHtml}</div>${swapFormHtml}`;
   }
 
   return `<div class="meal-option${eaten ? " meal-option-eaten" : ""}">
-    <div class="meal-head"><b>${opt.name}</b>${opt.planned ? ` <span class="meal-planned-badge">📌 Planlagt</span>` : ""}<span class="meal-macro">${opt.kcal} kcal · ${opt.protein} g protein${removeId ? `<button class="meal-option-remove" data-meal-remove="${removeId}">✕</button>` : ""}</span></div>
-    ${itemsHtml ? `<div class="meal-items">${itemsHtml}</div>` : ""}
-    ${swapFormHtml}
-    ${toggle ? `<button class="btn ghost small meal-eaten-btn" data-meal-type="${toggle.type}" data-meal-idx="${toggle.idx}">${eaten ? "✓ Spist i dag" : "Merk som spist i dag"}</button>` : ""}
+    <div class="meal-head">
+      <button class="meal-fav-btn${isFav ? " active" : ""}" data-fav-type="${type}" data-fav-name="${opt.name}" title="Favoritt">${isFav ? "⭐" : "☆"}</button>
+      <b>${opt.name}</b>
+      ${opt.planned ? `<span class="meal-planned-badge">📌 Planlagt</span>` : ""}
+      ${focus ? `<span class="meal-macro">~${withKcalMargin(opt.kcal)} kcal · ${opt.protein} g protein</span>` : ""}
+      ${meta.removeId ? `<button class="meal-option-remove" data-meal-remove="${meta.removeId}">✕</button>` : ""}
+    </div>
+    <div class="meal-row-actions">
+      ${hasItems ? `<button class="btn ghost small meal-detail-toggle" data-detail-key="${detailKey}">${expanded ? "Skjul detaljer" : "Detaljer"}</button>` : ""}
+      <button class="btn ${eaten ? "" : "ghost"} small meal-eaten-btn" data-meal-type="${type}" data-meal-idx="${idx}">${eaten ? "✓ Spist" : "Spist ✓"}</button>
+    </div>
+    ${detailHtml}
   </div>`;
 }
 
-function renderNutrition() {
+function renderMealTypeCard(type) {
   const n = DATA.nutritionPlan;
-  if (!n) return;
   const today = todayISO();
+  const group = n[type];
+  const focus = loadSettings().kostholdFocusMode;
+  const logged = mealLoggedFor(today, type);
+  const custom = loadCustomMeals()[type] || [];
+  const allOptions = group.options.map((o, idx) => ({ o, idx, custom: false }))
+    .concat(custom.map((o, i) => ({ o, idx: group.options.length + i, custom: true })));
 
-  document.getElementById("kcal-row").innerHTML = `
-    <div class="kcal-chip">Mål<b>${n.dailyKcal} kcal</b></div>
-    <div class="kcal-chip">Protein<b>${n.proteinMin} g+</b></div>
-    <div class="kcal-chip kcal-goal-edit">
-      <input type="number" step="50" id="kcal-goal-input" value="${n.dailyKcal}" style="width:70px;">
-      <button class="btn ghost small" id="kcal-goal-save">Lagre kcal-mål</button>
+  let bodyHtml;
+  if (logged) {
+    const match = allOptions.find(x => x.o.name === logged.name);
+    const eOpt = match ? effectiveMealOption(type, match.idx, match.o, today)
+      : { name: logged.name, kcal: logged.kcal, protein: logged.protein, effectiveItems: [] };
+    bodyHtml = mealRowHtml(type, match ? match.idx : -1, eOpt,
+      { eaten: true, removeId: (match && match.custom) ? match.o.id : null }, focus)
+      + `<button class="btn ghost small meal-unlog-btn" data-unlog-type="${type}">Ikke dette likevel</button>`;
+  } else {
+    const favs = loadFavoriteMeals()[type] || [];
+    const planned = plannedMealFor(today, type);
+    const scoreOf = x => (x.o.name === planned ? 2 : 0) + (favs.includes(x.o.name) ? 1 : 0);
+    const sorted = allOptions.map((x, i) => ({ x, i })).sort((a, b) => (scoreOf(b.x) - scoreOf(a.x)) || (a.i - b.i)).map(w => w.x);
+    const expanded = kostholdExpandedTypes.has(type);
+    const visible = expanded ? sorted : sorted.slice(0, 3);
+    const hiddenCount = sorted.length - visible.length;
+
+    const recent = mostRecentMealLog(type, today);
+    const yesterday = isoAddDays(today, -1);
+    const repeatHtml = recent
+      ? `<button class="btn ghost small meal-repeat-btn" data-repeat-type="${type}" style="margin-bottom:8px;">🔁 Gjenta ${recent.name}${recent.date === yesterday ? " fra i går" : ` (sist ${fmtShort(recent.date)})`}</button>`
+      : "";
+
+    const rowsHtml = visible.map(x => {
+      const eOpt = effectiveMealOption(type, x.idx, x.o, today);
+      eOpt.planned = x.o.name === planned;
+      return mealRowHtml(type, x.idx, eOpt, { eaten: false, removeId: x.custom ? x.o.id : null }, focus);
+    }).join("");
+
+    const moreHtml = hiddenCount > 0
+      ? `<button class="btn ghost small kosthold-more-btn" data-more-type="${type}">Vis ${hiddenCount} flere forslag</button>`
+      : (expanded && sorted.length > 3 ? `<button class="btn ghost small kosthold-more-btn" data-more-type="${type}">Vis færre</button>` : "");
+
+    const newOptFormHtml = kostholdNewOptionOpenType === type ? `
+      <div class="log-form meal-add-form">
+        <input type="text" id="meal-add-name-${type}" placeholder="Navn">
+        <input type="number" step="10" id="meal-add-kcal-${type}" placeholder="kcal">
+        <input type="number" step="1" id="meal-add-protein-${type}" placeholder="protein g">
+        <button class="btn ghost small" data-meal-add="${type}">Legg til</button>
+      </div>` : "";
+
+    bodyHtml = repeatHtml + rowsHtml + moreHtml
+      + `<button class="btn ghost small kosthold-newopt-toggle" data-newopt-type="${type}">+ Nytt forslag</button>`
+      + newOptFormHtml;
+  }
+
+  return `<div class="card kosthold-meal-card">
+    <div class="kosthold-meal-card-head"><h4>${group.label}</h4>${logged ? `<span class="kosthold-meal-done">✓ Spist</span>` : ""}</div>
+    ${bodyHtml}
+  </div>`;
+}
+
+function renderKostholdToday() {
+  const n = DATA.nutritionPlan;
+  const el = document.getElementById("kosthold-today-card");
+  if (!n || !el) return;
+  const focus = loadSettings().kostholdFocusMode;
+  const modeNote = document.getElementById("kosthold-mode-note");
+  if (modeNote) {
+    modeNote.textContent = focus ? "" : "Livsstilsmodus er på - tall er skjult, men logging og favoritter fungerer som vanlig.";
+  }
+
+  if (!focus) {
+    el.innerHTML = `<div class="section-sub" style="margin:0;">God dag med maten, uansett hvordan den ser ut i tall. 🌿</div>`;
+    return;
+  }
+
+  const totals = dayNutritionTotals(todayISO());
+  const kcalShown = withKcalMargin(totals.kcal);
+  const remaining = n.dailyKcal - kcalShown;
+  el.innerHTML = `
+    <h3 style="margin:0 0 10px;font-size:15px;">Dagens oversikt</h3>
+    <div class="kcal-row">
+      <div class="kcal-chip">Spist<b>~${kcalShown} kcal</b></div>
+      <div class="kcal-chip">${remaining >= 0 ? "Igjen av målet" : "Over målet"}<b>${Math.abs(remaining)} kcal</b></div>
+      <div class="kcal-chip">Protein<b>${totals.protein} / ${n.proteinMin} g</b></div>
     </div>
-    <div class="kcal-chip kcal-goal-edit">
-      <input type="number" step="5" id="protein-goal-input" value="${n.proteinMin}" style="width:70px;">
-      <button class="btn ghost small" id="protein-goal-save">Lagre proteinmål</button>
+    <div class="section-sub" style="margin:10px 0 0;">Mål: ${n.dailyKcal} kcal · ${n.proteinMin} g+ protein
+      <button class="btn ghost small" id="kosthold-goal-edit-toggle" style="margin-left:6px;">Endre mål</button>
     </div>
+    <div class="section-sub" style="margin-top:6px;font-style:italic;">Kalorier vises med 10 % anslagsmargin. Protein vises som vanlig anslag.</div>
+    ${kostholdGoalEditOpen ? `
+      <div class="log-form" style="margin-top:10px;">
+        <input type="number" step="50" id="kcal-goal-input" value="${n.dailyKcal}" placeholder="kcal-mål">
+        <button class="btn ghost small" id="kcal-goal-save">Lagre</button>
+        <input type="number" step="5" id="protein-goal-input" value="${n.proteinMin}" placeholder="proteinmål">
+        <button class="btn ghost small" id="protein-goal-save">Lagre</button>
+      </div>` : ""}
   `;
-  document.getElementById("kcal-goal-save").addEventListener("click", () => {
+
+  const goalToggle = document.getElementById("kosthold-goal-edit-toggle");
+  if (goalToggle) goalToggle.addEventListener("click", () => { kostholdGoalEditOpen = !kostholdGoalEditOpen; renderKostholdToday(); });
+  const kcalGoalSave = document.getElementById("kcal-goal-save");
+  if (kcalGoalSave) kcalGoalSave.addEventListener("click", () => {
     const val = parseInt(document.getElementById("kcal-goal-input").value, 10);
     if (!val) return;
     const s = loadSettings();
     s.dailyKcal = val;
     saveSettings(s);
     DATA.nutritionPlan.dailyKcal = val;
-    renderNutrition();
+    kostholdGoalEditOpen = false;
+    renderKostholdToday();
     renderExtras();
     renderHjemKcalRing();
   });
-  document.getElementById("protein-goal-save").addEventListener("click", () => {
+  const proteinGoalSave = document.getElementById("protein-goal-save");
+  if (proteinGoalSave) proteinGoalSave.addEventListener("click", () => {
     const val = parseInt(document.getElementById("protein-goal-input").value, 10);
     if (!val) return;
     const s = loadSettings();
     s.proteinMin = val;
     saveSettings(s);
     DATA.nutritionPlan.proteinMin = val;
-    renderNutrition();
+    kostholdGoalEditOpen = false;
+    renderKostholdToday();
   });
+}
 
-  let html = "";
-  const custom = loadCustomMeals();
-  const yesterday = isoAddDays(today, -1);
-  ["breakfast", "lunch", "snack", "dinner"].forEach(key => {
-    const group = n[key];
-    const customOpts = custom[key] || [];
-    const yesterdayMeal = mealLoggedFor(yesterday, key);
-    const repeatHtml = (yesterdayMeal && !mealLoggedFor(today, key))
-      ? `<button class="btn ghost small meal-repeat-btn" data-repeat-type="${key}" style="margin-bottom:8px;">🔁 Gjenta ${yesterdayMeal.name} fra i går</button>`
-      : "";
-    html += `<div class="meal-group"><h4>${group.label}</h4>
-      ${repeatHtml}
-      ${group.options.map((o, idx) => {
-        const eOpt = effectiveMealOption(key, idx, o, today);
-        eOpt.planned = plannedMealFor(today, key) === o.name;
-        return mealOptionHtml(eOpt, null, { type: key, idx, eaten: isMealEatenToday(key, o.name) }, { type: key, optIdx: idx });
-      }).join("")}
-      ${customOpts.map((o, i) => {
-        const eOpt = effectiveMealOption(key, group.options.length + i, o, today);
-        eOpt.planned = plannedMealFor(today, key) === o.name;
-        return mealOptionHtml(eOpt, o.id, { type: key, idx: group.options.length + i, eaten: isMealEatenToday(key, o.name) }, null);
-      }).join("")}
-      <div class="log-form meal-add-form">
-        <input type="text" id="meal-add-name-${key}" placeholder="Eget forslag - navn">
-        <input type="number" step="10" id="meal-add-kcal-${key}" placeholder="kcal">
-        <input type="number" step="1" id="meal-add-protein-${key}" placeholder="protein g">
-        <button class="btn ghost small" data-meal-add="${key}">Legg til</button>
-      </div>
-    </div>`;
+function renderKostholdMealCards() {
+  const n = DATA.nutritionPlan;
+  const el = document.getElementById("kosthold-meal-cards");
+  if (!n || !el) return;
+  const today = todayISO();
+
+  el.innerHTML = MEAL_TYPE_ORDER.map(renderMealTypeCard).join("") + `<div class="nutrition-note">${n.note}</div>`;
+
+  el.querySelectorAll(".meal-fav-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      toggleFavoriteMeal(btn.dataset.favType, btn.dataset.favName);
+      renderNutrition();
+    });
   });
-  html += `<div class="nutrition-note">${n.note}</div>`;
-  document.getElementById("meal-plan").innerHTML = html;
-
-  document.querySelectorAll(".meal-eaten-btn").forEach(btn => {
+  el.querySelectorAll(".meal-detail-toggle").forEach(btn => {
+    btn.addEventListener("click", () => {
+      kostholdExpandedDetail = kostholdExpandedDetail === btn.dataset.detailKey ? null : btn.dataset.detailKey;
+      openIngSwapKey = null;
+      openIngSwapShowCustomForm = false;
+      renderNutrition();
+    });
+  });
+  el.querySelectorAll(".kosthold-more-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const type = btn.dataset.moreType;
+      if (kostholdExpandedTypes.has(type)) kostholdExpandedTypes.delete(type); else kostholdExpandedTypes.add(type);
+      renderNutrition();
+    });
+  });
+  el.querySelectorAll(".kosthold-newopt-toggle").forEach(btn => {
+    btn.addEventListener("click", () => {
+      kostholdNewOptionOpenType = kostholdNewOptionOpenType === btn.dataset.newoptType ? null : btn.dataset.newoptType;
+      renderNutrition();
+    });
+  });
+  el.querySelectorAll(".meal-eaten-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       const type = btn.dataset.mealType;
       const idx = parseInt(btn.dataset.mealIdx, 10);
@@ -2475,27 +2631,34 @@ function renderNutrition() {
       renderHjemKcalRing();
     });
   });
-
-  document.querySelectorAll(".meal-repeat-btn").forEach(btn => {
+  el.querySelectorAll(".meal-unlog-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      unlogMeal(btn.dataset.unlogType);
+      renderNutrition();
+      renderNutritionCoach();
+      renderHjemKcalRing();
+    });
+  });
+  el.querySelectorAll(".meal-repeat-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       const type = btn.dataset.repeatType;
-      const y = mealLoggedFor(isoAddDays(today, -1), type);
-      if (!y) return;
-      logMealEaten(type, y);
+      const recent = mostRecentMealLog(type, today);
+      if (!recent) return;
+      logMealEaten(type, recent);
       renderNutrition();
       renderNutritionCoach();
       renderHjemKcalRing();
     });
   });
 
-  document.querySelectorAll(".meal-ing-swap-btn").forEach(btn => {
+  el.querySelectorAll(".meal-ing-swap-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       openIngSwapKey = openIngSwapKey === btn.dataset.swapKey ? null : btn.dataset.swapKey;
       openIngSwapShowCustomForm = false;
       renderNutrition();
     });
   });
-  document.querySelectorAll(".meal-ing-reset-btn").forEach(btn => {
+  el.querySelectorAll(".meal-ing-reset-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       clearIngOverride(today, btn.dataset.type, parseInt(btn.dataset.optIdx, 10), parseInt(btn.dataset.itemIdx, 10));
       renderNutrition();
@@ -2503,13 +2666,13 @@ function renderNutrition() {
       renderHjemKcalRing();
     });
   });
-  document.querySelectorAll(".ing-swap-cancel").forEach(btn => {
+  el.querySelectorAll(".ing-swap-cancel").forEach(btn => {
     btn.addEventListener("click", () => { openIngSwapKey = null; renderNutrition(); });
   });
-  document.querySelectorAll(".ing-swap-new-toggle").forEach(btn => {
+  el.querySelectorAll(".ing-swap-new-toggle").forEach(btn => {
     btn.addEventListener("click", () => { openIngSwapShowCustomForm = true; renderNutrition(); });
   });
-  document.querySelectorAll(".ing-swap-save").forEach(btn => {
+  el.querySelectorAll(".ing-swap-save").forEach(btn => {
     btn.addEventListener("click", () => {
       const form = btn.closest(".ing-swap-form");
       const ing = form.querySelector(".ing-swap-select").value;
@@ -2522,7 +2685,7 @@ function renderNutrition() {
       renderHjemKcalRing();
     });
   });
-  document.querySelectorAll(".ing-new-save").forEach(btn => {
+  el.querySelectorAll(".ing-new-save").forEach(btn => {
     btn.addEventListener("click", () => {
       const form = btn.closest(".ing-swap-form");
       const name = form.querySelector(".ing-new-name").value.trim();
@@ -2543,7 +2706,7 @@ function renderNutrition() {
     });
   });
 
-  document.querySelectorAll("[data-meal-add]").forEach(btn => {
+  el.querySelectorAll("[data-meal-add]").forEach(btn => {
     btn.addEventListener("click", () => {
       const key = btn.dataset.mealAdd;
       const name = document.getElementById(`meal-add-name-${key}`).value.trim();
@@ -2553,18 +2716,25 @@ function renderNutrition() {
       const m = loadCustomMeals();
       m[key].push({ id: "meal-" + Date.now() + Math.random(), name, kcal, protein, items: [] });
       saveCustomMeals(m);
+      kostholdNewOptionOpenType = null;
       renderNutrition();
     });
   });
-  document.querySelectorAll("[data-meal-remove]").forEach(btn => {
+  el.querySelectorAll("[data-meal-remove]").forEach(btn => {
     btn.addEventListener("click", () => {
       const id = btn.dataset.mealRemove;
       const m = loadCustomMeals();
-      ["breakfast", "lunch", "snack", "dinner"].forEach(key => { m[key] = m[key].filter(o => o.id !== id); });
+      MEAL_TYPE_ORDER.forEach(key => { m[key] = m[key].filter(o => o.id !== id); });
       saveCustomMeals(m);
       renderNutrition();
     });
   });
+}
+
+function renderNutrition() {
+  if (!DATA.nutritionPlan) return;
+  renderKostholdToday();
+  renderKostholdMealCards();
 }
 renderNutrition();
 
@@ -2578,26 +2748,59 @@ function softDeleteExtra(id) {
   saveExtras(all);
 }
 
-function addExtra(name, kcal) {
+function addExtra(name, kcal, protein) {
   const list = loadExtras();
-  list.push({ id: "extra-" + Date.now() + Math.random(), date: todayISO(), name, kcal: kcal || null });
+  list.push({ id: "extra-" + Date.now() + Math.random(), date: todayISO(), name, kcal: kcal || null, protein: protein || null });
   saveExtras(list);
   renderExtras();
   renderNutritionCoach();
   renderHjemKcalRing();
 }
 
+const SAVED_EXTRAS_KEY = "garminDashboardSavedExtras_v1";
+function loadSavedExtras() {
+  return loadLS(SAVED_EXTRAS_KEY, [
+    { id: "preset-sjokolade", name: "Sjokolade", kcal: 250, protein: null },
+    { id: "preset-glassvin", name: "Glass vin", kcal: 120, protein: null },
+    { id: "preset-ol", name: "Øl", kcal: 150, protein: null },
+  ]);
+}
+function saveSavedExtras(l) { saveLS(SAVED_EXTRAS_KEY, l); }
+function addSavedExtra(name, kcal, protein) {
+  const list = loadSavedExtras();
+  if (list.some(i => i.name.toLowerCase() === name.toLowerCase())) return;
+  list.push({ id: "saved-" + Date.now() + Math.random(), name, kcal: kcal || null, protein: protein || null });
+  saveSavedExtras(list);
+}
+function removeSavedExtra(id) { saveSavedExtras(loadSavedExtras().filter(i => i.id !== id)); }
+
+function renderSavedExtraChips() {
+  const el = document.getElementById("extras-presets");
+  if (!el) return;
+  const saved = loadSavedExtras();
+  el.innerHTML = saved.map(i => `<button class="btn secondary small" data-saved-extra="${i.id}">+ ${i.name}</button>`).join("");
+  el.querySelectorAll("[data-saved-extra]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const item = loadSavedExtras().find(i => i.id === btn.dataset.savedExtra);
+      if (item) addExtra(item.name, item.kcal, item.protein);
+    });
+  });
+}
+
 function renderExtras() {
   const todays = loadExtras().filter(e => e.date === todayISO()).sort((a, b) => b.id.localeCompare(a.id));
-  const total = todays.reduce((s, e) => s + (e.kcal || 0), 0);
-  const n = DATA.nutritionPlan;
-  document.getElementById("extras-today-total").innerHTML = todays.length
-    ? `<div class="section-sub" style="margin:4px 0 10px;">I dag: <b>${total} kcal</b> utenom planen${n ? ` (planen var ${n.dailyKcal} kcal)` : ""}</div>`
+  const totalKcalRaw = todays.reduce((s, e) => s + (e.kcal || 0), 0);
+  const totalProtein = todays.reduce((s, e) => s + (e.protein || 0), 0);
+  const focus = loadSettings().kostholdFocusMode;
+  document.getElementById("extras-today-total").innerHTML = (todays.length && focus)
+    ? `<div class="section-sub" style="margin:4px 0 10px;">I dag: <b>~${withKcalMargin(totalKcalRaw)} kcal</b>${totalProtein ? ` · ${totalProtein} g protein` : ""} utenom planen</div>`
     : "";
   document.getElementById("extras-list").innerHTML = todays.map(e => `
-    <li data-id="${e.id}"><span>${e.name}${e.kcal ? ` · ${e.kcal} kcal` : ""}</span>
+    <li data-id="${e.id}"><span>${e.name}${focus && e.kcal ? ` · ~${withKcalMargin(e.kcal)} kcal` : ""}${focus && e.protein ? ` · ${e.protein} g protein` : ""}</span>
       <button class="log-remove-btn" data-extra-remove="${e.id}">✕</button>
     </li>`).join("") || `<li style="border-top:none;color:var(--muted);">Ingenting logget i dag</li>`;
+
+  renderSavedExtraChips();
 
   document.querySelectorAll("#extras-list button[data-extra-remove]").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -2631,13 +2834,14 @@ document.getElementById("extra-add").addEventListener("click", () => {
   const name = document.getElementById("extra-name").value.trim();
   if (!name) return;
   const kcal = parseInt(document.getElementById("extra-kcal").value, 10) || null;
-  addExtra(name, kcal);
+  const protein = parseInt(document.getElementById("extra-protein").value, 10) || null;
+  const saveLater = document.getElementById("extra-save-later").checked;
+  addExtra(name, kcal, protein);
+  if (saveLater) { addSavedExtra(name, kcal, protein); renderSavedExtraChips(); }
   document.getElementById("extra-name").value = "";
   document.getElementById("extra-kcal").value = "";
-});
-
-document.querySelectorAll("[data-extra-preset]").forEach(btn => {
-  btn.addEventListener("click", () => addExtra(btn.dataset.extraPreset, parseInt(btn.dataset.extraKcal, 10)));
+  document.getElementById("extra-protein").value = "";
+  document.getElementById("extra-save-later").checked = false;
 });
 
 renderExtras();
@@ -3562,7 +3766,6 @@ document.getElementById("shop-clear-all").addEventListener("click", () => {
 // ---------------------------------------------------------------- søndagsplanlegger (neste uke)
 const MEALPREP_HAVE_KEY = "garminDashboardMealprepHave_v1";
 const WEEK_AGENDA_KEY = "garminDashboardWeekAgenda_v1";
-const MEAL_TYPE_LABELS = { breakfast: "Frokost", lunch: "Lunsj", snack: "Mellommåltid", dinner: "Middag" };
 
 function loadMealprepHave() { return loadLS(MEALPREP_HAVE_KEY, []); }
 function saveMealprepHave(arr) { saveLS(MEALPREP_HAVE_KEY, arr); }
@@ -3695,7 +3898,7 @@ function renderMealprepSuggestions() {
     }).join("");
     const dayChecks = nextWeek.map(d => `<label class="mealprep-day-check"><input type="checkbox" value="${d.date}"> ${d.weekday}</label>`).join("");
     return `<div class="mealprep-suggestion" data-type="${c.type}" data-idx="${c.idx}">
-      <div class="meal-head"><b>${c.opt.name}</b><span class="meal-macro">${c.opt.kcal} kcal · ${c.opt.protein} g protein</span></div>
+      <div class="meal-head"><b>${c.opt.name}</b><span class="meal-macro">~${withKcalMargin(c.opt.kcal)} kcal · ${c.opt.protein} g protein</span></div>
       <div class="meal-items">${itemsHtml}</div>
       <div class="mealprep-days">${dayChecks}</div>
       <button class="btn ghost small mealprep-assign-btn">Legg til i planen</button>
@@ -4949,7 +5152,8 @@ function renderHjemKcalRing() {
   const el = document.getElementById("hjem-kcal-ring");
   if (!n || !el) return;
   const totals = dayNutritionTotals(todayISO());
-  const remaining = n.dailyKcal - totals.kcal;
+  const kcalShown = withKcalMargin(totals.kcal);
+  const remaining = n.dailyKcal - kcalShown;
   const over = remaining < 0;
 
   // Kept deliberately separate from "igjen av målet" above: that's a fixed daily budget,
@@ -4958,7 +5162,7 @@ function renderHjemKcalRing() {
   const burned = reportMetric("calories").today;
   let balanceHtml = "";
   if (burned != null) {
-    const diff = burned - totals.kcal;
+    const diff = burned - kcalShown;
     const diffLabel = diff >= 0 ? `${diff} kcal underskudd så langt` : `${Math.abs(diff)} kcal overskudd så langt`;
     balanceHtml = `
       <div class="hnq-balance">
@@ -4970,7 +5174,7 @@ function renderHjemKcalRing() {
   el.innerHTML = `
     <div>
       <div class="hnq-label">Spist i dag</div>
-      <div class="hnq-val">${totals.kcal} kcal</div>
+      <div class="hnq-val">~${kcalShown} kcal</div>
       <div class="hnq-macro${over ? " over" : ""}">${over ? `${Math.abs(remaining)} kcal over målet` : `${remaining} kcal igjen av målet (${n.dailyKcal} kcal)`}</div>
       <div class="hnq-macro">${totals.protein} / ${n.proteinMin} g protein</div>
       ${balanceHtml}
@@ -5247,7 +5451,7 @@ function logExtraWithNudge(name, kcal) {
   addExtra(name, kcal);
   renderHjemKcalRing();
   const totals = dayNutritionTotals(todayISO());
-  if (totals.kcal <= DATA.nutritionPlan.dailyKcal) { closeQuicklogDrawer(); return; }
+  if (withKcalMargin(totals.kcal) <= DATA.nutritionPlan.dailyKcal) { closeQuicklogDrawer(); return; }
   document.getElementById("quicklog-drawer-body").innerHTML = `
     <div style="font-size:14px;line-height:1.5;margin-bottom:10px;">Logget. Neste valg: vil du ha en lett middag for å balansere, eller kjøre på som normalt?</div>
     <div class="ql-presets">
@@ -5457,7 +5661,7 @@ function renderMorningReport() {
   const yTotals = dayNutritionTotals(yISO);
   const n = DATA.nutritionPlan;
   const proteinGap = n.proteinMin - yTotals.protein;
-  let nutritionP1 = `I går fikk du i deg rundt <b>${yTotals.kcal} kcal</b> og <b>${yTotals.protein} g protein</b> (mål: ${n.proteinMin} g+).`;
+  let nutritionP1 = `I går fikk du i deg rundt <b>~${withKcalMargin(yTotals.kcal)} kcal</b> og <b>${yTotals.protein} g protein</b> (mål: ${n.proteinMin} g+).`;
   if (!yTotals.mealsLogged.length && !yTotals.extras.length) {
     nutritionP1 = `Du logget ikke måltider i går, så dette er et grovt anslag basert på planen.`;
   }
@@ -5474,7 +5678,7 @@ function renderMorningReport() {
     <div class="report-section">
       <h3>🍽️ Ernæring</h3>
       <p>${nutritionP1} ${nutritionP2}</p>
-      ${suggestion ? `<div class="report-highlight">Forslag til i dag: <b>${suggestion.name}</b> (${suggestion.kcal} kcal, ${suggestion.protein} g protein)</div>` : ""}
+      ${suggestion ? `<div class="report-highlight">Forslag til i dag: <b>${suggestion.name}</b> (~${withKcalMargin(suggestion.kcal)} kcal, ${suggestion.protein} g protein)</div>` : ""}
       <p>Dagens kaloribudsjett er <b>${n.dailyKcal} kcal</b>.</p>
     </div>`;
 
@@ -5521,17 +5725,18 @@ function renderEveningReport() {
 
   const totals = dayNutritionTotals(todayStr);
   const n = DATA.nutritionPlan;
-  const overBudget = totals.kcal > n.dailyKcal;
+  const kcalShown = withKcalMargin(totals.kcal);
+  const overBudget = kcalShown > n.dailyKcal;
   let nutritionLine;
   if (totals.extras.length) {
     const names = totals.extras.map(e => e.name).join(", ");
     nutritionLine = overBudget
-      ? `Du logget ${names} i dag utenom planen, og endte på ${totals.kcal} kcal (budsjett ${n.dailyKcal}). Litt over i dag - helt greit, juster i morgen og fortsett.`
-      : `Du logget ${names} i dag, men holdt deg likevel innenfor kaloribudsjettet (${totals.kcal} / ${n.dailyKcal} kcal). Bra kontroll! 👏`;
+      ? `Du logget ${names} i dag utenom planen, og endte på ~${kcalShown} kcal (budsjett ${n.dailyKcal}). Litt over i dag - helt greit, juster i morgen og fortsett.`
+      : `Du logget ${names} i dag, men holdt deg likevel innenfor kaloribudsjettet (~${kcalShown} / ${n.dailyKcal} kcal). Bra kontroll! 👏`;
   } else {
     nutritionLine = overBudget
-      ? `Du endte på rundt ${totals.kcal} kcal i dag, litt over budsjettet på ${n.dailyKcal}. Ingen grunn til dårlig samvittighet - bare ta det med i morgen.`
-      : `Du holdt deg fint innenfor kaloribudsjettet i dag (${totals.kcal} / ${n.dailyKcal} kcal).`;
+      ? `Du endte på rundt ~${kcalShown} kcal i dag, litt over budsjettet på ${n.dailyKcal}. Ingen grunn til dårlig samvittighet - bare ta det med i morgen.`
+      : `Du holdt deg fint innenfor kaloribudsjettet i dag (~${kcalShown} / ${n.dailyKcal} kcal).`;
   }
 
   const logHtml = `
@@ -5685,7 +5890,7 @@ function renderWeeklyReport(targetId) {
   const weekDates = [];
   for (let d = weekStart; d <= todayStr; d = isoAddDays(d, 1)) weekDates.push(d);
   // uken totalt teller mer enn noen enkeltdag - vis snittet, ikke bare dagsfasiten på Hjem
-  const weekKcalTotals = weekDates.map(d => dayNutritionTotals(d).kcal).filter(k => k > 0);
+  const weekKcalTotals = weekDates.map(d => withKcalMargin(dayNutritionTotals(d).kcal)).filter(k => k > 0);
   if (weekKcalTotals.length) {
     const avgKcal = Math.round(weekKcalTotals.reduce((s, k) => s + k, 0) / weekKcalTotals.length);
     const diff = avgKcal - DATA.nutritionPlan.dailyKcal;
@@ -5719,7 +5924,7 @@ function renderWeeklyReport(targetId) {
 
   // ---- tips til neste uke - konkrete, handlingsorienterte forslag basert på denne ukens data ----
   const tips = [];
-  const kcalOverDays = weekDates.filter(d => dayNutritionTotals(d).kcal > DATA.nutritionPlan.dailyKcal * 1.1).length;
+  const kcalOverDays = weekDates.filter(d => withKcalMargin(dayNutritionTotals(d).kcal) > DATA.nutritionPlan.dailyKcal).length;
   const plannedNonRestThisWeek = (DATA.trainingHistory || []).filter(d => d.date >= weekStart && d.date <= todayStr && d.sessionType !== "rest").length;
   const trainingGoodThisWeek = plannedNonRestThisWeek > 0 && sessionsThisWeek / plannedNonRestThisWeek >= 0.7;
   const matCatForTips = loadBudgetConfig().categories.find(c => c.key === "mat");
@@ -5881,7 +6086,7 @@ function renderMonthlyReport(targetId) {
   if (sessionsThisMonth > 0) highlights.push(`🏋️ Du fullførte ${sessionsThisMonth} treningsøkt${sessionsThisMonth === 1 ? "" : "er"} denne måneden.`);
   const monthDates = [];
   for (let d = calStart; d <= calEnd; d = isoAddDays(d, 1)) monthDates.push(d);
-  const monthKcalTotals = monthDates.map(d => dayNutritionTotals(d).kcal).filter(k => k > 0);
+  const monthKcalTotals = monthDates.map(d => withKcalMargin(dayNutritionTotals(d).kcal)).filter(k => k > 0);
   if (monthKcalTotals.length) {
     const avgKcal = Math.round(monthKcalTotals.reduce((s, k) => s + k, 0) / monthKcalTotals.length);
     const diff = avgKcal - DATA.nutritionPlan.dailyKcal;
@@ -5912,7 +6117,7 @@ function renderMonthlyReport(targetId) {
 
   // ---- tips til neste måned - konkrete, handlingsorienterte forslag basert på denne månedens data ----
   const tips = [];
-  const kcalOverDays = monthDates.filter(d => dayNutritionTotals(d).kcal > DATA.nutritionPlan.dailyKcal * 1.1).length;
+  const kcalOverDays = monthDates.filter(d => withKcalMargin(dayNutritionTotals(d).kcal) > DATA.nutritionPlan.dailyKcal).length;
   const plannedNonRestThisMonth = (DATA.trainingHistory || []).filter(d => d.date >= calStart && d.date <= calEnd && d.sessionType !== "rest").length;
   const trainingGoodThisMonth = plannedNonRestThisMonth > 0 && sessionsThisMonth / plannedNonRestThisMonth >= 0.7;
   const matCatForTips = loadBudgetConfig().categories.find(c => c.key === "mat");
@@ -6054,6 +6259,15 @@ vacationToggle.checked = isVacationActive();
 vacationToggle.addEventListener("change", () => {
   setVacationActive(vacationToggle.checked);
   renderHjem();
+});
+
+const focusModeToggle = document.getElementById("settings-focus-mode-toggle");
+focusModeToggle.checked = loadSettings().kostholdFocusMode;
+focusModeToggle.addEventListener("change", () => {
+  const s = loadSettings();
+  s.kostholdFocusMode = focusModeToggle.checked;
+  saveSettings(s);
+  renderNutrition();
 });
 
 (function initMvdSettingsForm() {

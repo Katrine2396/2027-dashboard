@@ -1122,8 +1122,10 @@ TEMPLATE = r"""<!DOCTYPE html>
   }
   .kcal-chip b { color: var(--ink); font-size: 14px; display: block; }
 
-  .meal-group { margin-top: 18px; }
-  .meal-group h4 { font-size: 14px; margin: 0 0 8px; color: var(--ink); }
+  .kosthold-meal-card { margin-top: 14px; }
+  .kosthold-meal-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 8px; }
+  .kosthold-meal-card-head h4 { font-size: 14px; margin: 0; color: var(--ink); }
+  .kosthold-meal-done { font-size: 12px; color: var(--accent); font-weight: 700; }
   .meal-option {
     background: var(--card);
     border-radius: 14px;
@@ -1131,9 +1133,15 @@ TEMPLATE = r"""<!DOCTYPE html>
     padding: 14px 16px;
     margin-bottom: 8px;
   }
-  .meal-option .meal-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
-  .meal-option .meal-head b { font-size: 14px; }
+  .meal-option .meal-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+  .meal-option .meal-head b { font-size: 14px; margin-right: auto; }
   .meal-option .meal-macro { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .meal-fav-btn {
+    background: none; border: none; cursor: pointer; font-size: 15px; line-height: 1;
+    padding: 0; color: var(--muted);
+  }
+  .meal-fav-btn.active { color: #d9a441; }
+  .meal-row-actions { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
   .meal-items { font-size: 12px; color: var(--muted); margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px 10px; }
   .meal-item-text { white-space: nowrap; }
   .meal-item-ing { white-space: nowrap; }
@@ -1156,7 +1164,6 @@ TEMPLATE = r"""<!DOCTYPE html>
   .ing-new-form input[type="text"] { width: 140px; }
   .ing-new-form input[type="number"] { width: 90px; }
   .nutrition-note { font-size: 11px; color: var(--muted); margin-top: 14px; font-style: italic; }
-  .meal-eaten-btn { margin-top: 8px; }
   .meal-option-eaten { border-left: 3px solid var(--accent); }
   .meal-planned-badge { font-size: 11px; color: var(--accent); font-weight: 700; }
 
@@ -1938,25 +1945,30 @@ TEMPLATE = r"""<!DOCTYPE html>
   <div class="tab-panel" data-tab="kosthold">
   <section>
     <h2>Kosthold</h2>
-    <div class="section-sub">Faste, enkle alternativer - ingen logging nødvendig</div>
-    <div class="kcal-row" id="kcal-row"></div>
+    <div class="section-sub" id="kosthold-mode-note"></div>
+
+    <div class="card" id="kosthold-today-card" style="margin-top:14px;"></div>
+
+    <div id="kosthold-meal-cards"></div>
+
     <div class="card" id="extras-card" style="margin-top:14px;">
-      <h3 style="margin:0 0 4px;font-size:15px;">Utenom planen</h3>
-      <div class="section-sub" style="margin-bottom:10px;">Spiste eller drakk du noe ekstra - eller en hel lunsj/middag ute? Logg et anslag her, ingen fullstendig matdagbok nødvendig.</div>
-      <div class="extras-presets">
-        <button class="btn secondary small" data-extra-preset="Sjokolade" data-extra-kcal="250">+ Sjokolade</button>
-        <button class="btn secondary small" data-extra-preset="Glass vin" data-extra-kcal="120">+ Glass vin</button>
-        <button class="btn secondary small" data-extra-preset="Øl" data-extra-kcal="150">+ Øl</button>
-      </div>
+      <h3 style="margin:0 0 4px;font-size:15px;">Legg til noe annet</h3>
+      <div class="section-sub" style="margin-bottom:10px;">Noe utenom planen - en hel lunsj ute, noe ekstra, eller en helt egen rett. Ingen fullstendig matdagbok nødvendig.</div>
+      <div class="extras-presets" id="extras-presets"></div>
       <div class="log-form">
         <input type="text" id="extra-name" placeholder="Hva var det?">
         <input type="number" step="10" id="extra-kcal" placeholder="kcal (valgfritt)">
+        <input type="number" step="1" id="extra-protein" placeholder="protein g (valgfritt)">
         <button class="btn" id="extra-add">Legg til</button>
       </div>
+      <label class="settings-toggle-row" style="margin-top:8px;">
+        <input type="checkbox" id="extra-save-later">
+        <span>Lagre til senere, som egen snarvei over</span>
+      </label>
       <div id="extras-today-total"></div>
       <ul class="log-list" id="extras-list"></ul>
     </div>
-    <div id="meal-plan"></div>
+
     <div class="card" id="nutrition-coach-card" style="margin-top:14px;"></div>
   </section>
   </div>
@@ -2215,6 +2227,10 @@ TEMPLATE = r"""<!DOCTYPE html>
         <input type="checkbox" id="settings-vacation-toggle">
         <span>Ferie/pause-modus - ingen påminnelser, streaken fryses</span>
       </label>
+      <label class="settings-toggle-row">
+        <input type="checkbox" id="settings-focus-mode-toggle">
+        <span>Fokusmodus på Kosthold (vis kalorier og protein). Av = Livsstilsmodus: tall skjules, men du kan fortsatt logge måltider og bruke favoritter som vanlig.</span>
+      </label>
     </div>
 
     <div class="card" id="mvd-settings-card">
@@ -2290,6 +2306,7 @@ function loadSettings() {
     mvdProtein: 15,
     mvdSteps: 5000,
     mvdMinutes: 15,
+    kostholdFocusMode: true,
   }, loadLS(SETTINGS_KEY, {}));
 }
 function saveSettings(s) { saveLS(SETTINGS_KEY, s); }
@@ -2683,7 +2700,7 @@ function daysSinceDate(dateStr) {
 function isDeviationDay(date) {
   const totals = dayNutritionTotals(date);
   const goal = DATA.nutritionPlan.dailyKcal;
-  return (goal && totals.kcal > goal * 1.15) || (totals.extras || []).length >= 2;
+  return (goal && withKcalMargin(totals.kcal) > goal * 1.15) || (totals.extras || []).length >= 2;
 }
 function isEmptyLoggingDay(date) {
   const totals = dayNutritionTotals(date);
@@ -3174,6 +3191,15 @@ renderRestTimer();
 const EXTRAS_KEY = "garminDashboardExtras_v1";
 const CUSTOM_MEALS_KEY = "garminDashboardCustomMeals_v1";
 const MEAL_LOG_KEY = "garminDashboardMealLog_v1";
+const FAVORITE_MEALS_KEY = "garminDashboardFavoriteMeals_v1";
+const MEAL_TYPE_ORDER = ["breakfast", "lunch", "snack", "dinner"];
+const MEAL_TYPE_LABELS = { breakfast: "Frokost", lunch: "Lunsj", snack: "Mellommåltid", dinner: "Middag" };
+// Kalorianslag (spesielt for hjemmelagde/øyemål-retter) har lett for å bli satt litt lavt -
+// vis derfor alltid kalorier med en fast +10% margin, uansett hvor de vises i appen. Protein
+// og kalorimålet hennes vises alltid uendret (rått anslag). Legges kun på ved visning -
+// aldri lagret, og aldri lagt på igjen ved ny visning/summering av et allerede margin-justert tall.
+const KCAL_MARGIN = 1.1;
+function withKcalMargin(rawKcal) { return Math.round((rawKcal || 0) * KCAL_MARGIN); }
 // planlagt rett per dag+måltidstype (satt i Planlegg-fanen) - definert her, før
 // renderNutrition() sitt første kall lenger ned, siden den leser plannedMealFor()
 // for å vise "📌 Planlagt"-merket
@@ -3196,6 +3222,25 @@ const CUSTOM_INGREDIENTS_KEY = "garminDashboardCustomIngredients_v1";
 const MEAL_ING_OVERRIDES_KEY = "garminDashboardMealIngOverrides_v1";
 function loadCustomMeals() { return Object.assign({ breakfast: [], lunch: [], snack: [], dinner: [] }, loadLS(CUSTOM_MEALS_KEY, {})); }
 function saveCustomMeals(m) { saveLS(CUSTOM_MEALS_KEY, m); }
+
+function loadFavoriteMeals() { return Object.assign({ breakfast: [], lunch: [], snack: [], dinner: [] }, loadLS(FAVORITE_MEALS_KEY, {})); }
+function saveFavoriteMeals(f) { saveLS(FAVORITE_MEALS_KEY, f); }
+function isFavoriteMeal(type, name) { return loadFavoriteMeals()[type].includes(name); }
+function toggleFavoriteMeal(type, name) {
+  const f = loadFavoriteMeals();
+  const i = f[type].indexOf(name);
+  if (i === -1) f[type].push(name); else f[type].splice(i, 1);
+  saveFavoriteMeals(f);
+}
+
+// siste gang denne måltidstypen ble logget før `beforeDate`, innenfor et rimelig vindu -
+// så "gjenta"-forslaget ikke bare dekker i går, men også "sist jeg spiste dette"
+function mostRecentMealLog(type, beforeDate, lookbackDays) {
+  const cutoff = isoAddDays(beforeDate, -(lookbackDays || 14));
+  const hits = loadMealLog().filter(m => m.type === type && m.date < beforeDate && m.date >= cutoff);
+  hits.sort((a, b) => b.date.localeCompare(a.date));
+  return hits[0] || null;
+}
 
 function loadMealLog() { return loadLS(MEAL_LOG_KEY, []); }
 function saveMealLog(l) { saveLS(MEAL_LOG_KEY, l); }
@@ -3274,43 +3319,53 @@ function effectiveMealOption(type, optIdx, opt, date) {
 function dayNutritionTotals(date) {
   const meals = loadMealLog().filter(m => m.date === date);
   const extrasForDay = loadExtras().filter(e => e.date === date);
-  const extrasTotal = extrasForDay.reduce((s, e) => s + (e.kcal || 0), 0);
+  const extrasKcal = extrasForDay.reduce((s, e) => s + (e.kcal || 0), 0);
+  const extrasProtein = extrasForDay.reduce((s, e) => s + (e.protein || 0), 0);
   return {
-    kcal: meals.reduce((s, m) => s + (m.kcal || 0), 0) + extrasTotal,
-    protein: meals.reduce((s, m) => s + (m.protein || 0), 0),
+    kcal: meals.reduce((s, m) => s + (m.kcal || 0), 0) + extrasKcal,
+    protein: meals.reduce((s, m) => s + (m.protein || 0), 0) + extrasProtein,
     mealsLogged: meals,
     extras: extrasForDay,
   };
 }
 
-// transient UI state (not persisted) for which ingredient's swap-form is open
+// transient UI state (not persisted)
 let openIngSwapKey = null;
 let openIngSwapShowCustomForm = false;
+let kostholdExpandedDetail = null;
+const kostholdExpandedTypes = new Set();
+let kostholdNewOptionOpenType = null;
+let kostholdGoalEditOpen = false;
 
-function mealOptionHtml(opt, removeId, toggle, swapCtx) {
-  const eaten = !!(toggle && toggle.eaten);
-  const itemsHtml = (opt.effectiveItems || []).map(item => {
-    if (item.text) return `<span class="meal-item-text">${item.text}</span>`;
-    if (!swapCtx) return `<span class="meal-item-ing">${item.display} ${item.label}</span>`;
-    const key = ingOverrideKey(todayISO(), swapCtx.type, swapCtx.optIdx, item.itemIdx);
-    return `<span class="meal-item-ing${item.overridden ? " meal-item-overridden" : ""}">
-      ${item.display} ${item.label}
-      <button class="meal-ing-swap-btn" data-swap-key="${key}">Bytt</button>
-      ${item.overridden ? `<button class="meal-ing-reset-btn" data-type="${swapCtx.type}" data-opt-idx="${swapCtx.optIdx}" data-item-idx="${item.itemIdx}">↺</button>` : ""}
-    </span>`;
-  }).join("");
+// kompakt rad for ett måltidsforslag - utvides til ingredienser/bytte bare når "Detaljer" er åpnet
+function mealRowHtml(type, idx, opt, meta, focus) {
+  const eaten = !!meta.eaten;
+  const hasItems = (opt.effectiveItems || []).length > 0;
+  const detailKey = `${type}:${idx}`;
+  const expanded = hasItems && kostholdExpandedDetail === detailKey;
+  const isFav = isFavoriteMeal(type, opt.name);
 
-  let swapFormHtml = "";
-  if (swapCtx) {
-    (opt.effectiveItems || []).forEach(item => {
+  let detailHtml = "";
+  if (expanded) {
+    const itemsHtml = opt.effectiveItems.map(item => {
+      if (item.text) return `<span class="meal-item-text">${item.text}</span>`;
+      const key = ingOverrideKey(todayISO(), type, idx, item.itemIdx);
+      return `<span class="meal-item-ing${item.overridden ? " meal-item-overridden" : ""}">
+        ${item.display} ${item.label}
+        <button class="meal-ing-swap-btn" data-swap-key="${key}">Bytt</button>
+        ${item.overridden ? `<button class="meal-ing-reset-btn" data-type="${type}" data-opt-idx="${idx}" data-item-idx="${item.itemIdx}">↺</button>` : ""}
+      </span>`;
+    }).join("");
+    let swapFormHtml = "";
+    opt.effectiveItems.forEach(item => {
       if (item.text) return;
-      const key = ingOverrideKey(todayISO(), swapCtx.type, swapCtx.optIdx, item.itemIdx);
+      const key = ingOverrideKey(todayISO(), type, idx, item.itemIdx);
       if (openIngSwapKey !== key) return;
       swapFormHtml = `<div class="ing-swap-form">
         <div class="ing-swap-row">
           <select class="ing-swap-select">${ingredientOptionsForSelect(item.ing)}</select>
           <input type="number" class="ing-swap-amount" value="${item.amount}"> g
-          <button class="btn small ing-swap-save" data-type="${swapCtx.type}" data-opt-idx="${swapCtx.optIdx}" data-item-idx="${item.itemIdx}">Lagre</button>
+          <button class="btn small ing-swap-save" data-type="${type}" data-opt-idx="${idx}" data-item-idx="${item.itemIdx}">Lagre</button>
           <button class="btn ghost small ing-swap-cancel">Avbryt</button>
         </div>
         ${openIngSwapShowCustomForm
@@ -3318,93 +3373,194 @@ function mealOptionHtml(opt, removeId, toggle, swapCtx) {
               <input type="text" class="ing-new-name" placeholder="Navn på ny ingrediens">
               <input type="number" class="ing-new-kcal" placeholder="kcal/100g">
               <input type="number" class="ing-new-protein" placeholder="protein/100g">
-              <button class="btn ghost small ing-new-save" data-type="${swapCtx.type}" data-opt-idx="${swapCtx.optIdx}" data-item-idx="${item.itemIdx}">Legg til og bruk</button>
+              <button class="btn ghost small ing-new-save" data-type="${type}" data-opt-idx="${idx}" data-item-idx="${item.itemIdx}">Legg til og bruk</button>
             </div>`
           : `<button class="btn ghost small ing-swap-new-toggle">+ Legg til ny ingrediens</button>`}
       </div>`;
     });
+    detailHtml = `<div class="meal-items">${itemsHtml}</div>${swapFormHtml}`;
   }
 
   return `<div class="meal-option${eaten ? " meal-option-eaten" : ""}">
-    <div class="meal-head"><b>${opt.name}</b>${opt.planned ? ` <span class="meal-planned-badge">📌 Planlagt</span>` : ""}<span class="meal-macro">${opt.kcal} kcal · ${opt.protein} g protein${removeId ? `<button class="meal-option-remove" data-meal-remove="${removeId}">✕</button>` : ""}</span></div>
-    ${itemsHtml ? `<div class="meal-items">${itemsHtml}</div>` : ""}
-    ${swapFormHtml}
-    ${toggle ? `<button class="btn ghost small meal-eaten-btn" data-meal-type="${toggle.type}" data-meal-idx="${toggle.idx}">${eaten ? "✓ Spist i dag" : "Merk som spist i dag"}</button>` : ""}
+    <div class="meal-head">
+      <button class="meal-fav-btn${isFav ? " active" : ""}" data-fav-type="${type}" data-fav-name="${opt.name}" title="Favoritt">${isFav ? "⭐" : "☆"}</button>
+      <b>${opt.name}</b>
+      ${opt.planned ? `<span class="meal-planned-badge">📌 Planlagt</span>` : ""}
+      ${focus ? `<span class="meal-macro">~${withKcalMargin(opt.kcal)} kcal · ${opt.protein} g protein</span>` : ""}
+      ${meta.removeId ? `<button class="meal-option-remove" data-meal-remove="${meta.removeId}">✕</button>` : ""}
+    </div>
+    <div class="meal-row-actions">
+      ${hasItems ? `<button class="btn ghost small meal-detail-toggle" data-detail-key="${detailKey}">${expanded ? "Skjul detaljer" : "Detaljer"}</button>` : ""}
+      <button class="btn ${eaten ? "" : "ghost"} small meal-eaten-btn" data-meal-type="${type}" data-meal-idx="${idx}">${eaten ? "✓ Spist" : "Spist ✓"}</button>
+    </div>
+    ${detailHtml}
   </div>`;
 }
 
-function renderNutrition() {
+function renderMealTypeCard(type) {
   const n = DATA.nutritionPlan;
-  if (!n) return;
   const today = todayISO();
+  const group = n[type];
+  const focus = loadSettings().kostholdFocusMode;
+  const logged = mealLoggedFor(today, type);
+  const custom = loadCustomMeals()[type] || [];
+  const allOptions = group.options.map((o, idx) => ({ o, idx, custom: false }))
+    .concat(custom.map((o, i) => ({ o, idx: group.options.length + i, custom: true })));
 
-  document.getElementById("kcal-row").innerHTML = `
-    <div class="kcal-chip">Mål<b>${n.dailyKcal} kcal</b></div>
-    <div class="kcal-chip">Protein<b>${n.proteinMin} g+</b></div>
-    <div class="kcal-chip kcal-goal-edit">
-      <input type="number" step="50" id="kcal-goal-input" value="${n.dailyKcal}" style="width:70px;">
-      <button class="btn ghost small" id="kcal-goal-save">Lagre kcal-mål</button>
+  let bodyHtml;
+  if (logged) {
+    const match = allOptions.find(x => x.o.name === logged.name);
+    const eOpt = match ? effectiveMealOption(type, match.idx, match.o, today)
+      : { name: logged.name, kcal: logged.kcal, protein: logged.protein, effectiveItems: [] };
+    bodyHtml = mealRowHtml(type, match ? match.idx : -1, eOpt,
+      { eaten: true, removeId: (match && match.custom) ? match.o.id : null }, focus)
+      + `<button class="btn ghost small meal-unlog-btn" data-unlog-type="${type}">Ikke dette likevel</button>`;
+  } else {
+    const favs = loadFavoriteMeals()[type] || [];
+    const planned = plannedMealFor(today, type);
+    const scoreOf = x => (x.o.name === planned ? 2 : 0) + (favs.includes(x.o.name) ? 1 : 0);
+    const sorted = allOptions.map((x, i) => ({ x, i })).sort((a, b) => (scoreOf(b.x) - scoreOf(a.x)) || (a.i - b.i)).map(w => w.x);
+    const expanded = kostholdExpandedTypes.has(type);
+    const visible = expanded ? sorted : sorted.slice(0, 3);
+    const hiddenCount = sorted.length - visible.length;
+
+    const recent = mostRecentMealLog(type, today);
+    const yesterday = isoAddDays(today, -1);
+    const repeatHtml = recent
+      ? `<button class="btn ghost small meal-repeat-btn" data-repeat-type="${type}" style="margin-bottom:8px;">🔁 Gjenta ${recent.name}${recent.date === yesterday ? " fra i går" : ` (sist ${fmtShort(recent.date)})`}</button>`
+      : "";
+
+    const rowsHtml = visible.map(x => {
+      const eOpt = effectiveMealOption(type, x.idx, x.o, today);
+      eOpt.planned = x.o.name === planned;
+      return mealRowHtml(type, x.idx, eOpt, { eaten: false, removeId: x.custom ? x.o.id : null }, focus);
+    }).join("");
+
+    const moreHtml = hiddenCount > 0
+      ? `<button class="btn ghost small kosthold-more-btn" data-more-type="${type}">Vis ${hiddenCount} flere forslag</button>`
+      : (expanded && sorted.length > 3 ? `<button class="btn ghost small kosthold-more-btn" data-more-type="${type}">Vis færre</button>` : "");
+
+    const newOptFormHtml = kostholdNewOptionOpenType === type ? `
+      <div class="log-form meal-add-form">
+        <input type="text" id="meal-add-name-${type}" placeholder="Navn">
+        <input type="number" step="10" id="meal-add-kcal-${type}" placeholder="kcal">
+        <input type="number" step="1" id="meal-add-protein-${type}" placeholder="protein g">
+        <button class="btn ghost small" data-meal-add="${type}">Legg til</button>
+      </div>` : "";
+
+    bodyHtml = repeatHtml + rowsHtml + moreHtml
+      + `<button class="btn ghost small kosthold-newopt-toggle" data-newopt-type="${type}">+ Nytt forslag</button>`
+      + newOptFormHtml;
+  }
+
+  return `<div class="card kosthold-meal-card">
+    <div class="kosthold-meal-card-head"><h4>${group.label}</h4>${logged ? `<span class="kosthold-meal-done">✓ Spist</span>` : ""}</div>
+    ${bodyHtml}
+  </div>`;
+}
+
+function renderKostholdToday() {
+  const n = DATA.nutritionPlan;
+  const el = document.getElementById("kosthold-today-card");
+  if (!n || !el) return;
+  const focus = loadSettings().kostholdFocusMode;
+  const modeNote = document.getElementById("kosthold-mode-note");
+  if (modeNote) {
+    modeNote.textContent = focus ? "" : "Livsstilsmodus er på - tall er skjult, men logging og favoritter fungerer som vanlig.";
+  }
+
+  if (!focus) {
+    el.innerHTML = `<div class="section-sub" style="margin:0;">God dag med maten, uansett hvordan den ser ut i tall. 🌿</div>`;
+    return;
+  }
+
+  const totals = dayNutritionTotals(todayISO());
+  const kcalShown = withKcalMargin(totals.kcal);
+  const remaining = n.dailyKcal - kcalShown;
+  el.innerHTML = `
+    <h3 style="margin:0 0 10px;font-size:15px;">Dagens oversikt</h3>
+    <div class="kcal-row">
+      <div class="kcal-chip">Spist<b>~${kcalShown} kcal</b></div>
+      <div class="kcal-chip">${remaining >= 0 ? "Igjen av målet" : "Over målet"}<b>${Math.abs(remaining)} kcal</b></div>
+      <div class="kcal-chip">Protein<b>${totals.protein} / ${n.proteinMin} g</b></div>
     </div>
-    <div class="kcal-chip kcal-goal-edit">
-      <input type="number" step="5" id="protein-goal-input" value="${n.proteinMin}" style="width:70px;">
-      <button class="btn ghost small" id="protein-goal-save">Lagre proteinmål</button>
+    <div class="section-sub" style="margin:10px 0 0;">Mål: ${n.dailyKcal} kcal · ${n.proteinMin} g+ protein
+      <button class="btn ghost small" id="kosthold-goal-edit-toggle" style="margin-left:6px;">Endre mål</button>
     </div>
+    <div class="section-sub" style="margin-top:6px;font-style:italic;">Kalorier vises med 10 % anslagsmargin. Protein vises som vanlig anslag.</div>
+    ${kostholdGoalEditOpen ? `
+      <div class="log-form" style="margin-top:10px;">
+        <input type="number" step="50" id="kcal-goal-input" value="${n.dailyKcal}" placeholder="kcal-mål">
+        <button class="btn ghost small" id="kcal-goal-save">Lagre</button>
+        <input type="number" step="5" id="protein-goal-input" value="${n.proteinMin}" placeholder="proteinmål">
+        <button class="btn ghost small" id="protein-goal-save">Lagre</button>
+      </div>` : ""}
   `;
-  document.getElementById("kcal-goal-save").addEventListener("click", () => {
+
+  const goalToggle = document.getElementById("kosthold-goal-edit-toggle");
+  if (goalToggle) goalToggle.addEventListener("click", () => { kostholdGoalEditOpen = !kostholdGoalEditOpen; renderKostholdToday(); });
+  const kcalGoalSave = document.getElementById("kcal-goal-save");
+  if (kcalGoalSave) kcalGoalSave.addEventListener("click", () => {
     const val = parseInt(document.getElementById("kcal-goal-input").value, 10);
     if (!val) return;
     const s = loadSettings();
     s.dailyKcal = val;
     saveSettings(s);
     DATA.nutritionPlan.dailyKcal = val;
-    renderNutrition();
+    kostholdGoalEditOpen = false;
+    renderKostholdToday();
     renderExtras();
     renderHjemKcalRing();
   });
-  document.getElementById("protein-goal-save").addEventListener("click", () => {
+  const proteinGoalSave = document.getElementById("protein-goal-save");
+  if (proteinGoalSave) proteinGoalSave.addEventListener("click", () => {
     const val = parseInt(document.getElementById("protein-goal-input").value, 10);
     if (!val) return;
     const s = loadSettings();
     s.proteinMin = val;
     saveSettings(s);
     DATA.nutritionPlan.proteinMin = val;
-    renderNutrition();
+    kostholdGoalEditOpen = false;
+    renderKostholdToday();
   });
+}
 
-  let html = "";
-  const custom = loadCustomMeals();
-  const yesterday = isoAddDays(today, -1);
-  ["breakfast", "lunch", "snack", "dinner"].forEach(key => {
-    const group = n[key];
-    const customOpts = custom[key] || [];
-    const yesterdayMeal = mealLoggedFor(yesterday, key);
-    const repeatHtml = (yesterdayMeal && !mealLoggedFor(today, key))
-      ? `<button class="btn ghost small meal-repeat-btn" data-repeat-type="${key}" style="margin-bottom:8px;">🔁 Gjenta ${yesterdayMeal.name} fra i går</button>`
-      : "";
-    html += `<div class="meal-group"><h4>${group.label}</h4>
-      ${repeatHtml}
-      ${group.options.map((o, idx) => {
-        const eOpt = effectiveMealOption(key, idx, o, today);
-        eOpt.planned = plannedMealFor(today, key) === o.name;
-        return mealOptionHtml(eOpt, null, { type: key, idx, eaten: isMealEatenToday(key, o.name) }, { type: key, optIdx: idx });
-      }).join("")}
-      ${customOpts.map((o, i) => {
-        const eOpt = effectiveMealOption(key, group.options.length + i, o, today);
-        eOpt.planned = plannedMealFor(today, key) === o.name;
-        return mealOptionHtml(eOpt, o.id, { type: key, idx: group.options.length + i, eaten: isMealEatenToday(key, o.name) }, null);
-      }).join("")}
-      <div class="log-form meal-add-form">
-        <input type="text" id="meal-add-name-${key}" placeholder="Eget forslag - navn">
-        <input type="number" step="10" id="meal-add-kcal-${key}" placeholder="kcal">
-        <input type="number" step="1" id="meal-add-protein-${key}" placeholder="protein g">
-        <button class="btn ghost small" data-meal-add="${key}">Legg til</button>
-      </div>
-    </div>`;
+function renderKostholdMealCards() {
+  const n = DATA.nutritionPlan;
+  const el = document.getElementById("kosthold-meal-cards");
+  if (!n || !el) return;
+  const today = todayISO();
+
+  el.innerHTML = MEAL_TYPE_ORDER.map(renderMealTypeCard).join("") + `<div class="nutrition-note">${n.note}</div>`;
+
+  el.querySelectorAll(".meal-fav-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      toggleFavoriteMeal(btn.dataset.favType, btn.dataset.favName);
+      renderNutrition();
+    });
   });
-  html += `<div class="nutrition-note">${n.note}</div>`;
-  document.getElementById("meal-plan").innerHTML = html;
-
-  document.querySelectorAll(".meal-eaten-btn").forEach(btn => {
+  el.querySelectorAll(".meal-detail-toggle").forEach(btn => {
+    btn.addEventListener("click", () => {
+      kostholdExpandedDetail = kostholdExpandedDetail === btn.dataset.detailKey ? null : btn.dataset.detailKey;
+      openIngSwapKey = null;
+      openIngSwapShowCustomForm = false;
+      renderNutrition();
+    });
+  });
+  el.querySelectorAll(".kosthold-more-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const type = btn.dataset.moreType;
+      if (kostholdExpandedTypes.has(type)) kostholdExpandedTypes.delete(type); else kostholdExpandedTypes.add(type);
+      renderNutrition();
+    });
+  });
+  el.querySelectorAll(".kosthold-newopt-toggle").forEach(btn => {
+    btn.addEventListener("click", () => {
+      kostholdNewOptionOpenType = kostholdNewOptionOpenType === btn.dataset.newoptType ? null : btn.dataset.newoptType;
+      renderNutrition();
+    });
+  });
+  el.querySelectorAll(".meal-eaten-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       const type = btn.dataset.mealType;
       const idx = parseInt(btn.dataset.mealIdx, 10);
@@ -3418,27 +3574,34 @@ function renderNutrition() {
       renderHjemKcalRing();
     });
   });
-
-  document.querySelectorAll(".meal-repeat-btn").forEach(btn => {
+  el.querySelectorAll(".meal-unlog-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      unlogMeal(btn.dataset.unlogType);
+      renderNutrition();
+      renderNutritionCoach();
+      renderHjemKcalRing();
+    });
+  });
+  el.querySelectorAll(".meal-repeat-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       const type = btn.dataset.repeatType;
-      const y = mealLoggedFor(isoAddDays(today, -1), type);
-      if (!y) return;
-      logMealEaten(type, y);
+      const recent = mostRecentMealLog(type, today);
+      if (!recent) return;
+      logMealEaten(type, recent);
       renderNutrition();
       renderNutritionCoach();
       renderHjemKcalRing();
     });
   });
 
-  document.querySelectorAll(".meal-ing-swap-btn").forEach(btn => {
+  el.querySelectorAll(".meal-ing-swap-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       openIngSwapKey = openIngSwapKey === btn.dataset.swapKey ? null : btn.dataset.swapKey;
       openIngSwapShowCustomForm = false;
       renderNutrition();
     });
   });
-  document.querySelectorAll(".meal-ing-reset-btn").forEach(btn => {
+  el.querySelectorAll(".meal-ing-reset-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       clearIngOverride(today, btn.dataset.type, parseInt(btn.dataset.optIdx, 10), parseInt(btn.dataset.itemIdx, 10));
       renderNutrition();
@@ -3446,13 +3609,13 @@ function renderNutrition() {
       renderHjemKcalRing();
     });
   });
-  document.querySelectorAll(".ing-swap-cancel").forEach(btn => {
+  el.querySelectorAll(".ing-swap-cancel").forEach(btn => {
     btn.addEventListener("click", () => { openIngSwapKey = null; renderNutrition(); });
   });
-  document.querySelectorAll(".ing-swap-new-toggle").forEach(btn => {
+  el.querySelectorAll(".ing-swap-new-toggle").forEach(btn => {
     btn.addEventListener("click", () => { openIngSwapShowCustomForm = true; renderNutrition(); });
   });
-  document.querySelectorAll(".ing-swap-save").forEach(btn => {
+  el.querySelectorAll(".ing-swap-save").forEach(btn => {
     btn.addEventListener("click", () => {
       const form = btn.closest(".ing-swap-form");
       const ing = form.querySelector(".ing-swap-select").value;
@@ -3465,7 +3628,7 @@ function renderNutrition() {
       renderHjemKcalRing();
     });
   });
-  document.querySelectorAll(".ing-new-save").forEach(btn => {
+  el.querySelectorAll(".ing-new-save").forEach(btn => {
     btn.addEventListener("click", () => {
       const form = btn.closest(".ing-swap-form");
       const name = form.querySelector(".ing-new-name").value.trim();
@@ -3486,7 +3649,7 @@ function renderNutrition() {
     });
   });
 
-  document.querySelectorAll("[data-meal-add]").forEach(btn => {
+  el.querySelectorAll("[data-meal-add]").forEach(btn => {
     btn.addEventListener("click", () => {
       const key = btn.dataset.mealAdd;
       const name = document.getElementById(`meal-add-name-${key}`).value.trim();
@@ -3496,18 +3659,25 @@ function renderNutrition() {
       const m = loadCustomMeals();
       m[key].push({ id: "meal-" + Date.now() + Math.random(), name, kcal, protein, items: [] });
       saveCustomMeals(m);
+      kostholdNewOptionOpenType = null;
       renderNutrition();
     });
   });
-  document.querySelectorAll("[data-meal-remove]").forEach(btn => {
+  el.querySelectorAll("[data-meal-remove]").forEach(btn => {
     btn.addEventListener("click", () => {
       const id = btn.dataset.mealRemove;
       const m = loadCustomMeals();
-      ["breakfast", "lunch", "snack", "dinner"].forEach(key => { m[key] = m[key].filter(o => o.id !== id); });
+      MEAL_TYPE_ORDER.forEach(key => { m[key] = m[key].filter(o => o.id !== id); });
       saveCustomMeals(m);
       renderNutrition();
     });
   });
+}
+
+function renderNutrition() {
+  if (!DATA.nutritionPlan) return;
+  renderKostholdToday();
+  renderKostholdMealCards();
 }
 renderNutrition();
 
@@ -3521,26 +3691,59 @@ function softDeleteExtra(id) {
   saveExtras(all);
 }
 
-function addExtra(name, kcal) {
+function addExtra(name, kcal, protein) {
   const list = loadExtras();
-  list.push({ id: "extra-" + Date.now() + Math.random(), date: todayISO(), name, kcal: kcal || null });
+  list.push({ id: "extra-" + Date.now() + Math.random(), date: todayISO(), name, kcal: kcal || null, protein: protein || null });
   saveExtras(list);
   renderExtras();
   renderNutritionCoach();
   renderHjemKcalRing();
 }
 
+const SAVED_EXTRAS_KEY = "garminDashboardSavedExtras_v1";
+function loadSavedExtras() {
+  return loadLS(SAVED_EXTRAS_KEY, [
+    { id: "preset-sjokolade", name: "Sjokolade", kcal: 250, protein: null },
+    { id: "preset-glassvin", name: "Glass vin", kcal: 120, protein: null },
+    { id: "preset-ol", name: "Øl", kcal: 150, protein: null },
+  ]);
+}
+function saveSavedExtras(l) { saveLS(SAVED_EXTRAS_KEY, l); }
+function addSavedExtra(name, kcal, protein) {
+  const list = loadSavedExtras();
+  if (list.some(i => i.name.toLowerCase() === name.toLowerCase())) return;
+  list.push({ id: "saved-" + Date.now() + Math.random(), name, kcal: kcal || null, protein: protein || null });
+  saveSavedExtras(list);
+}
+function removeSavedExtra(id) { saveSavedExtras(loadSavedExtras().filter(i => i.id !== id)); }
+
+function renderSavedExtraChips() {
+  const el = document.getElementById("extras-presets");
+  if (!el) return;
+  const saved = loadSavedExtras();
+  el.innerHTML = saved.map(i => `<button class="btn secondary small" data-saved-extra="${i.id}">+ ${i.name}</button>`).join("");
+  el.querySelectorAll("[data-saved-extra]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const item = loadSavedExtras().find(i => i.id === btn.dataset.savedExtra);
+      if (item) addExtra(item.name, item.kcal, item.protein);
+    });
+  });
+}
+
 function renderExtras() {
   const todays = loadExtras().filter(e => e.date === todayISO()).sort((a, b) => b.id.localeCompare(a.id));
-  const total = todays.reduce((s, e) => s + (e.kcal || 0), 0);
-  const n = DATA.nutritionPlan;
-  document.getElementById("extras-today-total").innerHTML = todays.length
-    ? `<div class="section-sub" style="margin:4px 0 10px;">I dag: <b>${total} kcal</b> utenom planen${n ? ` (planen var ${n.dailyKcal} kcal)` : ""}</div>`
+  const totalKcalRaw = todays.reduce((s, e) => s + (e.kcal || 0), 0);
+  const totalProtein = todays.reduce((s, e) => s + (e.protein || 0), 0);
+  const focus = loadSettings().kostholdFocusMode;
+  document.getElementById("extras-today-total").innerHTML = (todays.length && focus)
+    ? `<div class="section-sub" style="margin:4px 0 10px;">I dag: <b>~${withKcalMargin(totalKcalRaw)} kcal</b>${totalProtein ? ` · ${totalProtein} g protein` : ""} utenom planen</div>`
     : "";
   document.getElementById("extras-list").innerHTML = todays.map(e => `
-    <li data-id="${e.id}"><span>${e.name}${e.kcal ? ` · ${e.kcal} kcal` : ""}</span>
+    <li data-id="${e.id}"><span>${e.name}${focus && e.kcal ? ` · ~${withKcalMargin(e.kcal)} kcal` : ""}${focus && e.protein ? ` · ${e.protein} g protein` : ""}</span>
       <button class="log-remove-btn" data-extra-remove="${e.id}">✕</button>
     </li>`).join("") || `<li style="border-top:none;color:var(--muted);">Ingenting logget i dag</li>`;
+
+  renderSavedExtraChips();
 
   document.querySelectorAll("#extras-list button[data-extra-remove]").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -3574,13 +3777,14 @@ document.getElementById("extra-add").addEventListener("click", () => {
   const name = document.getElementById("extra-name").value.trim();
   if (!name) return;
   const kcal = parseInt(document.getElementById("extra-kcal").value, 10) || null;
-  addExtra(name, kcal);
+  const protein = parseInt(document.getElementById("extra-protein").value, 10) || null;
+  const saveLater = document.getElementById("extra-save-later").checked;
+  addExtra(name, kcal, protein);
+  if (saveLater) { addSavedExtra(name, kcal, protein); renderSavedExtraChips(); }
   document.getElementById("extra-name").value = "";
   document.getElementById("extra-kcal").value = "";
-});
-
-document.querySelectorAll("[data-extra-preset]").forEach(btn => {
-  btn.addEventListener("click", () => addExtra(btn.dataset.extraPreset, parseInt(btn.dataset.extraKcal, 10)));
+  document.getElementById("extra-protein").value = "";
+  document.getElementById("extra-save-later").checked = false;
 });
 
 renderExtras();
@@ -4505,7 +4709,6 @@ document.getElementById("shop-clear-all").addEventListener("click", () => {
 // ---------------------------------------------------------------- søndagsplanlegger (neste uke)
 const MEALPREP_HAVE_KEY = "garminDashboardMealprepHave_v1";
 const WEEK_AGENDA_KEY = "garminDashboardWeekAgenda_v1";
-const MEAL_TYPE_LABELS = { breakfast: "Frokost", lunch: "Lunsj", snack: "Mellommåltid", dinner: "Middag" };
 
 function loadMealprepHave() { return loadLS(MEALPREP_HAVE_KEY, []); }
 function saveMealprepHave(arr) { saveLS(MEALPREP_HAVE_KEY, arr); }
@@ -4638,7 +4841,7 @@ function renderMealprepSuggestions() {
     }).join("");
     const dayChecks = nextWeek.map(d => `<label class="mealprep-day-check"><input type="checkbox" value="${d.date}"> ${d.weekday}</label>`).join("");
     return `<div class="mealprep-suggestion" data-type="${c.type}" data-idx="${c.idx}">
-      <div class="meal-head"><b>${c.opt.name}</b><span class="meal-macro">${c.opt.kcal} kcal · ${c.opt.protein} g protein</span></div>
+      <div class="meal-head"><b>${c.opt.name}</b><span class="meal-macro">~${withKcalMargin(c.opt.kcal)} kcal · ${c.opt.protein} g protein</span></div>
       <div class="meal-items">${itemsHtml}</div>
       <div class="mealprep-days">${dayChecks}</div>
       <button class="btn ghost small mealprep-assign-btn">Legg til i planen</button>
@@ -5892,7 +6095,8 @@ function renderHjemKcalRing() {
   const el = document.getElementById("hjem-kcal-ring");
   if (!n || !el) return;
   const totals = dayNutritionTotals(todayISO());
-  const remaining = n.dailyKcal - totals.kcal;
+  const kcalShown = withKcalMargin(totals.kcal);
+  const remaining = n.dailyKcal - kcalShown;
   const over = remaining < 0;
 
   // Kept deliberately separate from "igjen av målet" above: that's a fixed daily budget,
@@ -5901,7 +6105,7 @@ function renderHjemKcalRing() {
   const burned = reportMetric("calories").today;
   let balanceHtml = "";
   if (burned != null) {
-    const diff = burned - totals.kcal;
+    const diff = burned - kcalShown;
     const diffLabel = diff >= 0 ? `${diff} kcal underskudd så langt` : `${Math.abs(diff)} kcal overskudd så langt`;
     balanceHtml = `
       <div class="hnq-balance">
@@ -5913,7 +6117,7 @@ function renderHjemKcalRing() {
   el.innerHTML = `
     <div>
       <div class="hnq-label">Spist i dag</div>
-      <div class="hnq-val">${totals.kcal} kcal</div>
+      <div class="hnq-val">~${kcalShown} kcal</div>
       <div class="hnq-macro${over ? " over" : ""}">${over ? `${Math.abs(remaining)} kcal over målet` : `${remaining} kcal igjen av målet (${n.dailyKcal} kcal)`}</div>
       <div class="hnq-macro">${totals.protein} / ${n.proteinMin} g protein</div>
       ${balanceHtml}
@@ -6190,7 +6394,7 @@ function logExtraWithNudge(name, kcal) {
   addExtra(name, kcal);
   renderHjemKcalRing();
   const totals = dayNutritionTotals(todayISO());
-  if (totals.kcal <= DATA.nutritionPlan.dailyKcal) { closeQuicklogDrawer(); return; }
+  if (withKcalMargin(totals.kcal) <= DATA.nutritionPlan.dailyKcal) { closeQuicklogDrawer(); return; }
   document.getElementById("quicklog-drawer-body").innerHTML = `
     <div style="font-size:14px;line-height:1.5;margin-bottom:10px;">Logget. Neste valg: vil du ha en lett middag for å balansere, eller kjøre på som normalt?</div>
     <div class="ql-presets">
@@ -6400,7 +6604,7 @@ function renderMorningReport() {
   const yTotals = dayNutritionTotals(yISO);
   const n = DATA.nutritionPlan;
   const proteinGap = n.proteinMin - yTotals.protein;
-  let nutritionP1 = `I går fikk du i deg rundt <b>${yTotals.kcal} kcal</b> og <b>${yTotals.protein} g protein</b> (mål: ${n.proteinMin} g+).`;
+  let nutritionP1 = `I går fikk du i deg rundt <b>~${withKcalMargin(yTotals.kcal)} kcal</b> og <b>${yTotals.protein} g protein</b> (mål: ${n.proteinMin} g+).`;
   if (!yTotals.mealsLogged.length && !yTotals.extras.length) {
     nutritionP1 = `Du logget ikke måltider i går, så dette er et grovt anslag basert på planen.`;
   }
@@ -6417,7 +6621,7 @@ function renderMorningReport() {
     <div class="report-section">
       <h3>🍽️ Ernæring</h3>
       <p>${nutritionP1} ${nutritionP2}</p>
-      ${suggestion ? `<div class="report-highlight">Forslag til i dag: <b>${suggestion.name}</b> (${suggestion.kcal} kcal, ${suggestion.protein} g protein)</div>` : ""}
+      ${suggestion ? `<div class="report-highlight">Forslag til i dag: <b>${suggestion.name}</b> (~${withKcalMargin(suggestion.kcal)} kcal, ${suggestion.protein} g protein)</div>` : ""}
       <p>Dagens kaloribudsjett er <b>${n.dailyKcal} kcal</b>.</p>
     </div>`;
 
@@ -6464,17 +6668,18 @@ function renderEveningReport() {
 
   const totals = dayNutritionTotals(todayStr);
   const n = DATA.nutritionPlan;
-  const overBudget = totals.kcal > n.dailyKcal;
+  const kcalShown = withKcalMargin(totals.kcal);
+  const overBudget = kcalShown > n.dailyKcal;
   let nutritionLine;
   if (totals.extras.length) {
     const names = totals.extras.map(e => e.name).join(", ");
     nutritionLine = overBudget
-      ? `Du logget ${names} i dag utenom planen, og endte på ${totals.kcal} kcal (budsjett ${n.dailyKcal}). Litt over i dag - helt greit, juster i morgen og fortsett.`
-      : `Du logget ${names} i dag, men holdt deg likevel innenfor kaloribudsjettet (${totals.kcal} / ${n.dailyKcal} kcal). Bra kontroll! 👏`;
+      ? `Du logget ${names} i dag utenom planen, og endte på ~${kcalShown} kcal (budsjett ${n.dailyKcal}). Litt over i dag - helt greit, juster i morgen og fortsett.`
+      : `Du logget ${names} i dag, men holdt deg likevel innenfor kaloribudsjettet (~${kcalShown} / ${n.dailyKcal} kcal). Bra kontroll! 👏`;
   } else {
     nutritionLine = overBudget
-      ? `Du endte på rundt ${totals.kcal} kcal i dag, litt over budsjettet på ${n.dailyKcal}. Ingen grunn til dårlig samvittighet - bare ta det med i morgen.`
-      : `Du holdt deg fint innenfor kaloribudsjettet i dag (${totals.kcal} / ${n.dailyKcal} kcal).`;
+      ? `Du endte på rundt ~${kcalShown} kcal i dag, litt over budsjettet på ${n.dailyKcal}. Ingen grunn til dårlig samvittighet - bare ta det med i morgen.`
+      : `Du holdt deg fint innenfor kaloribudsjettet i dag (~${kcalShown} / ${n.dailyKcal} kcal).`;
   }
 
   const logHtml = `
@@ -6628,7 +6833,7 @@ function renderWeeklyReport(targetId) {
   const weekDates = [];
   for (let d = weekStart; d <= todayStr; d = isoAddDays(d, 1)) weekDates.push(d);
   // uken totalt teller mer enn noen enkeltdag - vis snittet, ikke bare dagsfasiten på Hjem
-  const weekKcalTotals = weekDates.map(d => dayNutritionTotals(d).kcal).filter(k => k > 0);
+  const weekKcalTotals = weekDates.map(d => withKcalMargin(dayNutritionTotals(d).kcal)).filter(k => k > 0);
   if (weekKcalTotals.length) {
     const avgKcal = Math.round(weekKcalTotals.reduce((s, k) => s + k, 0) / weekKcalTotals.length);
     const diff = avgKcal - DATA.nutritionPlan.dailyKcal;
@@ -6662,7 +6867,7 @@ function renderWeeklyReport(targetId) {
 
   // ---- tips til neste uke - konkrete, handlingsorienterte forslag basert på denne ukens data ----
   const tips = [];
-  const kcalOverDays = weekDates.filter(d => dayNutritionTotals(d).kcal > DATA.nutritionPlan.dailyKcal * 1.1).length;
+  const kcalOverDays = weekDates.filter(d => withKcalMargin(dayNutritionTotals(d).kcal) > DATA.nutritionPlan.dailyKcal).length;
   const plannedNonRestThisWeek = (DATA.trainingHistory || []).filter(d => d.date >= weekStart && d.date <= todayStr && d.sessionType !== "rest").length;
   const trainingGoodThisWeek = plannedNonRestThisWeek > 0 && sessionsThisWeek / plannedNonRestThisWeek >= 0.7;
   const matCatForTips = loadBudgetConfig().categories.find(c => c.key === "mat");
@@ -6824,7 +7029,7 @@ function renderMonthlyReport(targetId) {
   if (sessionsThisMonth > 0) highlights.push(`🏋️ Du fullførte ${sessionsThisMonth} treningsøkt${sessionsThisMonth === 1 ? "" : "er"} denne måneden.`);
   const monthDates = [];
   for (let d = calStart; d <= calEnd; d = isoAddDays(d, 1)) monthDates.push(d);
-  const monthKcalTotals = monthDates.map(d => dayNutritionTotals(d).kcal).filter(k => k > 0);
+  const monthKcalTotals = monthDates.map(d => withKcalMargin(dayNutritionTotals(d).kcal)).filter(k => k > 0);
   if (monthKcalTotals.length) {
     const avgKcal = Math.round(monthKcalTotals.reduce((s, k) => s + k, 0) / monthKcalTotals.length);
     const diff = avgKcal - DATA.nutritionPlan.dailyKcal;
@@ -6855,7 +7060,7 @@ function renderMonthlyReport(targetId) {
 
   // ---- tips til neste måned - konkrete, handlingsorienterte forslag basert på denne månedens data ----
   const tips = [];
-  const kcalOverDays = monthDates.filter(d => dayNutritionTotals(d).kcal > DATA.nutritionPlan.dailyKcal * 1.1).length;
+  const kcalOverDays = monthDates.filter(d => withKcalMargin(dayNutritionTotals(d).kcal) > DATA.nutritionPlan.dailyKcal).length;
   const plannedNonRestThisMonth = (DATA.trainingHistory || []).filter(d => d.date >= calStart && d.date <= calEnd && d.sessionType !== "rest").length;
   const trainingGoodThisMonth = plannedNonRestThisMonth > 0 && sessionsThisMonth / plannedNonRestThisMonth >= 0.7;
   const matCatForTips = loadBudgetConfig().categories.find(c => c.key === "mat");
@@ -6997,6 +7202,15 @@ vacationToggle.checked = isVacationActive();
 vacationToggle.addEventListener("change", () => {
   setVacationActive(vacationToggle.checked);
   renderHjem();
+});
+
+const focusModeToggle = document.getElementById("settings-focus-mode-toggle");
+focusModeToggle.checked = loadSettings().kostholdFocusMode;
+focusModeToggle.addEventListener("change", () => {
+  const s = loadSettings();
+  s.kostholdFocusMode = focusModeToggle.checked;
+  saveSettings(s);
+  renderNutrition();
 });
 
 (function initMvdSettingsForm() {
