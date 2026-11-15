@@ -16,6 +16,9 @@ TOKEN_MAX_AGE_HOURS = 20
 
 
 def load_api_key():
+    env_key = os.environ.get("GARMIN_PERSONAL_API_KEY")
+    if env_key:
+        return env_key
     if not os.path.exists(ENV_PATH):
         raise RuntimeError(".env.local not found. Create it with GARMIN_PERSONAL_API_KEY=<your key>")
     with open(ENV_PATH) as f:

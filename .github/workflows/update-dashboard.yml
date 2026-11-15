@@ -1,0 +1,56 @@
+name: Update dashboard
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-dashboard
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Garmin data lives in data/ (gitignored - never committed to the public
+      # repo). The cache lets pull.py keep pulling incrementally instead of
+      # re-fetching full history every run. Cache entries are immutable, so we
+      # always write a new one (keyed by run id) and restore the most recent
+      # previous one via restore-keys. Old entries age out on their own.
+      - name: Restore Garmin data cache
+        uses: actions/cache@v4
+        with:
+          path: data
+          key: garmin-data-${{ github.run_id }}
+          restore-keys: |
+            garmin-data-
+
+      - name: Pull Garmin data
+        env:
+          GARMIN_PERSONAL_API_KEY: ${{ secrets.GARMIN_PERSONAL_API_KEY }}
+        run: python3 pull.py
+
+      - name: Build dashboard
+        run: python3 build.py
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add dashboard.html
+          if git diff --cached --quiet; then
+            echo "No changes to dashboard.html"
+          else
+            git commit -m "Auto-update dashboard $(date -u +'%Y-%m-%d %H:%M UTC')"
+            git push
+          fi
