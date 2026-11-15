@@ -828,6 +828,23 @@ def main():
             "loggedActivities": logged_activities_on(d) if d <= today else [],
         })
 
+    next_week_start = week_start + timedelta(days=7)
+    next_week_days_out = []
+    for i in range(7):
+        d = next_week_start + timedelta(days=i)
+        sess = session_for(d)
+        next_week_days_out.append({
+            "date": d.isoformat(),
+            "weekday": WEEKDAY_LABELS_NO[i],
+            "defaultKey": sess["key"],
+            "sessionLabel": sess["label"],
+            "sessionType": sess["type"],
+            "isToday": False,
+            "loggedActivities": [],
+        })
+    next_week_num = gs_week(next_week_start)
+    next_prog_week = GS_PROG[next_week_num]
+
     program = {
         "currentWeek": week_num,
         "weekFocus": prog_week["focus"],
@@ -842,6 +859,9 @@ def main():
             "strainScore": strain_score,
         },
         "week": week_days_out,
+        "nextWeek": next_week_days_out,
+        "nextWeekFocus": next_prog_week["focus"],
+        "nextWeekIsDeload": bool(next_prog_week.get("deload")),
     }
 
     # ---------------------------------------------------- training history (for points)
@@ -1739,6 +1759,7 @@ TEMPLATE = r"""<!DOCTYPE html>
     <div id="hjem-backup-reminder"></div>
     <div id="hjem-aon-banner"></div>
     <div id="hjem-mvd-sunday"></div>
+    <div id="hjem-next-week-preview"></div>
     <div id="hjem-freeze-notice"></div>
     <div id="hjem-monthly-insight-nudge"></div>
 
@@ -4157,6 +4178,31 @@ function renderHjemMvdSunday() {
   el.innerHTML = `<div class="hjem-card">${mvdSectionHtml()}</div>`;
 }
 
+// shown only on søndager - she plans next week's training then, so give her a
+// read-only look at next week's default plan ahead of time
+function renderHjemNextWeekPreview() {
+  const el = document.getElementById("hjem-next-week-preview");
+  if (!el) return;
+  const p = DATA.program;
+  if (new Date().getDay() !== 0 || isVacationActive() || !p || !p.nextWeek) { el.innerHTML = ""; return; }
+  const overrides = loadPlanOverrides();
+  const weekTag = p.nextWeekIsDeload ? "Deload-uke" : p.nextWeekFocus;
+  const days = p.nextWeek.map(d => {
+    const r = resolvePlanDay(d, overrides);
+    return `<div class="week-day" data-date="${d.date}">
+      <div class="wd"><span>${d.weekday}</span></div>
+      <div class="sess">${r.label}</div>
+    </div>`;
+  }).join("");
+  el.innerHTML = `
+    <div class="hjem-card">
+      <div class="hjem-body-group-label">📅 Neste treningsuke</div>
+      <div class="section-sub" style="margin-bottom:8px;">${weekTag}</div>
+      <div class="week-row">${days}</div>
+    </div>
+  `;
+}
+
 function renderBadDayPanel() {
   const entry = loadBadDayLog()[todayISO()] || {};
   document.getElementById("badday-mvd").innerHTML = mvdSectionHtml();
@@ -5802,6 +5848,7 @@ function renderHjem() {
   renderHjemBackupReminder();
   renderHjemAllOrNothing();
   renderHjemMvdSunday();
+  renderHjemNextWeekPreview();
   renderHjemFreezeNotice();
   renderHjemMonthlyInsightNudge();
   renderHjemSocialBudget();
