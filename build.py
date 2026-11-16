@@ -2486,10 +2486,10 @@ function renderHeroStatusStrip() {
   if (!el) return;
   const ts = DATA.topStats || {};
   const items = [
-    ts.sleep ? { icon: "😴", text: `${ts.sleep.hours.toLocaleString("no-NO")}t`, trend: ts.sleep.trend } : null,
-    ts.hrv ? { icon: "❤️", text: `${ts.hrv.value} ms`, trend: ts.hrv.trend } : null,
-    ts.calories ? { icon: "🔥", text: `${ts.calories.value.toLocaleString("no-NO")} kcal`, trend: ts.calories.trend } : null,
-    ts.steps ? { icon: "👣", text: `${ts.steps.value.toLocaleString("no-NO")}`, trend: ts.steps.trend } : null,
+    ts.sleep && ts.sleep.hours != null ? { icon: "😴", text: `${ts.sleep.hours.toLocaleString("no-NO")}t`, trend: ts.sleep.trend } : null,
+    ts.hrv && ts.hrv.value != null ? { icon: "❤️", text: `${ts.hrv.value} ms`, trend: ts.hrv.trend } : null,
+    ts.calories && ts.calories.value != null ? { icon: "🔥", text: `${ts.calories.value.toLocaleString("no-NO")} kcal`, trend: ts.calories.trend } : null,
+    ts.steps && ts.steps.value != null ? { icon: "👣", text: `${ts.steps.value.toLocaleString("no-NO")}`, trend: ts.steps.trend } : null,
   ].filter(Boolean);
   el.innerHTML = items.map(i => `
     <div class="hss-chip">
