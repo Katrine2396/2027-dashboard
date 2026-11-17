@@ -72,6 +72,112 @@ PROG_EXERCISES = {
             "Stående kabelrad 3×10–12", "Step-up på lav kasse, kontrollert - skyv gjennom hælen, kjenn rumpa 3×8/side",
             "Dead bug med vekt 3×8/side", "Planke med skulderberøring 3×20–30 s"],
 }
+
+# ---- Sete, kjerne og stabilitet (2026-11-17) - eget tilleggsprogram, kommer i tillegg til
+# (ikke erstatter) grunnstyrkeprogrammet over. Bygget rundt et aktivt kneproblem: ingen løping,
+# tunge knebøy/utfall, step-ups eller tungt beinpress, og aldri noe som gir smerte/økt hevelse.
+# Nivå 1 er det eneste aktive nivået - nivå 2/3 er bevisst låst inntil fysioterapeut har vurdert
+# kneet, og låses ALDRI opp automatisk basert på tid/antall uker.
+STABILITY_EXERCISES = [
+    {
+        "key": "glute_bridge",
+        "name": "Glute bridge",
+        "sets": "2-3 sett",
+        "repsLabel": "10-12 reps, hold 2 sek på toppen",
+        "startPosition": "Ligg på ryggen med bøyde knær og føttene i gulvet, omtrent hoftebredt.",
+        "steps": [
+            "Spenn magen lett.",
+            "Løft hoften opp uten å svaie i korsryggen.",
+            "Stopp når hofte og overkropp er omtrent på linje - ikke høyere.",
+            "Hold toppstillingen i 2 sekunder og kjenn etter at det er setet som jobber.",
+            "Senk kontrollert tilbake til start.",
+        ],
+        "muscles": "Primært gluteus maximus. Noe aktivitet i hamstrings er normalt.",
+        "feelItWhere": "Mest i setet. Ikke la korsrygg eller fremside lår dominere.",
+        "commonMistakes": ["Svai i korsryggen i stedet for å bruke setet", "Fremside lår tar mye av jobben",
+                            "Løfter hoften høyere enn nødvendig (overstrekk i rygg)"],
+        "longLegsNote": "Juster fotplasseringen etter en komfortabel knevinkel - ikke sett føttene så langt unna kroppen at hamstrings tar over. Ikke press hoften høyere enn du klarer med god bekkenkontroll.",
+    },
+    {
+        "key": "hip_abduction",
+        "name": "Sideliggende hofteabduksjon",
+        "sets": "2-3 sett",
+        "repsLabel": "12 reps per side",
+        "startPosition": "Ligg på siden med nederste bein lett bøyd for støtte. Øverste bein er rett, tærne peker fremover.",
+        "steps": [
+            "Før det øverste beinet litt bakover (ikke rett opp fra hoften).",
+            "Hold tærne pekende fremover gjennom hele bevegelsen.",
+            "Løft beinet kontrollert, omtrent 20-30 cm.",
+            "Hold et øyeblikk på toppen.",
+            "Senk langsomt tilbake - ikke la det falle.",
+        ],
+        "muscles": "Primært gluteus medius - øvre, ytre del av setet.",
+        "feelItWhere": "Øverst/ytterst i setet på det løftende beinet.",
+        "commonMistakes": ["Peker tærne opp i stedet for fremover", "Løfter for høyt og mister bekkenkontroll",
+                            "Lar overkroppen rulle bakover for å få beinet høyere"],
+        "longLegsNote": "Bruk mindre bevegelsesutslag om nødvendig. Hold bekkenet helt stabilt - det er kontrollen, ikke høyden på løftet, som gir effekten.",
+    },
+    {
+        "key": "clamshell",
+        "name": "Clamshell",
+        "sets": "2 sett",
+        "repsLabel": "12-15 reps per side",
+        "startPosition": "Ligg på siden med bøyde knær, føttene samlet og i forlengelse av ryggen.",
+        "steps": [
+            "Hold føttene i kontakt med hverandre gjennom hele bevegelsen.",
+            "Åpne det øverste kneet som et skjell, uten å rotere bekkenet bakover.",
+            "Hold et øyeblikk i åpen posisjon.",
+            "Lukk kontrollert tilbake til start.",
+            "Start uten strikk til bevegelsen føles kontrollert.",
+        ],
+        "muscles": "Gluteus medius og omkringliggende hoftemuskulatur.",
+        "feelItWhere": "I det ytre setet/hoften på det øverste beinet.",
+        "commonMistakes": ["Ruller bekkenet bakover for å åpne kneet lenger", "Bruker fart i stedet for kontroll"],
+        "longLegsNote": "Hold et lite, kontrollert bevegelsesutslag - det er greit om kneet ikke åpner seg veldig langt.",
+    },
+    {
+        "key": "dead_bug",
+        "name": "Dead bug",
+        "sets": "2-3 sett",
+        "repsLabel": "8 reps per side",
+        "startPosition": "Ligg på ryggen med knærne rett over hoftene (90 grader) og armene strukket mot taket.",
+        "steps": [
+            "Spenn kjernen og press korsryggen svakt ned mot gulvet - hold den der.",
+            "Senk motsatt arm og motsatt bein kontrollert mot gulvet.",
+            "Stopp før korsryggen begynner å svaie eller løfte seg fra gulvet.",
+            "Før arm og bein kontrollert tilbake til start.",
+            "Bytt side.",
+        ],
+        "muscles": "Mage og dyp kjernemuskulatur.",
+        "feelItWhere": "I mage/kjerne - korsryggen skal ikke jobbe eller svaie.",
+        "commonMistakes": ["Korsryggen svaier eller løftes fra gulvet", "Senker arm/bein lenger enn kjernen klarer å kontrollere"],
+        "longLegsNote": "Start med kort bevegelsesutslag og litt bøy i kneet. Ikke senk beinet lenger enn du klarer å holde bekkenet helt stabilt.",
+    },
+    {
+        "key": "pallof_press",
+        "name": "Pallof press",
+        "sets": "2-3 sett",
+        "repsLabel": "10 reps per side",
+        "startPosition": "Stå med siden mot festepunktet (kabel/strikk), hendene samlet foran brystet.",
+        "steps": [
+            "Stå i en stabil, smertefri ståstilling.",
+            "Press hendene rett fremover fra brystet.",
+            "Motstå at strikken/kabelen drar deg i rotasjon - hold hoftene og brystet rolig fremover.",
+            "Hold et øyeblikk i utstrakt posisjon.",
+            "Før hendene kontrollert tilbake til brystet.",
+        ],
+        "muscles": "Kjernemuskulaturen rundt mage og midje (anti-rotasjon).",
+        "feelItWhere": "Gjennom hele midjen/kjernen når du motstår rotasjonen.",
+        "commonMistakes": ["Lar overkroppen rotere med strikken", "Låser ikke hoftene, så rotasjonen kommer derfra i stedet"],
+        "longLegsNote": "Kan gjøres sittende i stedet for stående dersom stående belastning provoserer kneet.",
+    },
+]
+STABILITY_LOCKED_LEVELS = [
+    {"level": 2, "title": "Nivå 2 - Funksjonell styrke",
+     "exercises": ["Hip thrust", "Kabel kickback", "Enkle hofteøvelser med økt motstand", "Kontrollert knebøyvariant", "Step-up (dersom kneet tåler det)"]},
+    {"level": 3, "title": "Nivå 3 - Løpsforberedelse",
+     "exercises": ["Step-down", "Enbeins RDL", "Enbeins stabilitetsøvelser", "Gradvis løp/gange", "Løpsspesifikk styrke"]},
+]
 # Built-in ingredient catalog: kcal/protein per 100g, used for the "bytt ingrediens" feature
 # in the meal plan. Values are standard reference estimates (±10%, same spirit as the rest
 # of the nutrition numbers in this app) - she can add her own ingredients or correct these
@@ -920,6 +1026,8 @@ def main():
         "goal": goal,
         "program": program,
         "sessionCatalog": SESSION_CATALOG,
+        "stabilityExercises": STABILITY_EXERCISES,
+        "stabilityLockedLevels": STABILITY_LOCKED_LEVELS,
         "nutritionPlan": NUTRITION_PLAN,
         "ingredientCatalog": INGREDIENT_CATALOG,
         "weeklyBySport": weekly_by_sport_out,
@@ -1054,6 +1162,27 @@ TEMPLATE = r"""<!DOCTYPE html>
   .plan-card .exercises .set-log-today { margin-top: 6px; font-size: 11px; color: var(--muted); display: flex; gap: 6px; flex-wrap: wrap; }
   .plan-card .exercises .set-chip { background: var(--accent3); border-radius: 10px; padding: 2px 8px; display: inline-flex; align-items: center; gap: 4px; }
   .plan-card .exercises .set-chip-remove { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 11px; padding: 0; line-height: 1; }
+
+  .stability-exercise { background: var(--card); border-radius: 14px; box-shadow: var(--shadow); padding: 14px 16px; margin-bottom: 10px; }
+  .stability-exercise .exercise-name { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+  .stability-setsreps { font-size: 12px; color: var(--muted); font-weight: 400; margin-left: 6px; }
+  .stability-detail { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 13px; }
+  .stability-detail-block { margin-top: 10px; }
+  .stability-detail-block b { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); margin-bottom: 4px; }
+  .stability-detail-block ol, .stability-detail-block ul { margin: 0; padding-left: 18px; }
+  .stability-detail-block li { margin-bottom: 3px; }
+  .stability-illustration { display: flex; justify-content: center; background: var(--bg); border-radius: 10px; padding: 10px; }
+  .stability-svg { width: 100%; max-width: 220px; height: auto; }
+  .stability-fig { stroke: var(--ink); stroke-width: 5; stroke-linecap: round; fill: none; }
+  .stability-fig-accent { stroke: var(--accent); stroke-width: 4; stroke-linecap: round; fill: none; }
+  .stability-ground { stroke: var(--line); stroke-width: 3; }
+  .stability-dashed { stroke: var(--accent2); stroke-width: 2; stroke-dasharray: 4 4; fill: none; }
+  .stability-log-form { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+  .stability-log-form input, .stability-log-form select { font-family: inherit; font-size: 12px; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; background: #fff; min-width: 0; }
+  .stability-weight, .stability-reps { width: 100px; }
+  .stability-technique-check { font-size: 12px; display: inline-flex; align-items: center; gap: 4px; }
+  .stability-locked-card { opacity: .6; margin-bottom: 10px; }
+  .stability-locked-list { margin: 0; padding-left: 18px; font-size: 13px; color: var(--muted); }
   .pr-row { display: flex; justify-content: space-between; padding: 6px 0; border-top: 1px solid var(--line); font-size: 13px; }
   .pr-row:first-child { border-top: none; }
   .pr-row .pr-ex { color: var(--muted); flex: 1; margin-right: 10px; }
@@ -1955,6 +2084,22 @@ TEMPLATE = r"""<!DOCTYPE html>
     <h2>🏆 Rekorder</h2>
     <div class="section-sub">Dine beste løft, oppdateres automatisk når du logger sett</div>
     <div class="card" id="pr-board-card"></div>
+  </section>
+
+  <section style="margin-top:28px;">
+    <h2>🍑 Sete, kjerne og stabilitet</h2>
+    <div class="section-sub">Et eget tillegg for setemuskulatur, kjernestyrke og hoftekontroll - kommer i tillegg til, og endrer ikke, resten av treningsplanen din. Tenkt gjort på styrkedagene dine (mandag/onsdag/fredag), ca. 15-20 minutter. Ingen øvelse skal gi smerte eller økt hevelse i kneet - stopp og juster om noe gjør vondt.</div>
+    <div id="stability-exercises"></div>
+
+    <div class="card" id="knee-checkin-card" style="margin-top:14px;">
+      <h3 style="margin:0 0 4px;font-size:15px;">Hvordan var kneet etter økten?</h3>
+      <div class="section-sub" style="margin-bottom:10px;">Valgfritt. "Neste morgen" for gårsdagens økt kan du fylle inn i dag.</div>
+      <div id="knee-checkin-form"></div>
+    </div>
+
+    <h3 style="margin:28px 0 4px;font-size:15px;">🔒 Fremtidige nivåer</h3>
+    <div class="section-sub" style="margin-bottom:10px;">Låst inntil kneet er vurdert av fysioterapeut - låses aldri opp automatisk basert på tid.</div>
+    <div id="stability-locked-levels"></div>
   </section>
   </div>
 
@@ -2944,9 +3089,9 @@ const SET_LOG_KEY = "garminDashboardSetLog_v1";
 function loadSetLogAll() { return loadLS(SET_LOG_KEY, []); }
 function loadSetLog() { return loadSetLogAll().filter(s => !s.deleted); }
 function saveSetLog(l) { saveLS(SET_LOG_KEY, l); }
-function addSet(exKey, label, date, weight, reps) {
+function addSet(exKey, label, date, weight, reps, extra) {
   const log = loadSetLogAll();
-  log.push({ id: "set-" + Date.now() + Math.random(), exercise: exKey, label, date, weight, reps });
+  log.push(Object.assign({ id: "set-" + Date.now() + Math.random(), exercise: exKey, label, date, weight, reps }, extra || {}));
   saveSetLog(log);
 }
 function softDeleteSet(id) {
@@ -3115,6 +3260,148 @@ function triggerConfetti() {
   }
   document.body.appendChild(container);
   setTimeout(() => container.remove(), 2200);
+}
+
+// ---------------------------------------------------------------- sete, kjerne og stabilitet
+// Eget tilleggsprogram (2026-11-17) - gjenbruker addSet/setsFor/lastSetFor/softDeleteSet
+// (samme lagringsmotor som resten av treningsplanen), bare med en egen exKey-serie
+// ("stability::<nøkkel>") slik at ingenting blandes med gsA/gsB/gsC-loggen.
+function stabilityExKey(key) { return "stability::" + key; }
+
+const STABILITY_DIFFICULTY_LABELS = { lett: "Lett", passe: "Passe", tungt: "Tungt" };
+const STABILITY_KNEE_LABELS = { ingen: "ingen reaksjon", lett: "lett ubehag", smerte: "smerte" };
+
+// enkle, skjematiske strek-illustrasjoner (ikke anatomiske foto) - nok til å vise grunnposisjonen
+const STABILITY_ILLUSTRATIONS = {
+  glute_bridge: `<svg viewBox="0 0 160 100" class="stability-svg"><line x1="10" y1="92" x2="150" y2="92" class="stability-ground"/><circle cx="22" cy="80" r="9" class="stability-fig"/><line x1="31" y1="83" x2="75" y2="55" class="stability-fig"/><line x1="75" y1="55" x2="112" y2="80" class="stability-fig"/><line x1="112" y1="80" x2="126" y2="92" class="stability-fig"/><line x1="60" y1="66" x2="55" y2="40" class="stability-fig"/></svg>`,
+  hip_abduction: `<svg viewBox="0 0 160 100" class="stability-svg"><line x1="10" y1="97" x2="150" y2="97" class="stability-ground"/><circle cx="22" cy="42" r="9" class="stability-fig"/><line x1="31" y1="46" x2="72" y2="70" class="stability-fig"/><line x1="72" y1="70" x2="60" y2="90" class="stability-fig"/><line x1="60" y1="90" x2="78" y2="96" class="stability-fig"/><line x1="72" y1="70" x2="132" y2="52" class="stability-fig-accent"/></svg>`,
+  clamshell: `<svg viewBox="0 0 160 100" class="stability-svg"><line x1="10" y1="97" x2="150" y2="97" class="stability-ground"/><circle cx="22" cy="42" r="9" class="stability-fig"/><line x1="31" y1="46" x2="72" y2="70" class="stability-fig"/><line x1="72" y1="70" x2="98" y2="88" class="stability-fig"/><line x1="98" y1="88" x2="74" y2="95" class="stability-fig"/><line x1="72" y1="70" x2="102" y2="66" class="stability-fig-accent"/><line x1="102" y1="66" x2="80" y2="92" class="stability-fig-accent"/></svg>`,
+  dead_bug: `<svg viewBox="0 0 160 100" class="stability-svg"><line x1="10" y1="95" x2="150" y2="95" class="stability-ground"/><circle cx="38" cy="86" r="9" class="stability-fig"/><line x1="47" y1="86" x2="95" y2="86" class="stability-fig"/><line x1="52" y1="84" x2="28" y2="52" class="stability-fig-accent"/><line x1="60" y1="84" x2="62" y2="58" class="stability-fig"/><line x1="90" y1="86" x2="90" y2="58" class="stability-fig"/><line x1="90" y1="58" x2="68" y2="48" class="stability-fig-accent"/><line x1="98" y1="86" x2="100" y2="60" class="stability-fig"/></svg>`,
+  pallof_press: `<svg viewBox="0 0 160 100" class="stability-svg"><line x1="10" y1="97" x2="150" y2="97" class="stability-ground"/><rect x="14" y="36" width="8" height="8" class="stability-fig"/><line x1="22" y1="40" x2="110" y2="40" class="stability-dashed"/><circle cx="80" cy="20" r="9" class="stability-fig"/><line x1="80" y1="29" x2="80" y2="72" class="stability-fig"/><line x1="80" y1="72" x2="66" y2="97" class="stability-fig"/><line x1="80" y1="72" x2="94" y2="97" class="stability-fig"/><line x1="80" y1="40" x2="112" y2="40" class="stability-fig-accent"/></svg>`,
+};
+
+let stabilityExpandedDetail = null;
+
+function stabilityExerciseHtml(ex) {
+  const exKey = stabilityExKey(ex.key);
+  const today = todayISO();
+  const last = lastSetFor(exKey, today);
+  const todaySets = setsFor(exKey, today);
+  const expanded = stabilityExpandedDetail === ex.key;
+  const detailHtml = expanded ? `
+    <div class="stability-detail">
+      <div class="stability-illustration">${STABILITY_ILLUSTRATIONS[ex.key] || ""}</div>
+      <div class="stability-detail-block"><b>Startposisjon</b><div>${ex.startPosition}</div></div>
+      <div class="stability-detail-block"><b>Steg for steg</b><ol>${ex.steps.map(s => `<li>${s}</li>`).join("")}</ol></div>
+      <div class="stability-detail-block"><b>Muskler som trenes</b><div>${ex.muscles}</div></div>
+      <div class="stability-detail-block"><b>Du bør kjenne det</b><div>${ex.feelItWhere}</div></div>
+      <div class="stability-detail-block"><b>Vanlige feil</b><ul>${ex.commonMistakes.map(s => `<li>${s}</li>`).join("")}</ul></div>
+      <div class="stability-detail-block"><b>Tilpasning for lange bein</b><div>${ex.longLegsNote}</div></div>
+    </div>` : "";
+
+  return `<div class="exercise-row stability-exercise" data-ex="${exKey}">
+    <div class="exercise-name">${ex.name} <span class="stability-setsreps">${ex.sets} · ${ex.repsLabel}</span></div>
+    <button class="btn ghost small stability-detail-toggle" data-key="${ex.key}">${expanded ? "Skjul detaljer" : "Detaljer"}</button>
+    ${detailHtml}
+    <div class="set-log-form stability-log-form">
+      <input type="number" step="0.5" class="set-weight-input stability-weight" placeholder="kg/motstand (valgfritt)" ${last && last.weight != null ? `value="${last.weight}"` : ""}>
+      <input type="number" class="set-reps-input stability-reps" placeholder="reps" ${last ? `value="${last.reps}"` : ""}>
+      <select class="stability-difficulty-select">
+        <option value="">Vanskelighetsgrad</option>
+        <option value="lett">Lett</option>
+        <option value="passe">Passe</option>
+        <option value="tungt">Tungt</option>
+      </select>
+      <select class="stability-knee-select">
+        <option value="ingen">Kneet: ingen reaksjon</option>
+        <option value="lett">Kneet: lett ubehag</option>
+        <option value="smerte">Kneet: smerte</option>
+      </select>
+      <label class="stability-technique-check"><input type="checkbox" class="stability-technique-checkbox" checked> God teknikk</label>
+      <button class="btn secondary small stability-log-add" data-key="${ex.key}">+ Logg sett</button>
+    </div>
+    <div class="set-log-today">${todaySets.map((s, i) => `<span class="set-chip">Sett ${i + 1}: ${s.weight != null ? s.weight + " kg × " : ""}${s.reps} reps${s.difficulty ? ` · ${STABILITY_DIFFICULTY_LABELS[s.difficulty] || s.difficulty}` : ""}${s.knee && s.knee !== "ingen" ? ` · ⚠️ kne: ${STABILITY_KNEE_LABELS[s.knee] || s.knee}` : ""}<button class="set-chip-remove" data-set-remove="${s.id}">✕</button></span>`).join("")}</div>
+  </div>`;
+}
+
+function renderStabilitySection() {
+  const el = document.getElementById("stability-exercises");
+  if (!el || !DATA.stabilityExercises) return;
+  el.innerHTML = DATA.stabilityExercises.map(stabilityExerciseHtml).join("");
+
+  el.querySelectorAll(".stability-detail-toggle").forEach(btn => {
+    btn.addEventListener("click", () => {
+      stabilityExpandedDetail = stabilityExpandedDetail === btn.dataset.key ? null : btn.dataset.key;
+      renderStabilitySection();
+    });
+  });
+  el.querySelectorAll(".stability-log-add").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const row = btn.closest(".stability-exercise");
+      const ex = DATA.stabilityExercises.find(x => x.key === btn.dataset.key);
+      const reps = parseInt(row.querySelector(".stability-reps").value, 10);
+      if (!reps) return;
+      const weightRaw = parseFloat(row.querySelector(".stability-weight").value);
+      const difficulty = row.querySelector(".stability-difficulty-select").value || null;
+      const knee = row.querySelector(".stability-knee-select").value || null;
+      const goodTechnique = row.querySelector(".stability-technique-checkbox").checked;
+      addSet(stabilityExKey(ex.key), ex.name, todayISO(), isNaN(weightRaw) ? null : weightRaw, reps, { difficulty, knee, goodTechnique });
+      renderStabilitySection();
+      renderPrBoard();
+    });
+  });
+  el.querySelectorAll("[data-set-remove]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      softDeleteSet(btn.dataset.setRemove);
+      renderStabilitySection();
+      renderPrBoard();
+    });
+  });
+}
+
+function renderStabilityLockedLevels() {
+  const el = document.getElementById("stability-locked-levels");
+  if (!el || !DATA.stabilityLockedLevels) return;
+  el.innerHTML = DATA.stabilityLockedLevels.map(lvl => `
+    <div class="card stability-locked-card">
+      <h4 style="margin:0 0 6px;font-size:14px;">${lvl.title} 🔒</h4>
+      <ul class="stability-locked-list">${lvl.exercises.map(e => `<li>${e}</li>`).join("")}</ul>
+    </div>
+  `).join("");
+}
+
+// ---- kne-oppfølging: hvordan kneet reagerte etter økten, samme dag og morgenen etter -----
+const KNEE_CHECKIN_KEY = "garminDashboardKneeCheckin_v1";
+function loadKneeCheckins() { return loadLS(KNEE_CHECKIN_KEY, {}); }
+function saveKneeCheckins(l) { saveLS(KNEE_CHECKIN_KEY, l); }
+function kneeCheckinFor(date) { return loadKneeCheckins()[date] || {}; }
+function setKneeCheckin(date, patch) {
+  const l = loadKneeCheckins();
+  l[date] = Object.assign({}, l[date] || {}, patch);
+  saveKneeCheckins(l);
+}
+function renderKneeCheckin() {
+  const el = document.getElementById("knee-checkin-form");
+  if (!el) return;
+  const today = todayISO();
+  const yesterday = isoAddDays(today, -1);
+  const todayEntry = kneeCheckinFor(today);
+  const yesterdayEntry = kneeCheckinFor(yesterday);
+  const opts = ["", "Ingen endring", "Litt verre", "Mye verre"];
+  const selectHtml = (value, cls) => `<select class="${cls}">${opts.map(o => `<option value="${o}" ${o === (value || "") ? "selected" : ""}>${o || "Velg..."}</option>`).join("")}</select>`;
+  el.innerHTML = `
+    <label class="mvd-settings-field">Kneet senere i dag (etter dagens økt)${selectHtml(todayEntry.sameDay, "knee-checkin-sameday")}</label>
+    <label class="mvd-settings-field">Kneet neste morgen (for gårsdagens økt)${selectHtml(yesterdayEntry.nextMorning, "knee-checkin-nextmorning")}</label>
+    <button class="btn ghost small" id="knee-checkin-save">Lagre</button>
+    <div class="badday-saved-msg" id="knee-checkin-saved-msg"></div>
+  `;
+  document.getElementById("knee-checkin-save").addEventListener("click", () => {
+    const sameDay = el.querySelector(".knee-checkin-sameday").value;
+    const nextMorning = el.querySelector(".knee-checkin-nextmorning").value;
+    if (sameDay) setKneeCheckin(today, { sameDay });
+    if (nextMorning) setKneeCheckin(yesterday, { nextMorning });
+    flashSaved("knee-checkin-saved-msg", "Lagret ✓");
+  });
 }
 
 function renderPrBoard() {
@@ -3298,6 +3585,9 @@ renderPlan();
 renderMissedDayPrompt();
 renderPrBoard();
 renderRestTimer();
+renderStabilitySection();
+renderStabilityLockedLevels();
+renderKneeCheckin();
 
 // ---------------------------------------------------------------- nutrition
 const EXTRAS_KEY = "garminDashboardExtras_v1";
