@@ -7282,6 +7282,36 @@ function prsToday() {
   return prs;
 }
 
+// hvor hun ligger an på protein for DENNE uken (mandag-søndag, samme uke som treningsplanen),
+// og hvor mye som må spises ekstra på resten av ukens dager for å ta igjen et etterslep -
+// gir et konkret handlingstall i stedet for bare "du var under målet"
+function weeklyProteinStatus(dateStr) {
+  const n = DATA.nutritionPlan;
+  const weekDates = (DATA.program.week || []).map(d => d.date);
+  const idx = weekDates.indexOf(dateStr);
+  if (!n || idx === -1) return null;
+  const elapsed = weekDates.slice(0, idx + 1);
+  const remaining = weekDates.slice(idx + 1);
+  const actualSoFar = elapsed.reduce((s, d) => s + dayNutritionTotals(d).protein, 0);
+  const goalSoFar = n.proteinMin * elapsed.length;
+  return {
+    deficit: Math.round(goalSoFar - actualSoFar),
+    remainingDays: remaining.length,
+  };
+}
+// gir en konkret, handlingsorientert setning for et protein-etterslep - "spis X g ekstra i
+// morgen/i dag" - i stedet for bare å si at hun lå under målet
+function proteinCatchupLine(dateStr, whenWord) {
+  const status = weeklyProteinStatus(dateStr);
+  if (!status || status.deficit <= 10) return null;
+  if (status.remainingDays <= 0) {
+    return `Du endte ${status.deficit} g under proteinmålet for uken totalt.`;
+  }
+  const perDay = Math.ceil(status.deficit / status.remainingDays);
+  const spreadNote = status.remainingDays > 1 ? " (eller fordelt på resten av ukens dager)" : "";
+  return `var du ${status.deficit} g under proteinmålet. Spis ca. ${perDay} g ekstra ${whenWord}${spreadNote} for å nå ukesmålet.`;
+}
+
 function renderMorningReport() {
   const out = document.getElementById("report-output");
   const sleepM = reportMetric("sleepHours");
@@ -7380,7 +7410,8 @@ function renderMorningReport() {
   let nutritionP2;
   let suggestion = null;
   if (proteinGap > 20) {
-    nutritionP2 = "Det er under proteinmålet - i dag bør du prioritere proteinrike valg.";
+    const catchup = proteinCatchupLine(yISO, "i dag");
+    nutritionP2 = catchup ? `I går ${catchup}` : "Det er under proteinmålet - i dag bør du prioritere proteinrike valg.";
     suggestion = n.lunch.options.concat(n.dinner.options).slice().sort((a, b) => b.protein - a.protein)[0];
   } else {
     nutritionP2 = "Bra jobbet med proteinet i går! 🙌";
@@ -7421,7 +7452,10 @@ function renderEveningReport() {
   const todayPlanDay = (DATA.program.week || []).find(d => d.isToday);
 
   const setsToday = loadSetLog().filter(s => s.date === todayStr);
-  const trained = setsToday.length > 0;
+  // en kondisjonsøkt vises aldri som "sett" (vekt×reps) - den telles som gjort via Garmin-matchet
+  // aktivitet (samme logikk som ukeoversikten i Treningsplan bruker), ikke bare set-loggen
+  const resolvedToday = todayPlanDay ? resolvePlanDay(todayPlanDay, loadPlanOverrides()) : null;
+  const trained = (resolvedToday && resolvedToday.done) || setsToday.length > 0;
   let trainingLine;
   if (vacation) {
     trainingLine = "Du er i pause-modus - ingen treningskrav i dag, og det er helt greit.";
@@ -7430,7 +7464,10 @@ function renderEveningReport() {
   } else if (todayPlanDay.sessionType === "rest") {
     trainingLine = "I dag var en hviledag - nyt den.";
   } else if (trained) {
-    trainingLine = `Du logget ${setsToday.length} sett på dagens økt (${todayPlanDay.sessionLabel}). Bra jobba!`;
+    const activity = resolvedToday && resolvedToday.matchedActivity;
+    trainingLine = setsToday.length
+      ? `Du logget ${setsToday.length} sett på dagens økt (${todayPlanDay.sessionLabel}). Bra jobba!`
+      : `Du fullførte dagens økt (${todayPlanDay.sessionLabel}${activity ? `: ${activity.name}${activity.minutes ? `, ${activity.minutes} min` : ""}` : ""}). Bra jobba!`;
   } else {
     trainingLine = `Dagens plan var «${todayPlanDay.sessionLabel}», men du har ikke logget noe ennå i dag - fortsatt tid til å få det inn, eller ta det igjen i morgen.`;
   }
@@ -7451,11 +7488,15 @@ function renderEveningReport() {
       : `Du holdt deg fint innenfor kaloribudsjettet i dag (~${kcalShown} / ${n.dailyKcal} kcal).`;
   }
 
+  const proteinCatchup = proteinCatchupLine(todayStr, "i morgen");
+  const proteinLine = proteinCatchup ? `I dag ${proteinCatchup}` : "";
+
   const logHtml = `
     <div class="report-section">
       <h3>📒 Dagens logg vs. plan</h3>
       <p>${trainingLine}</p>
       <p>${nutritionLine}</p>
+      ${proteinLine ? `<p>${proteinLine}</p>` : ""}
     </div>`;
 
   const prs = prsToday();
