@@ -1854,6 +1854,7 @@ TEMPLATE = r"""<!DOCTYPE html>
     <div id="hjem-weight-reminder"></div>
     <div id="hjem-backup-reminder"></div>
     <div id="hjem-aon-banner"></div>
+    <div id="hjem-protein-pace"></div>
     <div id="hjem-mvd-sunday"></div>
     <div id="hjem-next-week-preview"></div>
     <div id="hjem-freeze-notice"></div>
@@ -2013,6 +2014,12 @@ TEMPLATE = r"""<!DOCTYPE html>
     </div>
 
     <div class="card" id="kosthold-today-card" style="margin-top:14px;"></div>
+
+    <div class="card" id="protein-boost-card" style="margin-top:14px;">
+      <h3 style="margin:0 0 4px;font-size:15px;">⚡ Fyll opp protein</h3>
+      <div class="section-sub" style="margin-bottom:10px;">Raske, høyprotein/lavkalori-valg - ett trykk logger det rett inn i dagens totaler.</div>
+      <div class="extras-presets" id="protein-boost-presets"></div>
+    </div>
 
     <div class="card" id="craving-card" style="margin-top:14px;">
       <h3 style="margin:0 0 4px;font-size:15px;">🍬 Søtsug</h3>
@@ -2778,6 +2785,39 @@ function isEmptyLoggingDay(date) {
   const totals = dayNutritionTotals(date);
   return totals.kcal === 0 && (totals.mealsLogged || []).length === 0 && (totals.extras || []).length === 0;
 }
+// protein-tempo: et rolig hint hvis protein-inntaket ligger tydelig bak der det "burde" vært
+// basert på klokkeslettet - grovt anslag, ikke en presis modell, og vises kun i Fokusmodus
+function proteinPaceGap() {
+  const n = DATA.nutritionPlan;
+  if (!n) return null;
+  const now = new Date();
+  const hour = now.getHours() + now.getMinutes() / 60;
+  const dayStart = 7, dayEnd = 21;
+  if (hour <= dayStart + 1) return null;
+  const elapsedFrac = Math.min(1, (hour - dayStart) / (dayEnd - dayStart));
+  const expected = n.proteinMin * elapsedFrac;
+  const gap = expected - dayNutritionTotals(todayISO()).protein;
+  return gap >= 20 ? Math.round(gap) : null;
+}
+function renderHjemProteinPace() {
+  const el = document.getElementById("hjem-protein-pace");
+  if (!el) return;
+  if (!loadSettings().kostholdFocusMode) { el.innerHTML = ""; return; }
+  const gap = proteinPaceGap();
+  if (gap == null) { el.innerHTML = ""; return; }
+  el.innerHTML = `
+    <div class="hjem-reminder-banner">
+      <span>⚡ Du ligger litt bak protein-tempoet for klokka nå (~${gap} g) - kanskje tid for noe proteinrikt?</span>
+      <div class="hjem-topbar-btns">
+        <button class="hjem-badday-toggle" id="hjem-protein-pace-goto">Gå til Kosthold</button>
+        <button class="hjem-badday-toggle" id="hjem-protein-pace-dismiss">Skjul</button>
+      </div>
+    </div>
+  `;
+  document.getElementById("hjem-protein-pace-goto").addEventListener("click", () => showTab("kosthold"));
+  document.getElementById("hjem-protein-pace-dismiss").addEventListener("click", () => { el.innerHTML = ""; });
+}
+
 function renderHjemAllOrNothing() {
   const el = document.getElementById("hjem-aon-banner");
   if (!el) return;
@@ -3524,7 +3564,16 @@ function renderMealTypeCard(type) {
     const favs = loadFavoriteMeals()[type] || [];
     const planned = plannedMealFor(today, type);
     const scoreOf = x => (x.o.name === planned ? 2 : 0) + (favs.includes(x.o.name) ? 1 : 0);
-    const sorted = allOptions.map((x, i) => ({ x, i })).sort((a, b) => (scoreOf(b.x) - scoreOf(a.x)) || (a.i - b.i)).map(w => w.x);
+    // blant like score (f.eks. ingen er favoritt/planlagt) - vis de mest proteineffektive
+    // rettene først, siden hun vil ha mest mulig protein per kalori i underskudd
+    const proteinDensity = o => (o.protein || 0) / Math.max(1, o.kcal || 1);
+    const sorted = allOptions.map((x, i) => ({ x, i })).sort((a, b) => {
+      const scoreDiff = scoreOf(b.x) - scoreOf(a.x);
+      if (scoreDiff !== 0) return scoreDiff;
+      const densityDiff = proteinDensity(b.x.o) - proteinDensity(a.x.o);
+      if (Math.abs(densityDiff) > 0.0001) return densityDiff;
+      return a.i - b.i;
+    }).map(w => w.x);
     const expanded = kostholdExpandedTypes.has(type);
     const visible = expanded ? sorted : sorted.slice(0, 3);
     const hiddenCount = sorted.length - visible.length;
@@ -3564,6 +3613,17 @@ function renderMealTypeCard(type) {
   </div>`;
 }
 
+// gjør "X g protein igjen" konkret og handlingsorientert i stedet for bare et tall
+function proteinEquivalentNote(gramsNeeded) {
+  const cat = DATA.ingredientCatalog || {};
+  const chickenPer100 = (cat.kyllingfilet || {}).protein100 || 31;
+  const skyrPer100 = (cat.skyr || {}).protein100 || 10;
+  const chickenG = Math.round(gramsNeeded / chickenPer100 * 100);
+  const skyrServings = Math.round((gramsNeeded / (skyrPer100 * 1.5)) * 2) / 2; // ett beger skyr ≈ 150 g
+  const skyrText = skyrServings > 0 ? `${skyrServings} beger skyr` : null;
+  return `Tilsvarer ca. ${chickenG} g kyllingfilet${skyrText ? ` eller ${skyrText}` : ""} for å nå målet.`;
+}
+
 function renderKostholdToday() {
   const n = DATA.nutritionPlan;
   const el = document.getElementById("kosthold-today-card");
@@ -3586,6 +3646,7 @@ function renderKostholdToday() {
   // ikke et varsel. Kun ett steg over normalt teller som "over": en liten margin først.
   const kcalCls = kcalShown <= n.dailyKcal ? "good" : kcalShown <= n.dailyKcal * 1.1 ? "warn" : "over";
   const proteinCls = totals.protein >= n.proteinMin ? "good" : totals.protein >= n.proteinMin * 0.8 ? "warn" : "over";
+  const proteinGap = n.proteinMin - totals.protein;
   el.innerHTML = `
     <h3 style="margin:0 0 10px;font-size:15px;">Dagens oversikt</h3>
     <div class="kcal-row">
@@ -3593,6 +3654,7 @@ function renderKostholdToday() {
       <div class="kcal-chip ${kcalCls}">${remaining >= 0 ? "Igjen av målet" : "Over målet"}<b>${Math.abs(remaining)} kcal</b></div>
       <div class="kcal-chip ${proteinCls}">Protein<b>${totals.protein} / ${n.proteinMin} g</b></div>
     </div>
+    ${proteinGap > 5 ? `<div class="section-sub" style="margin-top:6px;">${proteinEquivalentNote(proteinGap)}</div>` : ""}
     ${totals.fromLifesum ? `<div class="section-sub" style="margin-top:6px;">Hentet fra Lifesum-innføringen din i dag${totals.fat || totals.carbs ? ` · ${totals.fat || 0} g fett · ${totals.carbs || 0} g karbo` : ""}.</div>` : ""}
     <div class="section-sub" style="margin:10px 0 0;">Mål: ${n.dailyKcal} kcal · ${n.proteinMin} g+ protein
       <button class="btn ghost small" id="kosthold-goal-edit-toggle" style="margin-left:6px;">Endre mål</button>
@@ -3840,6 +3902,27 @@ function renderSavedExtraChips() {
   });
 }
 
+// faste, kuraterte høyprotein/lavkalori-snarveier - ikke redigerbare, et eget sett fra
+// "Legg til noe annet" (som er for det hun selv vil lagre) siden formålet her er spesifikt
+// å gjøre det lett å tette et protein-gap sent på dagen
+const PROTEIN_BOOST_PRESETS = [
+  { name: "Skyr (150 g)", kcal: 90, protein: 15 },
+  { name: "Cottage cheese (150 g)", kcal: 147, protein: 17 },
+  { name: "2 kokte egg", kcal: 155, protein: 13 },
+  { name: "Proteinshake", kcal: 150, protein: 25 },
+];
+function renderProteinBoostPresets() {
+  const el = document.getElementById("protein-boost-presets");
+  if (!el) return;
+  el.innerHTML = PROTEIN_BOOST_PRESETS.map((p, i) => `<button class="btn secondary small" data-boost-idx="${i}">+ ${p.name}</button>`).join("");
+  el.querySelectorAll("[data-boost-idx]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const p = PROTEIN_BOOST_PRESETS[parseInt(btn.dataset.boostIdx, 10)];
+      addExtra(p.name, p.kcal, p.protein);
+    });
+  });
+}
+
 function renderExtras() {
   const todays = loadExtras().filter(e => e.date === todayISO()).sort((a, b) => b.id.localeCompare(a.id));
   const totalKcalRaw = todays.reduce((s, e) => s + (e.kcal || 0), 0);
@@ -3981,6 +4064,7 @@ document.getElementById("extra-add").addEventListener("click", () => {
 renderExtras();
 renderLifesumEntry();
 renderCravingToday();
+renderProteinBoostPresets();
 
 // ---------------------------------------------------------------- shared storage helpers
 const WEIGHT_LOG_KEY = "garminDashboardWeightLog_v1";
@@ -6755,6 +6839,7 @@ function renderHjem() {
   renderHjemWeightReminder();
   renderHjemBackupReminder();
   renderHjemAllOrNothing();
+  renderHjemProteinPace();
   renderHjemMvdSunday();
   renderHjemNextWeekPreview();
   renderHjemFreezeNotice();
