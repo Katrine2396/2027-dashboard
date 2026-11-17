@@ -227,6 +227,11 @@ NUTRITION_PLAN = {
                 {"ing": "ris", "amount": 40, "display": "40 g ris (tørrvekt)"},
                 {"text": "karripasta og litt kokosmelk"},
             ], "kcal": 520, "protein": 46},
+            {"name": "Laks med mangochutney og crème fraiche", "mealprep": True, "items": [
+                {"ing": "laksefilet", "amount": 150},
+                {"ing": "ris", "amount": 70, "display": "70 g ris (tørrvekt)"},
+                {"text": "mangochutney og litt crème fraiche"},
+            ], "kcal": 620, "protein": 36},
         ],
     },
 }
@@ -1122,6 +1127,9 @@ TEMPLATE = r"""<!DOCTYPE html>
     color: var(--muted);
   }
   .kcal-chip b { color: var(--ink); font-size: 14px; display: block; }
+  .kcal-chip.good { border-left: 4px solid #7bd88f; }
+  .kcal-chip.warn { border-left: 4px solid #f6c667; }
+  .kcal-chip.over { border-left: 4px solid #e37878; }
 
   .kosthold-meal-card { margin-top: 14px; }
   .kosthold-meal-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 8px; }
@@ -1173,6 +1181,7 @@ TEMPLATE = r"""<!DOCTYPE html>
     padding: 12px 16px; margin-bottom: 8px;
   }
   .plan-meal-day .wd { color: var(--muted); text-transform: uppercase; font-size: 11px; letter-spacing: .04em; margin-bottom: 8px; }
+  .plan-generated-line { font-size: 13px; color: var(--ink); margin-top: 4px; line-height: 1.4; white-space: normal; }
   .plan-meal-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
   .plan-meal-field { display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: var(--muted); min-width: 0; }
   .plan-meal-field select, .plan-next-swap {
@@ -1324,6 +1333,12 @@ TEMPLATE = r"""<!DOCTYPE html>
   .log-list { list-style: none; padding: 0; margin: 10px 0 0; font-size: 13px; }
   .log-list li { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); color: var(--muted); }
   .log-list li b { color: var(--ink); }
+  .craving-comment-input {
+    flex: 1; min-width: 0; width: 100%; box-sizing: border-box;
+    font-family: inherit; font-size: 13px; border: none; background: transparent; color: var(--muted);
+    padding: 2px 0;
+  }
+  .craving-comment-input:focus { color: var(--ink); outline: none; border-bottom: 1px solid var(--line); }
   .log-remove-btn {
     background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px;
     min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center;
@@ -1951,6 +1966,14 @@ TEMPLATE = r"""<!DOCTYPE html>
     <div class="section-sub" style="margin-top:-2px;margin-bottom:10px;">Bytt type økt for en dag med nedtrekksmenyen</div>
     <div class="week-row" id="plan-next-week-training"></div>
 
+    <h3 style="margin:28px 0 4px;font-size:15px;">🪄 Generer ukeplan</h3>
+    <div class="card" id="plan-generator-card">
+      <div class="section-sub" style="margin-bottom:8px;">Setter sammen et forslag til lunsj og middag for hele uken fra dine favorittretter (kjøttdeig, kylling, pasta, ris, fisk av og til) - treffer kalori-/proteinbudsjettet ditt. Ikke ekte AI, bare smarte regler tilpasset deg.</div>
+      <button class="btn ghost small" id="plan-generate-btn">Generer forslag</button>
+      <div id="plan-generated-preview"></div>
+      <div class="badday-saved-msg" id="plan-generator-saved-msg"></div>
+    </div>
+
     <h3 style="margin:28px 0 4px;font-size:15px;">Måltider</h3>
     <div class="section-sub" style="margin-top:-2px;margin-bottom:10px;">Velg hvilken rett som er planen for hver dag - du logger som vanlig i Kosthold når dagen kommer</div>
     <div id="plan-next-week-meals"></div>
@@ -1976,7 +1999,27 @@ TEMPLATE = r"""<!DOCTYPE html>
     <h2>Kosthold</h2>
     <div class="section-sub" id="kosthold-mode-note"></div>
 
+    <div class="card" id="lifesum-entry-card" style="margin-top:14px;">
+      <h3 style="margin:0 0 4px;font-size:15px;">📲 Dagens inntak (fra Lifesum)</h3>
+      <div class="section-sub" style="margin-bottom:10px;">Før inn dagstotalen fra Lifesum her - dette blir fasiten for i dag, så du slipper å logge maten to steder.</div>
+      <div class="log-form">
+        <input type="number" step="10" id="lifesum-kcal" placeholder="Kalorier">
+        <input type="number" step="1" id="lifesum-protein" placeholder="Protein (g)">
+        <input type="number" step="1" id="lifesum-fat" placeholder="Fett (g)">
+        <input type="number" step="1" id="lifesum-carbs" placeholder="Karbohydrater (g)">
+        <button class="btn" id="lifesum-save">Lagre</button>
+      </div>
+      <div class="badday-saved-msg" id="lifesum-saved-msg"></div>
+    </div>
+
     <div class="card" id="kosthold-today-card" style="margin-top:14px;"></div>
+
+    <div class="card" id="craving-card" style="margin-top:14px;">
+      <h3 style="margin:0 0 4px;font-size:15px;">🍬 Søtsug</h3>
+      <div class="section-sub" style="margin-bottom:10px;">Trykk når du kjenner på søtsug - helt greit, bare nyttig å se mønstre over tid.</div>
+      <button class="btn ghost" id="craving-log-btn">Logg søtsug</button>
+      <ul class="log-list" id="craving-list"></ul>
+    </div>
 
     <div id="kosthold-meal-cards"></div>
 
@@ -3229,6 +3272,24 @@ const MEAL_TYPE_LABELS = { breakfast: "Frokost", lunch: "Lunsj", snack: "Mellomm
 // aldri lagret, og aldri lagt på igjen ved ny visning/summering av et allerede margin-justert tall.
 const KCAL_MARGIN = 1.1;
 function withKcalMargin(rawKcal) { return Math.round((rawKcal || 0) * KCAL_MARGIN); }
+
+// dagens inntak ført manuelt fra Lifesum - når denne finnes for en dato, er den fasiten for
+// hvor mye som faktisk er spist den dagen (ikke måltidsloggen/ekstra-loggen), slik at hun
+// slipper å føre maten to steder
+const LIFESUM_LOG_KEY = "garminDashboardLifesumLog_v1";
+function loadLifesumLog() { return loadLS(LIFESUM_LOG_KEY, {}); }
+function saveLifesumLog(l) { saveLS(LIFESUM_LOG_KEY, l); }
+function lifesumEntryFor(date) { return loadLifesumLog()[date] || null; }
+function setLifesumEntry(date, entry) {
+  const l = loadLifesumLog();
+  l[date] = entry;
+  saveLifesumLog(l);
+}
+function clearLifesumEntry(date) {
+  const l = loadLifesumLog();
+  delete l[date];
+  saveLifesumLog(l);
+}
 // planlagt rett per dag+måltidstype (satt i Planlegg-fanen) - definert her, før
 // renderNutrition() sitt første kall lenger ned, siden den leser plannedMealFor()
 // for å vise "📌 Planlagt"-merket
@@ -3343,9 +3404,23 @@ function effectiveMealOption(type, optIdx, opt, date) {
   return { name: opt.name, kcal: Math.round(kcal), protein: Math.round(protein), effectiveItems };
 }
 
-// totals actually eaten on a given date: only meals explicitly logged that day
-// (breakfast included - nothing is assumed eaten until you log it) + anything logged as an "extra"
+// totals actually eaten on a given date. If a Lifesum entry exists for that date, it's the
+// source of truth (she logs the real thing there - no point also totalling meal-log/extras
+// and risking double counting). Otherwise falls back to meals explicitly logged that day
+// (breakfast included - nothing is assumed eaten until you log it) + anything logged as an "extra".
 function dayNutritionTotals(date) {
+  const lifesum = lifesumEntryFor(date);
+  if (lifesum) {
+    return {
+      kcal: lifesum.kcal || 0,
+      protein: lifesum.protein || 0,
+      fat: lifesum.fat || 0,
+      carbs: lifesum.carbs || 0,
+      mealsLogged: [],
+      extras: [],
+      fromLifesum: true,
+    };
+  }
   const meals = loadMealLog().filter(m => m.date === date);
   const extrasForDay = loadExtras().filter(e => e.date === date);
   const extrasKcal = extrasForDay.reduce((s, e) => s + (e.kcal || 0), 0);
@@ -3507,13 +3582,18 @@ function renderKostholdToday() {
   const totals = dayNutritionTotals(todayISO());
   const kcalShown = withKcalMargin(totals.kcal);
   const remaining = n.dailyKcal - kcalShown;
+  // rolig fargekode (samme dempede farger som budsjett-stolpene) - en rask visuell pekepinn,
+  // ikke et varsel. Kun ett steg over normalt teller som "over": en liten margin først.
+  const kcalCls = kcalShown <= n.dailyKcal ? "good" : kcalShown <= n.dailyKcal * 1.1 ? "warn" : "over";
+  const proteinCls = totals.protein >= n.proteinMin ? "good" : totals.protein >= n.proteinMin * 0.8 ? "warn" : "over";
   el.innerHTML = `
     <h3 style="margin:0 0 10px;font-size:15px;">Dagens oversikt</h3>
     <div class="kcal-row">
-      <div class="kcal-chip">Spist<b>~${kcalShown} kcal</b></div>
-      <div class="kcal-chip">${remaining >= 0 ? "Igjen av målet" : "Over målet"}<b>${Math.abs(remaining)} kcal</b></div>
-      <div class="kcal-chip">Protein<b>${totals.protein} / ${n.proteinMin} g</b></div>
+      <div class="kcal-chip ${kcalCls}">Spist<b>~${kcalShown} kcal</b></div>
+      <div class="kcal-chip ${kcalCls}">${remaining >= 0 ? "Igjen av målet" : "Over målet"}<b>${Math.abs(remaining)} kcal</b></div>
+      <div class="kcal-chip ${proteinCls}">Protein<b>${totals.protein} / ${n.proteinMin} g</b></div>
     </div>
+    ${totals.fromLifesum ? `<div class="section-sub" style="margin-top:6px;">Hentet fra Lifesum-innføringen din i dag${totals.fat || totals.carbs ? ` · ${totals.fat || 0} g fett · ${totals.carbs || 0} g karbo` : ""}.</div>` : ""}
     <div class="section-sub" style="margin:10px 0 0;">Mål: ${n.dailyKcal} kcal · ${n.proteinMin} g+ protein
       <button class="btn ghost small" id="kosthold-goal-edit-toggle" style="margin-left:6px;">Endre mål</button>
     </div>
@@ -3798,10 +3878,91 @@ function renderNutritionCoach() {
     tips.push("Du har logget ekstra mat/drikke flere ganger denne uken - helt greit! Husk bare å legge det inn så kaloriringen stemmer.");
   }
 
+  // søtsug-mønster: sammenlign protein på dager med vs. uten loggført søtsug siste 30 dager -
+  // trenger nok data i begge grupper før det sier noe reelt, ikke bare støy
+  const today = todayISO();
+  const windowStart = isoAddDays(today, -30);
+  const cravingDays = Array.from(new Set(loadCravingLog().filter(c => c.date >= windowStart && c.date <= today).map(c => c.date)));
+  const allWindowDays = [];
+  for (let d = windowStart; d <= today; d = isoAddDays(d, 1)) allWindowDays.push(d);
+  const proteinOn = d => dayNutritionTotals(d).protein;
+  const cravingDaysWithData = cravingDays.filter(d => proteinOn(d) > 0);
+  const normalDaysWithData = allWindowDays.filter(d => !cravingDays.includes(d) && proteinOn(d) > 0);
+  if (cravingDaysWithData.length >= 5 && normalDaysWithData.length >= 5) {
+    const avgCraving = cravingDaysWithData.reduce((s, d) => s + proteinOn(d), 0) / cravingDaysWithData.length;
+    const avgNormal = normalDaysWithData.reduce((s, d) => s + proteinOn(d), 0) / normalDaysWithData.length;
+    if (avgNormal > 0 && avgCraving < avgNormal * 0.9) {
+      tips.push(`Du har logget søtsug ${cravingDaysWithData.length} dager siste måned. Disse dagene hadde du i snitt ${Math.round(avgCraving)} g protein, mot ${Math.round(avgNormal)} g på dager uten søtsug - kan være verdt å teste med et ekstra proteinrikt måltid på dager du kjenner på suget.`);
+    }
+  }
+
   if (!tips.length) { card.innerHTML = ""; return; }
   card.innerHTML = `<h3 style="margin:0 0 8px;font-size:15px;">💡 Tips</h3>` +
     tips.map(t => `<div class="section-sub" style="margin:0 0 8px;">${t}</div>`).join("");
 }
+
+// ---- Lifesum dagsinnføring ----
+function renderLifesumEntry() {
+  const kcalInput = document.getElementById("lifesum-kcal");
+  if (!kcalInput) return;
+  const entry = lifesumEntryFor(todayISO());
+  document.getElementById("lifesum-kcal").value = entry ? entry.kcal : "";
+  document.getElementById("lifesum-protein").value = entry && entry.protein != null ? entry.protein : "";
+  document.getElementById("lifesum-fat").value = entry && entry.fat != null ? entry.fat : "";
+  document.getElementById("lifesum-carbs").value = entry && entry.carbs != null ? entry.carbs : "";
+}
+document.getElementById("lifesum-save").addEventListener("click", () => {
+  const kcal = parseInt(document.getElementById("lifesum-kcal").value, 10);
+  if (!kcal) {
+    flashSaved("lifesum-saved-msg", "Fyll inn minst kalorier");
+    return;
+  }
+  const protein = parseInt(document.getElementById("lifesum-protein").value, 10) || 0;
+  const fat = parseInt(document.getElementById("lifesum-fat").value, 10) || 0;
+  const carbs = parseInt(document.getElementById("lifesum-carbs").value, 10) || 0;
+  setLifesumEntry(todayISO(), { kcal, protein, fat, carbs });
+  renderKostholdToday();
+  renderHjemKcalRing();
+  flashSaved("lifesum-saved-msg", "Lagret ✓");
+});
+
+// ---- søtsug-logg ----
+const CRAVING_LOG_KEY = "garminDashboardCravingLog_v1";
+function loadCravingLog() { return loadLS(CRAVING_LOG_KEY, []); }
+function saveCravingLog(l) { saveLS(CRAVING_LOG_KEY, l); }
+function addCraving() {
+  const list = loadCravingLog();
+  list.push({ id: "cr-" + Date.now() + Math.random(), date: todayISO(), time: new Date().toTimeString().slice(0, 5), comment: "" });
+  saveCravingLog(list);
+}
+function updateCravingComment(id, comment) {
+  const list = loadCravingLog();
+  const c = list.find(x => x.id === id);
+  if (c) c.comment = comment;
+  saveCravingLog(list);
+}
+function removeCraving(id) { saveCravingLog(loadCravingLog().filter(x => x.id !== id)); }
+
+function renderCravingToday() {
+  const el = document.getElementById("craving-list");
+  if (!el) return;
+  const todays = loadCravingLog().filter(c => c.date === todayISO()).sort((a, b) => a.time.localeCompare(b.time));
+  el.innerHTML = todays.map(c => `
+    <li data-id="${c.id}">
+      <input type="text" class="craving-comment-input" data-id="${c.id}" value="${c.comment || ""}" placeholder="Kl. ${c.time} - kommentar (valgfritt)">
+      <button class="log-remove-btn" data-craving-remove="${c.id}">✕</button>
+    </li>`).join("") || `<li style="border-top:none;color:var(--muted);">Ingen søtsug logget i dag</li>`;
+  el.querySelectorAll(".craving-comment-input").forEach(inp => {
+    inp.addEventListener("change", () => updateCravingComment(inp.dataset.id, inp.value.trim()));
+  });
+  el.querySelectorAll("[data-craving-remove]").forEach(btn => {
+    btn.addEventListener("click", () => { removeCraving(btn.dataset.cravingRemove); renderCravingToday(); });
+  });
+}
+document.getElementById("craving-log-btn").addEventListener("click", () => {
+  addCraving();
+  renderCravingToday();
+});
 
 document.getElementById("extra-add").addEventListener("click", () => {
   const name = document.getElementById("extra-name").value.trim();
@@ -3818,6 +3979,8 @@ document.getElementById("extra-add").addEventListener("click", () => {
 });
 
 renderExtras();
+renderLifesumEntry();
+renderCravingToday();
 
 // ---------------------------------------------------------------- shared storage helpers
 const WEIGHT_LOG_KEY = "garminDashboardWeightLog_v1";
@@ -5060,6 +5223,68 @@ function renderPlanAgenda() {
   };
 }
 
+// ---- regelbasert ukeplan-generator (ikke ekte AI - se avklaring med henne) ----
+// Hun liker ikke ferske/fryste grønnsaker utover agurk og paprika (tekstlinjer, ikke
+// strukturerte ingredienser, så de påvirker ikke filteret) - filtrer bort retter som bruker
+// brokkoli/søtpotet som strukturert ingrediens.
+const GENERATOR_DISLIKED_ING = new Set(["brokkoli", "sotpotet"]);
+const GENERATOR_FISH_ING = new Set(["laksefilet", "torsk"]);
+function recipeFitsPreferences(opt) {
+  return !(opt.items || []).some(i => i.ing && GENERATOR_DISLIKED_ING.has(i.ing));
+}
+function isFishRecipe(opt) {
+  return (opt.items || []).some(i => i.ing && GENERATOR_FISH_ING.has(i.ing));
+}
+let generatedWeekPlan = null;
+
+function generateWeekMealPlan() {
+  const n = DATA.nutritionPlan;
+  const days = (DATA.program && DATA.program.nextWeek) || [];
+  if (!days.length) return [];
+  const likedLunch = n.lunch.options.filter(recipeFitsPreferences);
+  const likedDinnerAll = n.dinner.options.filter(recipeFitsPreferences);
+  const likedDinnerNonFish = likedDinnerAll.filter(o => !isFishRecipe(o));
+  const likedDinnerFish = likedDinnerAll.filter(isFishRecipe);
+  // fisk "av og til" - én tilfeldig dag i uken, ikke hver runde gjennom katalogen
+  const fishDayIdx = likedDinnerFish.length ? Math.floor(Math.random() * days.length) : -1;
+  return days.map((d, i) => {
+    const lunch = likedLunch.length ? likedLunch[(i + 1) % likedLunch.length] : null;
+    const dinner = (i === fishDayIdx && likedDinnerFish.length)
+      ? likedDinnerFish[0]
+      : (likedDinnerNonFish.length ? likedDinnerNonFish[i % likedDinnerNonFish.length] : null);
+    return { date: d.date, weekday: d.weekday, lunch, dinner };
+  });
+}
+
+function renderPlanGeneratorPreview() {
+  const el = document.getElementById("plan-generated-preview");
+  if (!el) return;
+  if (!generatedWeekPlan || !generatedWeekPlan.length) { el.innerHTML = ""; return; }
+  // egne, normalt ombrytende divs - ikke .meal-items/.meal-item-text, som har white-space:nowrap
+  // laget for korte ingredienslinjer og ville sprengt bredden med en hel setning her
+  const rowsHtml = generatedWeekPlan.map(row => `
+    <div class="plan-meal-day">
+      <div class="wd">${row.weekday} ${fmtShort(row.date)}</div>
+      ${row.lunch ? `<div class="plan-generated-line">🍽️ ${row.lunch.name} (~${withKcalMargin(row.lunch.kcal)} kcal, ${row.lunch.protein} g protein)</div>` : ""}
+      ${row.dinner ? `<div class="plan-generated-line">🍲 ${row.dinner.name} (~${withKcalMargin(row.dinner.kcal)} kcal, ${row.dinner.protein} g protein)</div>` : ""}
+    </div>`).join("");
+  el.innerHTML = rowsHtml + `<button class="btn small" id="plan-generator-apply-btn" style="margin-top:10px;">Legg inn i søndagsplanleggeren</button>`;
+  document.getElementById("plan-generator-apply-btn").addEventListener("click", () => {
+    generatedWeekPlan.forEach(row => {
+      if (row.lunch) setPlannedMeal(row.date, "lunch", row.lunch.name);
+      if (row.dinner) setPlannedMeal(row.date, "dinner", row.dinner.name);
+    });
+    renderPlanNextWeekMeals();
+    generatedWeekPlan = null;
+    renderPlanGeneratorPreview();
+    flashSaved("plan-generator-saved-msg", "Lagt inn i søndagsplanleggeren ✓");
+  });
+}
+document.getElementById("plan-generate-btn").addEventListener("click", () => {
+  generatedWeekPlan = generateWeekMealPlan();
+  renderPlanGeneratorPreview();
+});
+
 function renderPlanlegg() {
   const p = DATA.program;
   const sub = document.getElementById("plan-week-sub");
@@ -5068,6 +5293,7 @@ function renderPlanlegg() {
   }
   renderPlanNextWeekTraining();
   renderPlanNextWeekMeals();
+  renderPlanGeneratorPreview();
   renderMealprepHaveForm();
   renderMealprepSuggestions();
   renderPlanAgenda();
