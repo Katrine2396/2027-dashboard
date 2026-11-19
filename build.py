@@ -1608,16 +1608,9 @@ TEMPLATE = r"""<!DOCTYPE html>
 
   /* ---- tabs ---- */
   .tab-nav {
-    position: sticky;
-    top: 0;
-    z-index: 5;
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    background: var(--bg);
-    padding: calc(14px + env(safe-area-inset-top)) 0 12px;
-    margin-top: -8px;
-    border-bottom: 1px solid var(--line);
+    /* Erstattet av bunn-navigasjonen (.quicklog-bar) - beholdt i DOM (showTab() leser
+       fortsatt .active-state fra knappene her), men vises ikke lenger. */
+    display: none;
   }
   .tab-nav button {
     flex: 0 0 auto;
@@ -1640,10 +1633,15 @@ TEMPLATE = r"""<!DOCTYPE html>
     display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 40px 0 16px; padding-top: 16px;
     border-top: 1px solid var(--line);
   }
-  .quiet-actions-bottom .overwhelm-btn, .quiet-actions-bottom .badday-btn, .quiet-actions-bottom .sickday-btn {
+  .quiet-actions-bottom .support-btn {
     flex: 0 1 auto; margin: 0; font-size: 12px; padding: 7px 14px; min-height: 0;
     color: var(--muted); border-color: var(--line);
   }
+  .support-picker-box {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 12px; margin-top: 10px; display: flex; flex-direction: column; gap: 8px;
+  }
+  .support-picker-box button { text-align: left; }
   .overwhelm-box, .sickday-box {
     background: var(--card); border: 1px solid var(--line); border-radius: 14px;
     padding: 16px; margin-top: 10px; line-height: 1.6; font-size: 14px;
@@ -1864,17 +1862,18 @@ TEMPLATE = r"""<!DOCTYPE html>
 
   .quicklog-bar {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 90;
-    display: flex; justify-content: center; background: var(--card); border-top: 1px solid var(--line);
+    display: flex; justify-content: space-around; background: var(--card); border-top: 1px solid var(--line);
     box-shadow: 0 -2px 10px rgba(122, 31, 61, 0.07);
-    padding: 8px max(8px, env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-right));
+    padding: 6px max(4px, env(safe-area-inset-left)) calc(6px + env(safe-area-inset-bottom)) max(4px, env(safe-area-inset-right));
   }
   .quicklog-bar button {
-    background: none; border: none; color: var(--ink); display: flex;
-    flex-direction: row; align-items: center; gap: 8px; padding: 8px 32px; border-radius: 999px;
-    cursor: pointer; font-family: Nunito, sans-serif; font-weight: 700; font-size: 14px;
+    background: none; border: none; color: var(--muted); display: flex;
+    flex: 1 1 0; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px; border-radius: 12px;
+    cursor: pointer; font-family: Nunito, sans-serif; font-weight: 700; font-size: 11px;
   }
   .quicklog-bar button:active { background: var(--line); }
-  .quicklog-bar .ql-icon { font-size: 18px; }
+  .quicklog-bar button.active { color: var(--accent); }
+  .quicklog-bar .ql-icon { font-size: 20px; }
   .quicklog-drawer {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 91; background: var(--card); color: var(--ink);
     border-top: 1px solid var(--line); border-radius: 16px 16px 0 0; padding: 14px 16px;
@@ -1895,6 +1894,14 @@ TEMPLATE = r"""<!DOCTYPE html>
     font-family: Nunito, sans-serif; background: var(--bg); color: var(--ink); box-sizing: border-box; margin-bottom: 8px;
   }
   .quicklog-drawer .btn { width: 100%; }
+  .more-menu { display: flex; flex-direction: column; gap: 4px; }
+  .more-menu-btn {
+    display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+    background: none; border: none; border-bottom: 1px solid var(--line); color: var(--ink);
+    padding: 14px 4px; font-family: Nunito, sans-serif; font-weight: 700; font-size: 15px; cursor: pointer;
+  }
+  .more-menu-btn:last-child { border-bottom: none; }
+  .more-menu-btn .ql-icon { font-size: 18px; }
 
   @media (max-width: 480px) {
     .hjem-dash { padding: 14px; }
@@ -2520,10 +2527,9 @@ TEMPLATE = r"""<!DOCTYPE html>
   </div>
 
   <div class="quiet-actions-bottom">
-    <button class="btn ghost overwhelm-btn" id="overwhelm-btn">🫧 Jeg er overveldet</button>
-    <button class="btn ghost badday-btn" id="badday-btn">🌱 Minimumsdag</button>
-    <button class="btn ghost sickday-btn" id="sickday-btn">🤕 Merk sykedager</button>
+    <button class="btn ghost support-btn" id="support-btn">🤍 Trenger du noe i dag?</button>
   </div>
+  <div id="support-picker"></div>
   <div id="overwhelm-out"></div>
   <div id="sickday-out"></div>
 
@@ -2541,7 +2547,11 @@ TEMPLATE = r"""<!DOCTYPE html>
   <div id="quicklog-drawer-body"></div>
 </div>
 <nav class="quicklog-bar" id="quicklog-bar">
-  <button data-ql="hjem"><span class="ql-icon">🏠</span><span class="ql-label">Hjem</span></button>
+  <button class="bottomnav-btn" data-tab="hjem"><span class="ql-icon">🏠</span><span class="ql-label">Hjem</span></button>
+  <button class="bottomnav-btn" data-tab="kosthold"><span class="ql-icon">🍽️</span><span class="ql-label">Kosthold</span></button>
+  <button class="bottomnav-btn" data-tab="trening"><span class="ql-icon">🏋️</span><span class="ql-label">Trening</span></button>
+  <button class="bottomnav-btn" data-tab="rapport"><span class="ql-icon">📊</span><span class="ql-label">Rapport</span></button>
+  <button class="bottomnav-btn" id="bottomnav-more"><span class="ql-icon">⋯</span><span class="ql-label">Mer</span></button>
 </nav>
 
 <script>
@@ -2779,15 +2789,16 @@ renderFremgangMeta();
 const ACTIVE_TAB_KEY = "garminDashboardActiveTab_v1";
 function showTab(tab) {
   document.querySelectorAll(".tab-panel").forEach(p => p.classList.toggle("active", p.dataset.tab === tab));
-  document.querySelectorAll("#tab-nav button").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+  document.querySelectorAll("#tab-nav button, .bottomnav-btn[data-tab]").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
   document.body.classList.toggle("tab-is-hjem", tab === "hjem");
   localStorage.setItem(ACTIVE_TAB_KEY, tab);
 }
-document.querySelectorAll("#tab-nav button").forEach(btn => {
-  btn.addEventListener("click", () => {
-    showTab(btn.dataset.tab);
-    if (btn.dataset.tab === "planlegg") renderPlanlegg();
-  });
+function gotoTab(tab) {
+  showTab(tab);
+  if (tab === "planlegg") renderPlanlegg();
+}
+document.querySelectorAll("#tab-nav button, .bottomnav-btn[data-tab]").forEach(btn => {
+  btn.addEventListener("click", () => gotoTab(btn.dataset.tab));
 });
 const rememberedTab = localStorage.getItem(ACTIVE_TAB_KEY);
 const validTabs = Array.from(document.querySelectorAll(".tab-panel")).map(p => p.dataset.tab);
@@ -4884,15 +4895,14 @@ document.getElementById("measure-add").addEventListener("click", () => {
   renderCalorieCalibration();
 });
 
-document.getElementById("overwhelm-btn").addEventListener("click", () => {
+function showOverwhelmBox() {
   const out = document.getElementById("overwhelm-out");
-  if (out.innerHTML) { out.innerHTML = ""; return; }
   out.innerHTML = `<div class="overwhelm-box">
     <b>1. Stopp og pust 🫧</b><br>Pust inn i 4 sekunder, ut i 6. Gjør det fem ganger.<br><br>
     <b>2. Velg bare én ting</b><br>Se på neste punkt på treningsplanen eller handlelista. Alt annet kan vente - det forsvinner ikke.<br><br>
     <b>3. Gjør den i 10 minutter</b><br>Etterpå har du lov til å stoppe. Ofte blir det lettere å fortsette.
   </div>`;
-});
+}
 
 // ---------------------------------------------------------------- sykedager (migrene o.l.)
 function renderSickDayPanel() {
@@ -4932,10 +4942,33 @@ function renderSickDayPanel() {
     });
   });
 }
-document.getElementById("sickday-btn").addEventListener("click", () => {
-  const out = document.getElementById("sickday-out");
-  if (out.innerHTML) { out.innerHTML = ""; return; }
-  renderSickDayPanel();
+
+// ---------------------------------------------------------------- støtte-inngang (samlet)
+// "Trenger du noe i dag?" erstatter tre separate knapper (overveldet/minimumsdag/sykedag)
+// med én inngang - hun velger hva slags dag det er, så ruter vi til riktig eksisterende flyt.
+document.getElementById("support-btn").addEventListener("click", () => {
+  const picker = document.getElementById("support-picker");
+  if (picker.innerHTML) { picker.innerHTML = ""; return; }
+  document.getElementById("overwhelm-out").innerHTML = "";
+  document.getElementById("sickday-out").innerHTML = "";
+  picker.innerHTML = `
+    <div class="support-picker-box">
+      <button class="btn ghost small" id="support-pick-overwhelm">😣 Alt er overveldende akkurat nå</button>
+      <button class="btn ghost small" id="support-pick-minimum">🌱 Bare et minimum i dag</button>
+      <button class="btn ghost small" id="support-pick-sick">🤕 Jeg har vært syk</button>
+    </div>`;
+  document.getElementById("support-pick-overwhelm").addEventListener("click", () => {
+    picker.innerHTML = "";
+    showOverwhelmBox();
+  });
+  document.getElementById("support-pick-minimum").addEventListener("click", () => {
+    picker.innerHTML = "";
+    setBadDayMode(true);
+  });
+  document.getElementById("support-pick-sick").addEventListener("click", () => {
+    picker.innerHTML = "";
+    renderSickDayPanel();
+  });
 });
 
 // ---------------------------------------------------------------- bad day mode
@@ -5076,7 +5109,6 @@ function setBadDayMode(active) {
   }
 }
 
-document.getElementById("badday-btn").addEventListener("click", () => setBadDayMode(true));
 document.getElementById("hjem-badday-toggle").addEventListener("click", () => setBadDayMode(true));
 document.getElementById("badday-exit").addEventListener("click", () => setBadDayMode(false));
 
@@ -7061,6 +7093,29 @@ function renderHjemReminder() {
   });
 }
 
+// Rekkefølgen her er bevisst: mest presserende/dagsaktuelt først, ren "hyggelig å vite"-info
+// sist. arbitrateHjemBanners() viser bare den første som faktisk har noe å si - resten venter
+// til neste besøk, i stedet for at alle stables oppå hverandre.
+const HJEM_BANNER_PRIORITY = [
+  "hjem-unplanned-cardio",
+  "hjem-reminder",
+  "hjem-aon-banner",
+  "hjem-protein-pace",
+  "hjem-weight-reminder",
+  "hjem-freeze-notice",
+  "hjem-backup-reminder",
+  "hjem-monthly-insight-nudge",
+];
+function arbitrateHjemBanners() {
+  let shown = false;
+  HJEM_BANNER_PRIORITY.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el || !el.innerHTML.trim()) return;
+    if (shown) { el.innerHTML = ""; return; }
+    shown = true;
+  });
+}
+
 function renderHjem() {
   renderHjemWhy();
   renderHjemReminder();
@@ -7073,6 +7128,7 @@ function renderHjem() {
   renderHjemNextWeekPreview();
   renderHjemFreezeNotice();
   renderHjemMonthlyInsightNudge();
+  arbitrateHjemBanners();
   renderHjemSocialBudget();
   renderHjemSession();
   renderHjemKcalRing();
@@ -7096,9 +7152,26 @@ function closeQuicklogDrawer() {
 }
 document.getElementById("quicklog-drawer-close").addEventListener("click", closeQuicklogDrawer);
 
-document.querySelectorAll("#quicklog-bar button[data-ql]").forEach(btn => {
-  btn.addEventListener("click", () => {
-    if (btn.dataset.ql === "hjem") showTab("hjem");
+// ---- "Mer"-skuff - de mindre daglig-brukte fanene, samlet bak bunn-navigasjonens 5. knapp
+// i stedet for at alle ni fanene skal med i selve navigasjonsraden ----
+const MORE_TABS = [
+  { tab: "budsjett", icon: "💰", label: "Budsjett" },
+  { tab: "planlegg", icon: "📝", label: "Planlegg" },
+  { tab: "fremgang", icon: "📏", label: "Fremgang" },
+  { tab: "handleliste", icon: "🛒", label: "Handleliste" },
+  { tab: "statistikk", icon: "🏆", label: "Statistikk" },
+  { tab: "innstillinger", icon: "⚙️", label: "Innstillinger" },
+];
+document.getElementById("bottomnav-more").addEventListener("click", () => {
+  const bodyHtml = `<div class="more-menu">${MORE_TABS.map(t => `
+    <button class="more-menu-btn" data-more-tab="${t.tab}"><span class="ql-icon">${t.icon}</span> ${t.label}</button>
+  `).join("")}</div>`;
+  openQuicklogDrawer("Mer", bodyHtml);
+  document.querySelectorAll("[data-more-tab]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      gotoTab(btn.dataset.moreTab);
+      closeQuicklogDrawer();
+    });
   });
 });
 
