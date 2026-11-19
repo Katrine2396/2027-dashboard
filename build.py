@@ -1296,7 +1296,6 @@ TEMPLATE = r"""<!DOCTYPE html>
   .kosthold-meal-card { margin-top: 14px; }
   .kosthold-meal-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 8px; }
   .kosthold-meal-card-head h4 { font-size: 14px; margin: 0; color: var(--ink); }
-  .kosthold-meal-done { font-size: 12px; color: var(--accent); font-weight: 700; }
   .meal-option {
     background: var(--card);
     border-radius: 14px;
@@ -1314,8 +1313,7 @@ TEMPLATE = r"""<!DOCTYPE html>
   .meal-fav-btn.active { color: #d9a441; }
   .meal-row-actions { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
   .meal-items { font-size: 12px; color: var(--muted); margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px 10px; }
-  .meal-item-text { white-space: nowrap; }
-  .meal-item-ing { white-space: nowrap; }
+  .meal-item-text, .meal-item-ing { min-width: 0; max-width: 100%; }
   .meal-item-ing.meal-item-overridden { color: var(--accent); font-weight: 700; }
   .meal-ing-swap-btn, .meal-ing-reset-btn {
     background: none; border: none; color: var(--accent2); cursor: pointer;
@@ -1335,7 +1333,6 @@ TEMPLATE = r"""<!DOCTYPE html>
   .ing-new-form input[type="text"] { width: 140px; }
   .ing-new-form input[type="number"] { width: 90px; }
   .nutrition-note { font-size: 11px; color: var(--muted); margin-top: 14px; font-style: italic; }
-  .meal-option-eaten { border-left: 3px solid var(--accent); }
   .meal-planned-badge { font-size: 11px; color: var(--accent); font-weight: 700; }
 
   .plan-meal-day {
@@ -3704,30 +3701,10 @@ function toggleFavoriteMeal(type, name) {
   saveFavoriteMeals(f);
 }
 
-// siste gang denne måltidstypen ble logget før `beforeDate`, innenfor et rimelig vindu -
-// så "gjenta"-forslaget ikke bare dekker i går, men også "sist jeg spiste dette"
-function mostRecentMealLog(type, beforeDate, lookbackDays) {
-  const cutoff = isoAddDays(beforeDate, -(lookbackDays || 14));
-  const hits = loadMealLog().filter(m => m.type === type && m.date < beforeDate && m.date >= cutoff);
-  hits.sort((a, b) => b.date.localeCompare(a.date));
-  return hits[0] || null;
-}
-
+// Historisk logg fra da måltider kunne merkes "spist" i appen - ikke lenger skrevet til
+// (hun logger alt via Lifesum nå), men dayNutritionTotals() leser den fortsatt som fallback
+// for gamle datoer som ble logget før den endringen.
 function loadMealLog() { return loadLS(MEAL_LOG_KEY, []); }
-function saveMealLog(l) { saveLS(MEAL_LOG_KEY, l); }
-function mealLoggedFor(date, type) { return loadMealLog().find(m => m.date === date && m.type === type) || null; }
-function logMealEaten(type, opt) {
-  const log = loadMealLog().filter(m => !(m.date === todayISO() && m.type === type));
-  log.push({ date: todayISO(), type, name: opt.name, kcal: opt.kcal, protein: opt.protein });
-  saveMealLog(log);
-}
-function unlogMeal(type) {
-  saveMealLog(loadMealLog().filter(m => !(m.date === todayISO() && m.type === type)));
-}
-function isMealEatenToday(type, name) {
-  const m = mealLoggedFor(todayISO(), type);
-  return !!m && m.name === name;
-}
 
 // ---- ingredient catalog (built-in + her own additions) and per-day swap overrides ----
 function loadCustomIngredients() { return loadLS(CUSTOM_INGREDIENTS_KEY, {}); }
@@ -3824,7 +3801,6 @@ let kostholdGoalEditOpen = false;
 
 // kompakt rad for ett måltidsforslag - utvides til ingredienser/bytte bare når "Detaljer" er åpnet
 function mealRowHtml(type, idx, opt, meta, focus) {
-  const eaten = !!meta.eaten;
   const hasItems = (opt.effectiveItems || []).length > 0;
   const detailKey = `${type}:${idx}`;
   const expanded = hasItems && kostholdExpandedDetail === detailKey;
@@ -3867,7 +3843,7 @@ function mealRowHtml(type, idx, opt, meta, focus) {
     detailHtml = `<div class="meal-items">${itemsHtml}</div>${swapFormHtml}`;
   }
 
-  return `<div class="meal-option${eaten ? " meal-option-eaten" : ""}">
+  return `<div class="meal-option">
     <div class="meal-head">
       <button class="meal-fav-btn${isFav ? " active" : ""}" data-fav-type="${type}" data-fav-name="${opt.name}" title="Favoritt">${isFav ? "⭐" : "☆"}</button>
       <b>${opt.name}</b>
@@ -3875,10 +3851,9 @@ function mealRowHtml(type, idx, opt, meta, focus) {
       ${focus ? `<span class="meal-macro">${opt.protein} g protein</span>` : ""}
       ${meta.removeId ? `<button class="meal-option-remove" data-meal-remove="${meta.removeId}">✕</button>` : ""}
     </div>
-    <div class="meal-row-actions">
-      ${hasItems ? `<button class="btn ghost small meal-detail-toggle" data-detail-key="${detailKey}">${expanded ? "Skjul detaljer" : "Detaljer"}</button>` : ""}
-      <button class="btn ${eaten ? "" : "ghost"} small meal-eaten-btn" data-meal-type="${type}" data-meal-idx="${idx}">${eaten ? "✓ Spist" : "Spist ✓"}</button>
-    </div>
+    ${hasItems ? `<div class="meal-row-actions">
+      <button class="btn ghost small meal-detail-toggle" data-detail-key="${detailKey}">${expanded ? "Skjul detaljer" : "Detaljer"}</button>
+    </div>` : ""}
     ${detailHtml}
   </div>`;
 }
@@ -3888,68 +3863,51 @@ function renderMealTypeCard(type) {
   const today = todayISO();
   const group = n[type];
   const focus = loadSettings().kostholdFocusMode;
-  const logged = mealLoggedFor(today, type);
   const custom = loadCustomMeals()[type] || [];
   const allOptions = group.options.map((o, idx) => ({ o, idx, custom: false }))
     .concat(custom.map((o, i) => ({ o, idx: group.options.length + i, custom: true })));
 
-  let bodyHtml;
-  if (logged) {
-    const match = allOptions.find(x => x.o.name === logged.name);
-    const eOpt = match ? effectiveMealOption(type, match.idx, match.o, today)
-      : { name: logged.name, kcal: logged.kcal, protein: logged.protein, effectiveItems: [] };
-    bodyHtml = mealRowHtml(type, match ? match.idx : -1, eOpt,
-      { eaten: true, removeId: (match && match.custom) ? match.o.id : null }, focus)
-      + `<button class="btn ghost small meal-unlog-btn" data-unlog-type="${type}">Ikke dette likevel</button>`;
-  } else {
-    const favs = loadFavoriteMeals()[type] || [];
-    const planned = plannedMealFor(today, type);
-    const scoreOf = x => (x.o.name === planned ? 2 : 0) + (favs.includes(x.o.name) ? 1 : 0);
-    // blant like score (f.eks. ingen er favoritt/planlagt) - vis de mest proteineffektive
-    // rettene først, siden hun vil ha mest mulig protein per kalori i underskudd
-    const proteinDensity = o => (o.protein || 0) / Math.max(1, o.kcal || 1);
-    const sorted = allOptions.map((x, i) => ({ x, i })).sort((a, b) => {
-      const scoreDiff = scoreOf(b.x) - scoreOf(a.x);
-      if (scoreDiff !== 0) return scoreDiff;
-      const densityDiff = proteinDensity(b.x.o) - proteinDensity(a.x.o);
-      if (Math.abs(densityDiff) > 0.0001) return densityDiff;
-      return a.i - b.i;
-    }).map(w => w.x);
-    const expanded = kostholdExpandedTypes.has(type);
-    const visible = expanded ? sorted : sorted.slice(0, 3);
-    const hiddenCount = sorted.length - visible.length;
+  const favs = loadFavoriteMeals()[type] || [];
+  const planned = plannedMealFor(today, type);
+  const scoreOf = x => (x.o.name === planned ? 2 : 0) + (favs.includes(x.o.name) ? 1 : 0);
+  // blant like score (f.eks. ingen er favoritt/planlagt) - vis de mest proteineffektive
+  // rettene først, siden hun vil ha mest mulig protein per kalori i underskudd
+  const proteinDensity = o => (o.protein || 0) / Math.max(1, o.kcal || 1);
+  const sorted = allOptions.map((x, i) => ({ x, i })).sort((a, b) => {
+    const scoreDiff = scoreOf(b.x) - scoreOf(a.x);
+    if (scoreDiff !== 0) return scoreDiff;
+    const densityDiff = proteinDensity(b.x.o) - proteinDensity(a.x.o);
+    if (Math.abs(densityDiff) > 0.0001) return densityDiff;
+    return a.i - b.i;
+  }).map(w => w.x);
+  const expanded = kostholdExpandedTypes.has(type);
+  const visible = expanded ? sorted : sorted.slice(0, 3);
+  const hiddenCount = sorted.length - visible.length;
 
-    const recent = mostRecentMealLog(type, today);
-    const yesterday = isoAddDays(today, -1);
-    const repeatHtml = recent
-      ? `<button class="btn ghost small meal-repeat-btn" data-repeat-type="${type}" style="margin-bottom:8px;">🔁 Gjenta ${recent.name}${recent.date === yesterday ? " fra i går" : ` (sist ${fmtShort(recent.date)})`}</button>`
-      : "";
+  const rowsHtml = visible.map(x => {
+    const eOpt = effectiveMealOption(type, x.idx, x.o, today);
+    eOpt.planned = x.o.name === planned;
+    return mealRowHtml(type, x.idx, eOpt, { removeId: x.custom ? x.o.id : null }, focus);
+  }).join("");
 
-    const rowsHtml = visible.map(x => {
-      const eOpt = effectiveMealOption(type, x.idx, x.o, today);
-      eOpt.planned = x.o.name === planned;
-      return mealRowHtml(type, x.idx, eOpt, { eaten: false, removeId: x.custom ? x.o.id : null }, focus);
-    }).join("");
+  const moreHtml = hiddenCount > 0
+    ? `<button class="btn ghost small kosthold-more-btn" data-more-type="${type}">Vis ${hiddenCount} flere forslag</button>`
+    : (expanded && sorted.length > 3 ? `<button class="btn ghost small kosthold-more-btn" data-more-type="${type}">Vis færre</button>` : "");
 
-    const moreHtml = hiddenCount > 0
-      ? `<button class="btn ghost small kosthold-more-btn" data-more-type="${type}">Vis ${hiddenCount} flere forslag</button>`
-      : (expanded && sorted.length > 3 ? `<button class="btn ghost small kosthold-more-btn" data-more-type="${type}">Vis færre</button>` : "");
+  const newOptFormHtml = kostholdNewOptionOpenType === type ? `
+    <div class="log-form meal-add-form">
+      <input type="text" id="meal-add-name-${type}" placeholder="Navn">
+      <input type="number" step="10" id="meal-add-kcal-${type}" placeholder="kcal">
+      <input type="number" step="1" id="meal-add-protein-${type}" placeholder="protein g">
+      <button class="btn ghost small" data-meal-add="${type}">Legg til</button>
+    </div>` : "";
 
-    const newOptFormHtml = kostholdNewOptionOpenType === type ? `
-      <div class="log-form meal-add-form">
-        <input type="text" id="meal-add-name-${type}" placeholder="Navn">
-        <input type="number" step="10" id="meal-add-kcal-${type}" placeholder="kcal">
-        <input type="number" step="1" id="meal-add-protein-${type}" placeholder="protein g">
-        <button class="btn ghost small" data-meal-add="${type}">Legg til</button>
-      </div>` : "";
-
-    bodyHtml = repeatHtml + rowsHtml + moreHtml
-      + `<button class="btn ghost small kosthold-newopt-toggle" data-newopt-type="${type}">+ Nytt forslag</button>`
-      + newOptFormHtml;
-  }
+  const bodyHtml = rowsHtml + moreHtml
+    + `<button class="btn ghost small kosthold-newopt-toggle" data-newopt-type="${type}">+ Nytt forslag</button>`
+    + newOptFormHtml;
 
   return `<div class="card kosthold-meal-card">
-    <div class="kosthold-meal-card-head"><h4>${group.label}</h4>${logged ? `<span class="kosthold-meal-done">✓ Spist</span>` : ""}</div>
+    <div class="kosthold-meal-card-head"><h4>${group.label}</h4></div>
     ${bodyHtml}
   </div>`;
 }
@@ -4071,39 +4029,6 @@ function renderKostholdMealCards() {
     btn.addEventListener("click", () => {
       kostholdNewOptionOpenType = kostholdNewOptionOpenType === btn.dataset.newoptType ? null : btn.dataset.newoptType;
       renderNutrition();
-    });
-  });
-  el.querySelectorAll(".meal-eaten-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const type = btn.dataset.mealType;
-      const idx = parseInt(btn.dataset.mealIdx, 10);
-      const combinedRaw = n[type].options.concat((loadCustomMeals()[type] || []));
-      const raw = combinedRaw[idx];
-      if (!raw) return;
-      const opt = idx < n[type].options.length ? effectiveMealOption(type, idx, raw, today) : raw;
-      if (isMealEatenToday(type, opt.name)) unlogMeal(type); else logMealEaten(type, opt);
-      renderNutrition();
-      renderNutritionCoach();
-      renderHjemKcalRing();
-    });
-  });
-  el.querySelectorAll(".meal-unlog-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      unlogMeal(btn.dataset.unlogType);
-      renderNutrition();
-      renderNutritionCoach();
-      renderHjemKcalRing();
-    });
-  });
-  el.querySelectorAll(".meal-repeat-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const type = btn.dataset.repeatType;
-      const recent = mostRecentMealLog(type, today);
-      if (!recent) return;
-      logMealEaten(type, recent);
-      renderNutrition();
-      renderNutritionCoach();
-      renderHjemKcalRing();
     });
   });
 
