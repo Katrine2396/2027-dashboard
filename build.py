@@ -231,6 +231,16 @@ NUTRITION_PLAN = {
                 {"ing": "chiafro", "amount": 10},
                 {"ing": "gresk_yoghurt", "amount": 100},
             ], "kcal": 450, "protein": 32},
+            {"name": "Eggerøre med cottage cheese", "items": [
+                {"ing": "egg", "amount": 150, "display": "3 egg"},
+                {"ing": "cottage_cheese", "amount": 50},
+                {"text": "1 skive grovbrød"},
+            ], "kcal": 360, "protein": 28},
+            {"name": "Skyr-bowl med granola (ingen koking)", "items": [
+                {"ing": "skyr", "amount": 200, "display": "200 g høyprotein yoghurt/skyr"},
+                {"ing": "kakaogranola", "amount": 20},
+                {"text": "bringebær"},
+            ], "kcal": 240, "protein": 22},
         ],
     },
     "lunch": {
@@ -247,6 +257,16 @@ NUTRITION_PLAN = {
                 {"ing": "ris", "amount": 60, "display": "60 g ris (tørrvekt)"},
                 {"text": "agurk og paprika"},
             ], "kcal": 430, "protein": 28},
+            {"name": "Kyllingfilet med ris og agurk", "mealprep": True, "items": [
+                {"ing": "kyllingfilet", "amount": 150},
+                {"ing": "ris", "amount": 50, "display": "50 g ris (tørrvekt)"},
+                {"text": "agurk"},
+            ], "kcal": 430, "protein": 50},
+            {"name": "Pasta med kyllingfilet", "mealprep": True, "items": [
+                {"ing": "pasta", "amount": 70, "display": "70 g pasta (tørrvekt)"},
+                {"ing": "kyllingfilet", "amount": 120},
+                {"text": "tomatsaus og litt parmesan"},
+            ], "kcal": 480, "protein": 46},
             {"name": "Kyllingkjøttdeig-taco", "items": [
                 {"ing": "kyllingkjottdeig", "amount": 130},
                 {"text": "2 extra thin tacolefser"},
@@ -289,6 +309,9 @@ NUTRITION_PLAN = {
                 {"ing": "mager_kesam", "amount": 150},
                 {"text": "bringebær"},
             ], "kcal": 110, "protein": 18},
+            {"name": "2 kokte egg", "items": [
+                {"ing": "egg", "amount": 120, "display": "2 egg"},
+            ], "kcal": 190, "protein": 16},
         ],
     },
     "dinner": {
@@ -338,6 +361,16 @@ NUTRITION_PLAN = {
                 {"ing": "ris", "amount": 70, "display": "70 g ris (tørrvekt)"},
                 {"text": "mangochutney og litt crème fraiche"},
             ], "kcal": 620, "protein": 36},
+            {"name": "Kalkunfilet med ris", "mealprep": True, "items": [
+                {"ing": "kalkunfilet", "amount": 150},
+                {"ing": "ris", "amount": 70, "display": "70 g ris (tørrvekt)"},
+                {"text": "agurk og paprika"},
+            ], "kcal": 460, "protein": 48},
+            {"name": "Kyllingfilet-gryte med pasta", "mealprep": True, "items": [
+                {"ing": "kyllingfilet", "amount": 130},
+                {"ing": "pasta", "amount": 60, "display": "60 g pasta (tørrvekt)"},
+                {"text": "tomatsaus og paprika"},
+            ], "kcal": 460, "protein": 47},
         ],
     },
 }
@@ -2160,12 +2193,6 @@ TEMPLATE = r"""<!DOCTYPE html>
 
     <div class="card" id="kosthold-today-card" style="margin-top:14px;"></div>
 
-    <div class="card" id="protein-boost-card" style="margin-top:14px;">
-      <h3 style="margin:0 0 4px;font-size:15px;">⚡ Fyll opp protein</h3>
-      <div class="section-sub" style="margin-bottom:10px;">Raske, høyprotein/lavkalori-valg - ett trykk logger det rett inn i dagens totaler.</div>
-      <div class="extras-presets" id="protein-boost-presets"></div>
-    </div>
-
     <div class="card" id="craving-card" style="margin-top:14px;">
       <h3 style="margin:0 0 4px;font-size:15px;">🍬 Søtsug</h3>
       <div class="section-sub" style="margin-bottom:10px;">Trykk når du kjenner på søtsug - helt greit, bare nyttig å se mønstre over tid.</div>
@@ -2174,24 +2201,6 @@ TEMPLATE = r"""<!DOCTYPE html>
     </div>
 
     <div id="kosthold-meal-cards"></div>
-
-    <div class="card" id="extras-card" style="margin-top:14px;">
-      <h3 style="margin:0 0 4px;font-size:15px;">Legg til noe annet</h3>
-      <div class="section-sub" style="margin-bottom:10px;">Noe utenom planen - en hel lunsj ute, noe ekstra, eller en helt egen rett. Ingen fullstendig matdagbok nødvendig.</div>
-      <div class="extras-presets" id="extras-presets"></div>
-      <div class="log-form">
-        <input type="text" id="extra-name" placeholder="Hva var det?">
-        <input type="number" step="10" id="extra-kcal" placeholder="kcal (valgfritt)">
-        <input type="number" step="1" id="extra-protein" placeholder="protein g (valgfritt)">
-        <button class="btn" id="extra-add">Legg til</button>
-      </div>
-      <label class="settings-toggle-row" style="margin-top:8px;">
-        <input type="checkbox" id="extra-save-later">
-        <span>Lagre til senere, som egen snarvei over</span>
-      </label>
-      <div id="extras-today-total"></div>
-      <ul class="log-list" id="extras-list"></ul>
-    </div>
 
     <div class="card" id="nutrition-coach-card" style="margin-top:14px;"></div>
   </section>
@@ -2972,16 +2981,14 @@ function renderHjemAllOrNothing() {
   if (!triggered) { el.innerHTML = ""; return; }
   el.innerHTML = `
     <div class="hjem-reminder-banner">
-      <span>🌱 Jeg ser at du har hatt noen dager med avvik. Det er helt normalt. Ikke la det stoppe deg. Skal vi gjøre en mini-økt eller bare logge et måltid i dag for å komme i gang igjen?</span>
+      <span>🌱 Jeg ser at du har hatt noen dager med avvik. Det er helt normalt. Ikke la det stoppe deg. Skal vi gjøre en mini-økt i dag for å komme i gang igjen?</span>
       <div class="hjem-topbar-btns">
         <button id="hjem-aon-session">Mini-økt</button>
-        <button id="hjem-aon-meal">Logg et måltid</button>
         <button class="hjem-badday-toggle" id="hjem-aon-dismiss">Skjul</button>
       </div>
     </div>
   `;
   document.getElementById("hjem-aon-session").addEventListener("click", () => showTab("trening"));
-  document.getElementById("hjem-aon-meal").addEventListener("click", openMatDrawer);
   document.getElementById("hjem-aon-dismiss").addEventListener("click", () => { el.innerHTML = ""; });
 }
 
@@ -3821,7 +3828,7 @@ function mealRowHtml(type, idx, opt, meta, focus) {
       <button class="meal-fav-btn${isFav ? " active" : ""}" data-fav-type="${type}" data-fav-name="${opt.name}" title="Favoritt">${isFav ? "⭐" : "☆"}</button>
       <b>${opt.name}</b>
       ${opt.planned ? `<span class="meal-planned-badge">📌 Planlagt</span>` : ""}
-      ${focus ? `<span class="meal-macro">~${withKcalMargin(opt.kcal)} kcal · ${opt.protein} g protein</span>` : ""}
+      ${focus ? `<span class="meal-macro">${opt.protein} g protein</span>` : ""}
       ${meta.removeId ? `<button class="meal-option-remove" data-meal-remove="${meta.removeId}">✕</button>` : ""}
     </div>
     <div class="meal-row-actions">
@@ -4162,71 +4169,25 @@ function addExtra(name, kcal, protein) {
   renderHjemKcalRing();
 }
 
-const SAVED_EXTRAS_KEY = "garminDashboardSavedExtras_v1";
-function loadSavedExtras() {
-  return loadLS(SAVED_EXTRAS_KEY, [
-    { id: "preset-sjokolade", name: "Sjokolade", kcal: 250, protein: null },
-    { id: "preset-glassvin", name: "Glass vin", kcal: 120, protein: null },
-    { id: "preset-ol", name: "Øl", kcal: 150, protein: null },
-  ]);
-}
-function saveSavedExtras(l) { saveLS(SAVED_EXTRAS_KEY, l); }
-function addSavedExtra(name, kcal, protein) {
-  const list = loadSavedExtras();
-  if (list.some(i => i.name.toLowerCase() === name.toLowerCase())) return;
-  list.push({ id: "saved-" + Date.now() + Math.random(), name, kcal: kcal || null, protein: protein || null });
-  saveSavedExtras(list);
-}
-function removeSavedExtra(id) { saveSavedExtras(loadSavedExtras().filter(i => i.id !== id)); }
 
-function renderSavedExtraChips() {
-  const el = document.getElementById("extras-presets");
-  if (!el) return;
-  const saved = loadSavedExtras();
-  el.innerHTML = saved.map(i => `<button class="btn secondary small" data-saved-extra="${i.id}">+ ${i.name}</button>`).join("");
-  el.querySelectorAll("[data-saved-extra]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const item = loadSavedExtras().find(i => i.id === btn.dataset.savedExtra);
-      if (item) addExtra(item.name, item.kcal, item.protein);
-    });
-  });
-}
-
-// faste, kuraterte høyprotein/lavkalori-snarveier - ikke redigerbare, et eget sett fra
-// "Legg til noe annet" (som er for det hun selv vil lagre) siden formålet her er spesifikt
-// å gjøre det lett å tette et protein-gap sent på dagen
-const PROTEIN_BOOST_PRESETS = [
-  { name: "Skyr (150 g)", kcal: 90, protein: 15 },
-  { name: "Cottage cheese (150 g)", kcal: 147, protein: 17 },
-  { name: "2 kokte egg", kcal: 155, protein: 13 },
-  { name: "Proteinshake", kcal: 150, protein: 25 },
-];
-function renderProteinBoostPresets() {
-  const el = document.getElementById("protein-boost-presets");
-  if (!el) return;
-  el.innerHTML = PROTEIN_BOOST_PRESETS.map((p, i) => `<button class="btn secondary small" data-boost-idx="${i}">+ ${p.name}</button>`).join("");
-  el.querySelectorAll("[data-boost-idx]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const p = PROTEIN_BOOST_PRESETS[parseInt(btn.dataset.boostIdx, 10)];
-      addExtra(p.name, p.kcal, p.protein);
-    });
-  });
-}
-
+// "Legg til noe annet" og "Fyll opp protein" er fjernet fra Kosthold (hun bruker kun Lifesum
+// for logging nå) - men addExtra()/loadExtras() lever videre, siden Hjem sin egen
+// "+ Logg måltid"-skuff fortsatt bruker dem, og dayNutritionTotals() faller fortsatt tilbake
+// til dem for dager uten en Lifesum-innføring. renderExtras() no-opper trygt uten UI-en.
 function renderExtras() {
+  const totalEl = document.getElementById("extras-today-total");
+  if (!totalEl) return;
   const todays = loadExtras().filter(e => e.date === todayISO()).sort((a, b) => b.id.localeCompare(a.id));
   const totalKcalRaw = todays.reduce((s, e) => s + (e.kcal || 0), 0);
   const totalProtein = todays.reduce((s, e) => s + (e.protein || 0), 0);
   const focus = loadSettings().kostholdFocusMode;
-  document.getElementById("extras-today-total").innerHTML = (todays.length && focus)
+  totalEl.innerHTML = (todays.length && focus)
     ? `<div class="section-sub" style="margin:4px 0 10px;">I dag: <b>~${withKcalMargin(totalKcalRaw)} kcal</b>${totalProtein ? ` · ${totalProtein} g protein` : ""} utenom planen</div>`
     : "";
   document.getElementById("extras-list").innerHTML = todays.map(e => `
     <li data-id="${e.id}"><span>${e.name}${focus && e.kcal ? ` · ~${withKcalMargin(e.kcal)} kcal` : ""}${focus && e.protein ? ` · ${e.protein} g protein` : ""}</span>
       <button class="log-remove-btn" data-extra-remove="${e.id}">✕</button>
     </li>`).join("") || `<li style="border-top:none;color:var(--muted);">Ingenting logget i dag</li>`;
-
-  renderSavedExtraChips();
 
   document.querySelectorAll("#extras-list button[data-extra-remove]").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -4337,24 +4298,9 @@ document.getElementById("craving-log-btn").addEventListener("click", () => {
   renderCravingToday();
 });
 
-document.getElementById("extra-add").addEventListener("click", () => {
-  const name = document.getElementById("extra-name").value.trim();
-  if (!name) return;
-  const kcal = parseInt(document.getElementById("extra-kcal").value, 10) || null;
-  const protein = parseInt(document.getElementById("extra-protein").value, 10) || null;
-  const saveLater = document.getElementById("extra-save-later").checked;
-  addExtra(name, kcal, protein);
-  if (saveLater) { addSavedExtra(name, kcal, protein); renderSavedExtraChips(); }
-  document.getElementById("extra-name").value = "";
-  document.getElementById("extra-kcal").value = "";
-  document.getElementById("extra-protein").value = "";
-  document.getElementById("extra-save-later").checked = false;
-});
-
 renderExtras();
 renderLifesumEntry();
 renderCravingToday();
-renderProteinBoostPresets();
 
 // ---------------------------------------------------------------- shared storage helpers
 const WEIGHT_LOG_KEY = "garminDashboardWeightLog_v1";
@@ -6890,9 +6836,7 @@ function renderHjemKcalRing() {
       <div class="hnq-macro">${totals.protein} / ${n.proteinMin} g protein</div>
       ${balanceHtml}
     </div>
-    <button id="hjem-logg-maltid-btn">+ Logg måltid</button>
   `;
-  document.getElementById("hjem-logg-maltid-btn").addEventListener("click", openMatDrawer);
 }
 
 function quickSaveToCategory(category, amount, name) {
@@ -7156,48 +7100,6 @@ function closeQuicklogDrawer() {
   document.getElementById("quicklog-drawer").classList.remove("open");
 }
 document.getElementById("quicklog-drawer-close").addEventListener("click", closeQuicklogDrawer);
-
-// Logs the extra, then - instead of just closing - offers a non-judgmental "what's next"
-// choice if today ended up over the kcal goal, rather than a silent/implicit "you failed".
-function logExtraWithNudge(name, kcal) {
-  addExtra(name, kcal);
-  renderHjemKcalRing();
-  const totals = dayNutritionTotals(todayISO());
-  if (withKcalMargin(totals.kcal) <= DATA.nutritionPlan.dailyKcal) { closeQuicklogDrawer(); return; }
-  document.getElementById("quicklog-drawer-body").innerHTML = `
-    <div style="font-size:14px;line-height:1.5;margin-bottom:10px;">Logget. Neste valg: vil du ha en lett middag for å balansere, eller kjøre på som normalt?</div>
-    <div class="ql-presets">
-      <button id="ql-aon-light">🥗 Lett middag</button>
-      <button id="ql-aon-normal">👍 Som normalt</button>
-    </div>
-  `;
-  document.getElementById("ql-aon-light").addEventListener("click", () => { closeQuicklogDrawer(); showTab("kosthold"); });
-  document.getElementById("ql-aon-normal").addEventListener("click", closeQuicklogDrawer);
-}
-
-function openMatDrawer() {
-  openQuicklogDrawer("Logg mat/drikke", `
-    <div class="ql-presets">
-      <button data-extra-preset="Sjokolade" data-extra-kcal="250">🍫 Sjokolade</button>
-      <button data-extra-preset="Glass vin" data-extra-kcal="120">🍷 Glass vin</button>
-      <button data-extra-preset="Øl" data-extra-kcal="150">🍺 Øl</button>
-    </div>
-    <input type="text" id="ql-mat-name" placeholder="Navn">
-    <input type="number" id="ql-mat-kcal" placeholder="kcal (valgfritt)">
-    <button class="btn" id="ql-mat-save">Lagre</button>
-  `);
-  document.querySelectorAll("#quicklog-drawer-body [data-extra-preset]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      logExtraWithNudge(btn.dataset.extraPreset, parseInt(btn.dataset.extraKcal, 10));
-    });
-  });
-  document.getElementById("ql-mat-save").addEventListener("click", () => {
-    const name = document.getElementById("ql-mat-name").value.trim();
-    if (!name) return;
-    const kcal = parseInt(document.getElementById("ql-mat-kcal").value, 10) || null;
-    logExtraWithNudge(name, kcal);
-  });
-}
 
 document.querySelectorAll("#quicklog-bar button[data-ql]").forEach(btn => {
   btn.addEventListener("click", () => {
