@@ -2466,6 +2466,21 @@ TEMPLATE = r"""<!DOCTYPE html>
       </label>
     </div>
 
+    <div class="card" id="push-settings-card">
+      <h3 style="margin:0 0 4px;font-size:15px;">🔔 Varsler</h3>
+      <div class="section-sub" style="margin-bottom:10px;">Push-varsler rett på telefonen: kveldsrapport klar, skritt-tempo, påminnelse om å føre inn Lifesum-tallene, og søndagsplanlegging. På iPhone må siden først legges til på Hjem-skjermen (Del-knappen i Safari → "Legg til på Hjem-skjermen") - åpne appen derfra og kom tilbake hit.</div>
+      <div id="push-unsupported-msg" class="section-sub" style="display:none;color:#a15b5b;"></div>
+      <div id="push-setup-area">
+        <button class="btn secondary small" id="push-enable-btn">Aktiver varsler</button>
+      </div>
+      <div id="push-status" class="section-sub" style="margin:8px 0 0;"></div>
+      <div id="push-subscription-area" style="display:none;">
+        <div class="section-sub" style="margin:8px 0 4px;">Varsler er aktivert på denne telefonen. Kopier teksten under og send den til meg, så kobler jeg den til - det gjøres kun én gang.</div>
+        <textarea id="push-subscription-text" readonly style="width:100%;min-height:90px;font-size:11px;font-family:monospace;box-sizing:border-box;"></textarea>
+        <button class="btn ghost small" id="push-copy-btn">Kopier</button>
+      </div>
+    </div>
+
     <div class="card" id="mvd-settings-card">
       <h3 style="margin:0 0 4px;font-size:15px;">Minimum Viable Day (MVD)</h3>
       <div class="section-sub" style="margin-bottom:10px;">De tre tersklene som teller som en fullført minimumsdag - vises på Minimumsdag-knappen og automatisk på søndager.</div>
@@ -8015,6 +8030,95 @@ document.getElementById("backup-import-file").addEventListener("change", (e) => 
   };
   reader.readAsText(file);
 });
+
+const VAPID_PUBLIC_KEY = "BIGWkavhmM-_3-ZKCKfvkvZT_vsnY09jFmW64MdACKPmW1Q53yOH-WwrMuACiYkaBKzEZWcvkvlpwj_b_2Bm5IA";
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+function setPushStatus(msg) {
+  const el = document.getElementById("push-status");
+  if (el) el.textContent = msg;
+}
+
+function showPushSubscription(subscription) {
+  const area = document.getElementById("push-subscription-area");
+  const textEl = document.getElementById("push-subscription-text");
+  if (!area || !textEl) return;
+  textEl.value = JSON.stringify(subscription.toJSON ? subscription.toJSON() : subscription);
+  area.style.display = "";
+}
+
+async function initPushUi() {
+  const unsupportedEl = document.getElementById("push-unsupported-msg");
+  const setupArea = document.getElementById("push-setup-area");
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+    if (unsupportedEl) {
+      unsupportedEl.style.display = "";
+      unsupportedEl.textContent = "Denne nettleseren støtter ikke push-varsler. På iPhone: åpne siden i Safari, legg den til på Hjem-skjermen, og åpne den derfra.";
+    }
+    if (setupArea) setupArea.style.display = "none";
+    return;
+  }
+  try {
+    const reg = await navigator.serviceWorker.register("sw.js");
+    const existing = await reg.pushManager.getSubscription();
+    if (existing) {
+      setPushStatus("Varsler er aktivert på denne telefonen.");
+      showPushSubscription(existing);
+    }
+  } catch (err) {
+    setPushStatus("Kunne ikke sette opp varsler: " + err.message);
+  }
+}
+initPushUi();
+
+const pushEnableBtn = document.getElementById("push-enable-btn");
+if (pushEnableBtn) {
+  pushEnableBtn.addEventListener("click", async () => {
+    setPushStatus("Setter opp varsler...");
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        setPushStatus("Du må tillate varsler for at dette skal funke.");
+        return;
+      }
+      const reg = await navigator.serviceWorker.ready;
+      let subscription = await reg.pushManager.getSubscription();
+      if (!subscription) {
+        subscription = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        });
+      }
+      setPushStatus("Varsler er aktivert på denne telefonen.");
+      showPushSubscription(subscription);
+    } catch (err) {
+      setPushStatus("Noe gikk feil: " + err.message);
+    }
+  });
+}
+
+const pushCopyBtn = document.getElementById("push-copy-btn");
+if (pushCopyBtn) {
+  pushCopyBtn.addEventListener("click", async () => {
+    const textEl = document.getElementById("push-subscription-text");
+    if (!textEl) return;
+    try {
+      await navigator.clipboard.writeText(textEl.value);
+      setPushStatus("Kopiert! Send den til meg.");
+    } catch (err) {
+      textEl.select();
+      setPushStatus("Marker teksten over og kopier manuelt.");
+    }
+  });
+}
 
 document.getElementById("footer-generated").textContent = `Generated ${new Date(DATA.meta.generated).toLocaleString()}`;
 

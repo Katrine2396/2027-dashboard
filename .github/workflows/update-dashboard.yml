@@ -46,6 +46,14 @@ jobs:
       - name: Build dashboard
         run: python3 build.py
 
+      - name: Send push notifications
+        env:
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          PUSH_SUBSCRIPTION: ${{ secrets.PUSH_SUBSCRIPTION }}
+        run: |
+          pip install --quiet pywebpush
+          python3 send_notifications.py
+
       - name: Commit and push if changed
         run: |
           git config user.name "github-actions[bot]"

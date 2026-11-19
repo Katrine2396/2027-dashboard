@@ -2,6 +2,7 @@
   "name": "Katrine 2027",
   "short_name": "Katrine 2027",
   "start_url": "./dashboard.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#fff6f8",
   "theme_color": "#7a1f3d",
