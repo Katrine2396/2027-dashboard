@@ -110,18 +110,18 @@ def main():
                 )
             mark_sent("steps_pace")
 
-    # Evening report ready.
-    if now.hour == 20 and not already_sent("evening_report"):
-        send("Kveldsrapporten er klar", "Se hvordan dagen gikk og hva som venter i morgen.")
-        mark_sent("evening_report")
-
-    # Lifesum reminder, a bit later.
-    if now.hour == 21 and not already_sent("lifesum_reminder"):
+    # Lifesum reminder.
+    if now.hour == 20 and not already_sent("lifesum_reminder"):
         send(
             "Husk å føre inn Lifesum-tallene",
             "Legg inn dagens kalorier, protein, fett og karbohydrater i Kosthold.",
         )
         mark_sent("lifesum_reminder")
+
+    # Evening report ready, a bit later.
+    if now.hour == 21 and not already_sent("evening_report"):
+        send("Kveldsrapporten er klar", "Se hvordan dagen gikk og hva som venter i morgen.")
+        mark_sent("evening_report")
 
     # Sunday planning, Sundays only.
     if now.weekday() == 6 and now.hour == 16 and not already_sent("sunday_planning"):
