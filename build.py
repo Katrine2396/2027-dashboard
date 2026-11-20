@@ -204,22 +204,19 @@ GLUTE_TECHNIQUE_CUES = [
     "Kjenner du det ikke i rumpa: senk vekta",
 ]
 
-# ---- daglig rutine (kne/hofte/bekken/nakke, ~12-15 min) - separat fra treningsplanen,
-# vist som egen sjekkliste på Hjem. Krysses av dag for dag (nullstilles automatisk hver
-# dag siden loggen er nøkklet på dato), ikke koblet til sett-logg/PR-systemet.
+# ---- daglig rutine (kne/hofte-bekken-mobilisering/nakke, ~8-10 min) - separat fra
+# treningsplanen, vist som egen sjekkliste på Hjem. Bare mobilisering/tøying for hofte og
+# bekken her (ingen rumpestyrke - det dekkes av selve treningsplanen), og kun 2 nakkeøvelser.
+# Krysses av dag for dag (nullstilles automatisk hver dag siden loggen er nøkklet på dato),
+# ikke koblet til sett-logg/PR-systemet.
 DAILY_ROUTINE_ITEMS = [
     {"key": "quadSet", "group": "Kne", "label": "Quad-set med håndkle under kneet 2×10 (5 sek hold)"},
     {"key": "helSklie", "group": "Kne", "label": "Hælsklie på ryggen 2×10"},
-    {"key": "bekkentilt", "group": "Hofte, bekken og rumpe", "label": "Bekkentilt på ryggen 10 rep"},
-    {"key": "gluteBridgeDaily", "group": "Hofte, bekken og rumpe", "label": "Glute bridge 2×12"},
-    {"key": "clamshellDaily", "group": "Hofte, bekken og rumpe", "label": "Clamshell med strikk 2×15/side"},
-    {"key": "hoftebøyerstrekk", "group": "Hofte, bekken og rumpe", "label": "Hoftebøyerstrekk i halv knestående 2×30 sek/side (klem rumpa)"},
-    {"key": "figur4", "group": "Hofte, bekken og rumpe", "label": "Liggende figur 4-tøy 2×30 sek/side"},
+    {"key": "bekkentilt", "group": "Hofte og bekken", "label": "Bekkentilt på ryggen 10 rep"},
+    {"key": "hoftebøyerstrekk", "group": "Hofte og bekken", "label": "Hoftebøyerstrekk i halv knestående 2×30 sek/side"},
+    {"key": "figur4", "group": "Hofte og bekken", "label": "Liggende figur 4-tøy 2×30 sek/side"},
     {"key": "haketrekk", "group": "Nakke", "label": "Haketrekk liggende på ryggen 10×5 sek"},
-    {"key": "nakkeekstensjon", "group": "Nakke", "label": "Nakkeekstensjon på alle fire - haken inne, se ned, løft hodet rolig til nøytral 2×10"},
-    {"key": "isoNakke", "group": "Nakke", "label": "Isometrisk nakkeekstensjon - hendene bak hodet, press bakover uten bevegelse 5×10 sek"},
     {"key": "yT", "group": "Nakke", "label": "Liggende Y- og T-løft på magen 2×10 hver"},
-    {"key": "bandPullapart", "group": "Nakke", "label": "Band pull-apart med strikk 2×15"},
 ]
 # Built-in ingredient catalog: kcal/protein per 100g, used for the "bytt ingrediens" feature
 # in the meal plan. Values are standard reference estimates (±10%, same spirit as the rest
@@ -8020,7 +8017,7 @@ function renderHjemDailyRoutine() {
   `).join("");
   el.innerHTML = `
     <h3 style="margin:0 0 4px;font-size:15px;">📋 Daglig rutine (kne/hofte/nakke)</h3>
-    <div class="section-sub" style="margin-bottom:8px;">Ca. 12-15 min · ${doneCount}/${items.length} gjort i dag</div>
+    <div class="section-sub" style="margin-bottom:8px;">Ca. 8-10 min · ${doneCount}/${items.length} gjort i dag</div>
     <div class="daily-routine-groups">${groupsHtml}</div>
   `;
   el.querySelectorAll("[data-routine-key]").forEach(cb => {
