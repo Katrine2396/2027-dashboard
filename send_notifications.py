@@ -2,8 +2,9 @@
 Sends Web Push notifications based on data already pulled into data/daily_summaries.json.
 Runs after pull.py in the GitHub Actions workflow, every ~30 min. Needs:
   - the `pywebpush` package (installed by the workflow, not required for local dev)
-  - two repo secrets: VAPID_PRIVATE_KEY (PEM) and PUSH_SUBSCRIPTION (JSON, copied from
-    the dashboard's Innstillinger tab after enabling varsler on the phone)
+  - two repo secrets: VAPID_PRIVATE_KEY (raw base64url private key, not a PEM file)
+    and PUSH_SUBSCRIPTION (JSON, copied from the dashboard's Innstillinger tab after
+    enabling varsler on the phone)
 If those secrets aren't set yet, this script does nothing (no error).
 """
 import json
@@ -110,15 +111,20 @@ def main():
                 )
             mark_sent("steps_pace")
 
-    # Lifesum reminder.
-    if now.hour == 20 and not already_sent("lifesum_reminder"):
+    # Daily routine reminder (kne/hofte/nakke) - early evening.
+    if now.hour == 20 and now.minute < 30 and not already_sent("daily_routine"):
+        send("Daglig rutine", "Tid for kne-/hofte-/nakkerutinen (ca. 12-15 min).")
+        mark_sent("daily_routine")
+
+    # Lifesum reminder, a bit later.
+    if now.hour == 20 and now.minute >= 30 and not already_sent("lifesum_reminder"):
         send(
             "Husk å føre inn Lifesum-tallene",
             "Legg inn dagens kalorier, protein, fett og karbohydrater i Kosthold.",
         )
         mark_sent("lifesum_reminder")
 
-    # Evening report ready, a bit later.
+    # Evening report ready.
     if now.hour == 21 and not already_sent("evening_report"):
         send("Kveldsrapporten er klar", "Se hvordan dagen gikk og hva som venter i morgen.")
         mark_sent("evening_report")
