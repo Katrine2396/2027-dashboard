@@ -6,7 +6,12 @@ on:
     # the most likely times for a scheduled run to be delayed or dropped entirely) -
     # offset to :07/:37 instead, still effectively every 30 min.
     - cron: "7,37 * * * *"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      test_notification:
+        description: "Send a test push notification immediately (ignores the usual time windows)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -50,6 +55,7 @@ jobs:
         env:
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
           PUSH_SUBSCRIPTION: ${{ secrets.PUSH_SUBSCRIPTION }}
+          TEST_NOTIFICATION: ${{ github.event.inputs.test_notification }}
         run: |
           pip install --quiet pywebpush
           python3 send_notifications.py

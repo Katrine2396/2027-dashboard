@@ -78,6 +78,10 @@ def main():
         print("Push notifications not set up yet (secrets missing) - skipping.")
         return
 
+    if os.environ.get("TEST_NOTIFICATION") == "true":
+        send("Testvarsel", "Varsler fungerer! \U0001F389")
+        return
+
     now = datetime.now(OSLO)
     today_key = now.strftime("%Y-%m-%d")
     state = load_state()
