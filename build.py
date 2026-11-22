@@ -7601,6 +7601,64 @@ function renderEveningReport() {
   `;
 }
 
+// Finner sammenhenger på tvers av data hun ikke nødvendigvis ser selv - restitusjonsgjeld
+// (HRV/hvilepuls/søvn samtidig dårligere enn vanlig, som ofte er "derfor jeg er sliten") og
+// om proteinmålet faktisk er oppnåelig gitt hvor proteintett maten har vært i perioden, ikke
+// bare "du lå under målet". Delt mellom ukens og månedens innsikt.
+function buildDeepPatterns(startDate, endDate, periodWord) {
+  const findings = [];
+  const history = (DATA.dailyHistory || []).filter(d => d.date >= startDate && d.date <= endDate && !isSickDay(d.date));
+  const baselineStart = isoAddDays(startDate, -60);
+  const baselineEnd = isoAddDays(startDate, -1);
+  const baseline = (DATA.dailyHistory || []).filter(d => d.date >= baselineStart && d.date <= baselineEnd && !isSickDay(d.date));
+
+  function avg(arr, key) {
+    const vals = arr.map(d => d[key]).filter(v => v != null);
+    return vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : null;
+  }
+
+  // ---- restitusjonsgjeld: HRV ned + hvilepuls opp + søvn ned samtidig, sammenlignet med
+  // de siste 60 dagene før perioden - minst to av tre signaler må slå til ----
+  const hrvNow = avg(history, "hrv"), hrvBase = avg(baseline, "hrv");
+  const rhrNow = avg(history, "restingHR"), rhrBase = avg(baseline, "restingHR");
+  const sleepNow = avg(history, "sleepHours"), sleepBase = avg(baseline, "sleepHours");
+  if (hrvNow != null && hrvBase != null && rhrNow != null && rhrBase != null && sleepNow != null && sleepBase != null) {
+    const hrvDown = hrvBase > 0 && (hrvBase - hrvNow) / hrvBase >= 0.08;
+    const rhrUp = rhrNow - rhrBase >= 2;
+    const sleepDown = sleepBase - sleepNow >= 0.5;
+    const bits = [];
+    if (hrvDown) bits.push(`HRV ${Math.round(hrvNow)} ms (vanligvis ${Math.round(hrvBase)})`);
+    if (rhrUp) bits.push(`hvilepuls ${Math.round(rhrNow)} (vanligvis ${Math.round(rhrBase)})`);
+    if (sleepDown) bits.push(`søvn ${sleepNow.toFixed(1)} t (vanligvis ${sleepBase.toFixed(1)} t)`);
+    if (bits.length >= 2) {
+      findings.push(`Kroppen din signaliserer restitusjonsgjeld ${periodWord}: ${bits.join(", ")}. Det er trolig derfor du kjenner deg sliten - ikke fordi du ikke gjør nok, men fordi kroppen bruker energien på å ta igjen, ikke bygge.`);
+    }
+  }
+
+  // ---- protein-gjennomførbarhet: er målet realistisk gitt hvor proteintett maten faktisk
+  // har vært, uttrykt som g protein per 100 kcal (samme mål som sorteringen i Måltidsbiblioteket
+  // bruker) - i stedet for bare å gjenta at hun lå under målet ----
+  const n = DATA.nutritionPlan;
+  const loggedDays = history.filter(d => {
+    const t = dayNutritionTotals(d.date);
+    return t.fromLifesum || t.mealsLogged.length || t.extras.length;
+  });
+  if (n && loggedDays.length >= 3) {
+    const totalKcal = loggedDays.reduce((s, d) => s + dayNutritionTotals(d.date).kcal, 0);
+    const totalProtein = loggedDays.reduce((s, d) => s + dayNutritionTotals(d.date).protein, 0);
+    const actualDensity = totalKcal > 0 ? totalProtein / totalKcal : 0;
+    const requiredDensity = n.dailyKcal > 0 ? n.proteinMin / n.dailyKcal : 0;
+    if (actualDensity > 0 && requiredDensity > 0 && actualDensity < requiredDensity * 0.85) {
+      const avgProtein = Math.round(totalProtein / loggedDays.length);
+      const neededPer100 = (requiredDensity * 100).toFixed(1);
+      const actualPer100 = (actualDensity * 100).toFixed(1);
+      findings.push(`Du traff i snitt ${avgProtein} g protein ${periodWord} - under målet på ${n.proteinMin} g. Trolig hvorfor: for å nå ${n.proteinMin} g protein innenfor ${n.dailyKcal} kcal trenger du ca. ${neededPer100} g protein per 100 kcal du spiser - maten din har i snitt ligget på ${actualPer100} g per 100 kcal. Det er ikke at du ikke prøver nok - målet krever at nesten alt du spiser er proteinrikt, ikke bare ett måltid. Måltidsbiblioteket sorterer forslagene etter nettopp denne tettheten.`);
+    }
+  }
+
+  return findings;
+}
+
 // Bygger "fortsett med" / "bli bedre på" for et datointervall - delt mellom ukens og
 // månedens innsikt siden de vurderer de samme fire områdene (trening, protein/kalorier,
 // søvn, kroppsmål), bare med ulikt tidsvindu. Sykedager og ferie holdes helt utenfor,
@@ -7721,7 +7779,7 @@ function renderWeeklyReport(targetId) {
     return setLog.filter(s => s.date === date).reduce((s, x) => s + (x.weight || 0) * x.reps, 0);
   }
 
-  const patterns = [];
+  const patterns = buildDeepPatterns(weekStart, todayStr, "denne uken");
   const lowSleepDays = history.filter(d => d.sleepHours != null && d.sleepHours < 7);
   const okSleepDays = history.filter(d => d.sleepHours != null && d.sleepHours >= 7);
   if (lowSleepDays.length >= 2 && okSleepDays.length >= 2) {
@@ -7909,7 +7967,7 @@ function renderMonthlyReport(targetId) {
     return setLog.filter(s => s.date === date).reduce((s, x) => s + (x.weight || 0) * x.reps, 0);
   }
 
-  const patterns = [];
+  const patterns = buildDeepPatterns(calStart, calEnd, "denne måneden");
   const lowSleepDays = history.filter(d => d.sleepHours != null && d.sleepHours < 7);
   const okSleepDays = history.filter(d => d.sleepHours != null && d.sleepHours >= 7);
   if (lowSleepDays.length >= 4 && okSleepDays.length >= 4) {
