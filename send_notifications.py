@@ -111,12 +111,7 @@ def main():
                 )
             mark_sent("steps_pace")
 
-    # Daily routine reminder (kne/hofte/nakke) - early evening.
-    if now.hour == 20 and now.minute < 30 and not already_sent("daily_routine"):
-        send("Daglig rutine", "Tid for kne-/hofte-/nakkerutinen (ca. 8-10 min).")
-        mark_sent("daily_routine")
-
-    # Lifesum reminder, a bit later.
+    # Lifesum reminder.
     if now.hour == 20 and now.minute >= 30 and not already_sent("lifesum_reminder"):
         send(
             "Husk å føre inn Lifesum-tallene",

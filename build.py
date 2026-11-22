@@ -241,20 +241,6 @@ GLUTE_TECHNIQUE_CUES = [
     "Kjenner du det ikke i rumpa: senk vekta",
 ]
 
-# ---- daglig rutine (kne/hofte-bekken-mobilisering/nakke, ~8-10 min) - separat fra
-# treningsplanen, vist som egen sjekkliste på Hjem. Bare mobilisering/tøying for hofte og
-# bekken her (ingen rumpestyrke - det dekkes av selve treningsplanen), og kun 2 nakkeøvelser.
-# Krysses av dag for dag (nullstilles automatisk hver dag siden loggen er nøkklet på dato),
-# ikke koblet til sett-logg/PR-systemet.
-DAILY_ROUTINE_ITEMS = [
-    {"key": "quadSet", "group": "Kne", "label": "Quad-set med håndkle under kneet 2×10 (5 sek hold)"},
-    {"key": "helSklie", "group": "Kne", "label": "Hælsklie på ryggen 2×10"},
-    {"key": "bekkentilt", "group": "Hofte og bekken", "label": "Bekkentilt på ryggen 10 rep"},
-    {"key": "hoftebøyerstrekk", "group": "Hofte og bekken", "label": "Hoftebøyerstrekk i halv knestående 2×30 sek/side"},
-    {"key": "figur4", "group": "Hofte og bekken", "label": "Liggende figur 4-tøy 2×30 sek/side"},
-    {"key": "haketrekk", "group": "Nakke", "label": "Haketrekk liggende på ryggen 10×5 sek"},
-    {"key": "yT", "group": "Nakke", "label": "Liggende Y- og T-løft på magen 2×10 hver"},
-]
 # Built-in ingredient catalog: kcal/protein per 100g, used for the "bytt ingrediens" feature
 # in the meal plan. Values are standard reference estimates (±10%, same spirit as the rest
 # of the nutrition numbers in this app) - she can add her own ingredients or correct these
@@ -1155,7 +1141,6 @@ def main():
         "kneeResumeCriteria": KNEE_RESUME_CRITERIA,
         "kneePainRule": KNEE_PAIN_RULE,
         "gluteTechniqueCues": GLUTE_TECHNIQUE_CUES,
-        "dailyRoutineItems": DAILY_ROUTINE_ITEMS,
         "garminWeight": garmin_weight,
         "nutritionPlan": NUTRITION_PLAN,
         "ingredientCatalog": INGREDIENT_CATALOG,
@@ -1759,10 +1744,6 @@ TEMPLATE = r"""<!DOCTYPE html>
     padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 13px;
   }
   .sickday-list button { flex: 0 0 auto; }
-  .daily-routine-groups { display: flex; flex-direction: column; gap: 14px; }
-  .daily-routine-group-label { font-size: 12px; font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: 0.02em; margin-bottom: 4px; }
-  .daily-routine-item { display: flex; align-items: flex-start; gap: 8px; padding: 5px 0; font-size: 13px; cursor: pointer; }
-  .daily-routine-item input[type="checkbox"] { margin-top: 3px; flex: 0 0 auto; }
   #plateau-card:empty { display: none; }
   #nutrition-coach-card:empty { display: none; }
 
@@ -2142,8 +2123,6 @@ TEMPLATE = r"""<!DOCTYPE html>
     <div id="hjem-next-week-preview"></div>
     <div id="hjem-freeze-notice"></div>
     <div id="hjem-monthly-insight-nudge"></div>
-
-    <div class="card" id="hjem-daily-routine" style="margin-bottom:16px;"></div>
 
     <div class="hjem-main-grid">
       <div class="hjem-rail">
@@ -2727,7 +2706,6 @@ function inVacationRange(date) {
 // og minimumsdag-krav for de dagene, og holdes helt utenfor ukens/månedens mønstre og mål,
 // akkurat som ferie/pause-modus.
 const SICK_DAY_KEY = "garminDashboardSickDays_v1";
-const DAILY_ROUTINE_LOG_KEY = "garminDashboardDailyRoutine_v1";
 function loadSickDays() { return loadLS(SICK_DAY_KEY, []); }
 function saveSickDays(d) { saveLS(SICK_DAY_KEY, d); }
 function isSickDay(date) { return loadSickDays().some(d => d.date === date); }
@@ -7324,7 +7302,6 @@ function renderHjem() {
   renderHjemFreezeNotice();
   renderHjemMonthlyInsightNudge();
   arbitrateHjemBanners();
-  renderHjemDailyRoutine();
   renderHjemSocialBudget();
   renderHjemSession();
   renderHjemKcalRing();
@@ -8149,60 +8126,6 @@ function renderHjemMonthlyInsightNudge() {
   });
 }
 
-// ---------------------------------------------------------------- daglig rutine (kne/hofte/nakke)
-// Separat fra treningsplanen - en enkel sjekkliste, ikke koblet til sett-logg/PR-systemet.
-// Nøkklet på dato, så den nullstilles automatisk hver dag. (DAILY_ROUTINE_LOG_KEY er deklarert
-// tidlig i filen, sammen med SICK_DAY_KEY, siden renderHjem() kan kjøre før dette punktet.)
-function loadDailyRoutineLog() { return loadLS(DAILY_ROUTINE_LOG_KEY, {}); }
-function saveDailyRoutineLog(l) { saveLS(DAILY_ROUTINE_LOG_KEY, l); }
-function isDailyRoutineChecked(date, key) {
-  const log = loadDailyRoutineLog();
-  return !!(log[date] && log[date].includes(key));
-}
-function toggleDailyRoutineItem(date, key) {
-  const log = loadDailyRoutineLog();
-  const done = log[date] || [];
-  const i = done.indexOf(key);
-  if (i === -1) done.push(key); else done.splice(i, 1);
-  log[date] = done;
-  saveDailyRoutineLog(log);
-}
-function renderHjemDailyRoutine() {
-  const el = document.getElementById("hjem-daily-routine");
-  const items = DATA.dailyRoutineItems;
-  if (!el || !items || !items.length) return;
-  const today = todayISO();
-  const doneCount = items.filter(it => isDailyRoutineChecked(today, it.key)).length;
-  const groups = [];
-  items.forEach(it => {
-    let g = groups.find(x => x.group === it.group);
-    if (!g) { g = { group: it.group, items: [] }; groups.push(g); }
-    g.items.push(it);
-  });
-  const groupsHtml = groups.map(g => `
-    <div class="daily-routine-group">
-      <div class="daily-routine-group-label">${g.group}</div>
-      ${g.items.map(it => `
-        <label class="daily-routine-item">
-          <input type="checkbox" data-routine-key="${it.key}" ${isDailyRoutineChecked(today, it.key) ? "checked" : ""}>
-          <span>${it.label}</span>
-        </label>
-      `).join("")}
-    </div>
-  `).join("");
-  el.innerHTML = `
-    <h3 style="margin:0 0 4px;font-size:15px;">📋 Daglig rutine (kne/hofte/nakke)</h3>
-    <div class="section-sub" style="margin-bottom:8px;">Ca. 8-10 min · ${doneCount}/${items.length} gjort i dag</div>
-    <div class="daily-routine-groups">${groupsHtml}</div>
-  `;
-  el.querySelectorAll("[data-routine-key]").forEach(cb => {
-    cb.addEventListener("change", () => {
-      toggleDailyRoutineItem(today, cb.dataset.routineKey);
-      renderHjemDailyRoutine();
-    });
-  });
-}
-
 // ---------------------------------------------------------------- fremgang (long-term trends/goals)
 document.querySelectorAll("#body-period-tabs .period-btn").forEach(btn => {
   btn.addEventListener("click", () => {
@@ -8305,7 +8228,7 @@ const BACKUP_KEYS = [
   SETTINGS_KEY, WHY_KEY, VACATION_KEY, CUSTOM_MEALS_KEY, MEAL_LOG_KEY, INVEST_FUND_KEY,
   SAVINGS_GOALS_KEY, CUSTOM_INGREDIENTS_KEY, MEAL_ING_OVERRIDES_KEY, MISSED_DAY_ACK_KEY, RPE_LOG_KEY,
   UNPLANNED_CARDIO_ACK_KEY, SOCIAL_BUDGET_KEY, FREEZE_CARDS_USED_KEY, FREEZE_NOTICE_ACK_KEY,
-  SICK_DAY_KEY, DAILY_ROUTINE_LOG_KEY,
+  SICK_DAY_KEY,
 ];
 window.BACKUP_KEYS = BACKUP_KEYS;
 
