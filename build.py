@@ -3824,10 +3824,10 @@ const FAVORITE_MEALS_KEY = "garminDashboardFavoriteMeals_v1";
 const MEAL_TYPE_ORDER = ["breakfast", "lunch", "snack", "dinner"];
 const MEAL_TYPE_LABELS = { breakfast: "Frokost", lunch: "Lunsj", snack: "Mellommåltid", dinner: "Middag" };
 // Kalorianslag (spesielt for hjemmelagde/øyemål-retter) har lett for å bli satt litt lavt -
-// vis derfor alltid kalorier med en fast +10% margin, uansett hvor de vises i appen. Protein
+// vis derfor alltid kalorier med en fast +5% margin, uansett hvor de vises i appen. Protein
 // og kalorimålet hennes vises alltid uendret (rått anslag). Legges kun på ved visning -
 // aldri lagret, og aldri lagt på igjen ved ny visning/summering av et allerede margin-justert tall.
-const KCAL_MARGIN = 1.1;
+const KCAL_MARGIN = 1.05;
 function withKcalMargin(rawKcal) { return Math.round((rawKcal || 0) * KCAL_MARGIN); }
 
 // dagens inntak ført manuelt fra Lifesum - når denne finnes for en dato, er den fasiten for
@@ -4137,7 +4137,7 @@ function renderKostholdToday() {
     <div class="section-sub" style="margin:10px 0 0;">Mål: ${n.dailyKcal} kcal · ${n.proteinMin} g+ protein
       <button class="btn ghost small" id="kosthold-goal-edit-toggle" style="margin-left:6px;">Endre mål</button>
     </div>
-    <div class="section-sub" style="margin-top:6px;font-style:italic;">Kalorier vises med 10 % anslagsmargin. Protein vises som vanlig anslag.</div>
+    <div class="section-sub" style="margin-top:6px;font-style:italic;">Kalorier vises med 5 % anslagsmargin. Protein vises som vanlig anslag.</div>
     ${kostholdGoalEditOpen ? `
       <div class="log-form" style="margin-top:10px;">
         <input type="number" step="50" id="kcal-goal-input" value="${n.dailyKcal}" placeholder="kcal-mål">
