@@ -206,14 +206,13 @@ def pull_weight(start, end):
 
     chunks = fetch_range_with_halving(fetch, start, end, 60, "weight")
     new_count = 0
-    # Body-composition fields are only present when the weigh-in came from a smart scale
-    # (e.g. Garmin Index) that measures them - a basic scale only ever gives weightGrams.
-    # Field names/units follow Garmin's documented weight-service response; unverified
-    # against a real smart-scale reading yet, so double-check once one comes through.
+    # Body-composition fields (bodyFat, muscleMass, etc.) are only present when the weigh-in
+    # came from a smart scale (e.g. Garmin Index) - a basic scale only ever gives weightGrams.
+    # Field names/units confirmed against a real Index-scale reading on 2026-11-22.
     for _, _, items in chunks:
         for item in items:
             latest = item.get("latestWeight") or {}
-            d = item.get("calendarDate") or item.get("date")
+            d = item.get("summaryDate") or latest.get("calendarDate")
             if not d or latest.get("weight") is None:
                 continue
             if d not in existing:
