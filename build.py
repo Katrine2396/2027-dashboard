@@ -80,6 +80,43 @@ LEG_DAY_WARMUP = [
     "Monster walk med strikk 2×10 skritt hver vei",
 ]
 
+# ---- "kjenn det i rumpa"-tips for de rumpefokuserte øvelsene i hovedprogrammet (2026-11-22)
+# - samme idé som startPosition/feelItWhere/commonMistakes i STABILITY_EXERCISES, men for
+# Styrke A/B/C-øvelsene. Matches i JS ved at nøkkelen under er en substreng av øvelsesteksten
+# i PROG_EXERCISES, så PROG_EXERCISES selv (og dermed sett-loggens indekser) ikke må endres.
+GLUTE_EXERCISE_DETAILS = {
+    "Hofteabduksjon stående i kabel": {
+        "feelItWhere": "Øverst/ytterst i setet (gluteus medius) på beinet som jobber.",
+        "cues": ["Hold overkroppen helt stille - bare beinet beveger seg", "Tenk «press hælen bakover», ikke «løft beinet høyt»"],
+        "commonMistakes": ["Vipper overkroppen til siden for å få beinet lenger", "Lar tærne vippe opp i stedet for å peke fremover"],
+    },
+    "Hip thrust": {
+        "feelItWhere": "Midt i rumpa, begge sider jevnt.",
+        "cues": ["Vipp bekkenet bakover akkurat idet du når toppen, og stopp der", "Press gjennom hælene, haken inn", "Hold og knip 1-2 sek i toppen"],
+        "commonMistakes": ["Overstrekker i toppen - korsryggen svaier", "Skyver fra tærne/fremfoten i stedet for hælene"],
+    },
+    "Glute bridge": {
+        "feelItWhere": "Rumpa, ikke korsryggen.",
+        "cues": ["Legg en hånd på rumpa de første repsene for å kjenne at den jobber", "Stopp når hofte og overkropp er på linje - ikke høyere"],
+        "commonMistakes": ["Løfter hoften høyere enn nødvendig (overstrekk)", "Bruker korsryggen til å «svaie» opp i stedet for å bruke rumpa"],
+    },
+    "Rumensk markløft": {
+        "feelItWhere": "Baksiden av lår og rumpe (hamstrings + glutes).",
+        "cues": ["Skyv hoftene bakover som om du lukker en skuff med rumpa", "Hold en lett, fast bøy i kneet - ikke bøy mer underveis", "Skyv hoftene frem for å reise deg, og knip rumpa i toppen"],
+        "commonMistakes": ["Bøyer kneet for mye (blir en knebøy i stedet for hofteleddsbøy)", "Runder i korsryggen", "Reiser seg ved å dra med korsryggen i stedet for å skyve hoftene frem"],
+    },
+    "45° rygghev": {
+        "feelItWhere": "Rumpa og baksiden av lår, ikke korsryggen.",
+        "cues": ["Tærne pekende litt ut", "Press gjennom hælene og knip rumpa på vei opp", "Stopp når kroppen er rett ut - ikke strekk lenger"],
+        "commonMistakes": ["Runder øvre rygg for mye eller strekker for langt opp (overstrekk)", "Bruker fart/svai i stedet for kontroll"],
+    },
+    "Kabel-kickback": {
+        "feelItWhere": "Rumpa på beinet som sparker bakover.",
+        "cues": ["Minimal knebøy gjennom hele bevegelsen", "Tenk «press hælen bakover og litt opp», ikke «sving beinet»", "Hold overkroppen stabil - ikke bruk fart"],
+        "commonMistakes": ["Svaier i korsryggen for å få beinet lenger bak", "Sparker for høyt i stedet for kontrollert"],
+    },
+}
+
 # ---- Sete, kjerne og stabilitet (2026-11-17) - eget tilleggsprogram, kommer i tillegg til
 # (ikke erstatter) grunnstyrkeprogrammet over. Bygget rundt et aktivt kneproblem: ingen løping,
 # tunge knebøy/utfall, step-ups eller tungt beinpress, og aldri noe som gir smerte/økt hevelse.
@@ -1113,6 +1150,7 @@ def main():
         "stabilityExercises": STABILITY_EXERCISES,
         "stabilityLockedLevels": STABILITY_LOCKED_LEVELS,
         "legDayWarmup": LEG_DAY_WARMUP,
+        "gluteExerciseDetails": GLUTE_EXERCISE_DETAILS,
         "kneePauseNote": KNEE_PAUSE_NOTE,
         "kneeResumeCriteria": KNEE_RESUME_CRITERIA,
         "kneePainRule": KNEE_PAIN_RULE,
@@ -1248,6 +1286,12 @@ TEMPLATE = r"""<!DOCTYPE html>
   .plan-card .exercises > .exercise-row { padding: 8px 0; border-top: 1px solid var(--line); }
   .plan-card .exercises .exercise-name { padding: 0 0 6px; }
   .plan-card .exercises .exercise-suggestion { font-size: 11px; color: var(--muted); padding: 0 0 8px; }
+  .plan-card .exercises .glute-tip-toggle { margin: 0 0 8px; font-size: 11px; padding: 5px 10px; min-height: 0; }
+  .plan-card .exercises .glute-tip-box {
+    background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 12px; margin: 0 0 10px; font-size: 12px; line-height: 1.5; color: var(--ink);
+  }
+  .plan-card .exercises .glute-tip-box ul { margin: 2px 0 0; padding-left: 18px; }
   .plan-card .exercises .set-log-form { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
   .plan-card .exercises .set-log-form input { width: 70px; padding: 5px 8px; font-size: 12px; border: 1px solid var(--line); border-radius: 8px; font-family: Nunito, sans-serif; }
   .plan-card .exercises .set-log-today { margin-top: 6px; font-size: 11px; color: var(--muted); display: flex; gap: 6px; flex-wrap: wrap; }
@@ -2626,6 +2670,11 @@ TEMPLATE = r"""<!DOCTYPE html>
 <script>
 const DATA = __DASHBOARD_DATA__;
 
+// Transient (not persisted) UI state for the "kjenn det i rumpa"-tips på rumpeøvelser i
+// Treningsplan - deklarert her, tidlig, siden renderPlan() kan kjøre før andre deler av
+// filen (samme TDZ-hensyn som andre tidlig-deklarerte konstanter i denne filen).
+let gluteTipExpandedKey = null;
+
 // ---------------------------------------------------------------- settings
 const SETTINGS_KEY = "garminDashboardSettings_v1";
 function loadSettings() {
@@ -3340,6 +3389,15 @@ function progressSuggestion(exKey, text, readiness) {
   return `Du er i målsonen (${target.low}–${target.high} reps) - fortsett på samme vekt.`;
 }
 
+// Finner en "kjenn det i rumpa"-detalj for en øvelsestekst, ved å matche på hvilken nøkkel
+// i DATA.gluteExerciseDetails som er en substreng av teksten - PROG_EXERCISES-strengene (og
+// dermed sett-loggens indekser) trenger ikke endres for å koble dem sammen.
+function findGluteDetail(text) {
+  const details = DATA.gluteExerciseDetails || {};
+  const key = Object.keys(details).find(k => text.includes(k));
+  return key ? details[key] : null;
+}
+
 function exerciseRowHtml(sessKey, idx, text, date, readiness) {
   const exKey = sessKey + "::" + idx;
   const last = lastSetFor(exKey, date);
@@ -3347,9 +3405,18 @@ function exerciseRowHtml(sessKey, idx, text, date, readiness) {
   const pref = restDurationFor(exKey);
   const restOptions = [60, 90, 120, 180].map(s => `<option value="${s}" ${s === pref ? "selected" : ""}>${s}s</option>`).join("");
   const suggestion = progressSuggestion(exKey, text, readiness);
+  const glute = findGluteDetail(text);
+  const gluteExpanded = glute && gluteTipExpandedKey === exKey;
   return `<div class="exercise-row" data-ex="${exKey}">
     <div class="exercise-name">${text}</div>
     ${suggestion ? `<div class="exercise-suggestion">💡 ${suggestion}</div>` : ""}
+    ${glute ? `<button class="btn ghost small glute-tip-toggle" data-ex-key="${exKey}">${gluteExpanded ? "Skjul tips" : "💡 Tips for å kjenne det i rumpa"}</button>` : ""}
+    ${gluteExpanded ? `
+      <div class="glute-tip-box">
+        <div><b>Kjenn det her:</b> ${glute.feelItWhere}</div>
+        ${glute.cues && glute.cues.length ? `<div style="margin-top:6px;"><b>Cues:</b><ul>${glute.cues.map(c => `<li>${c}</li>`).join("")}</ul></div>` : ""}
+        ${glute.commonMistakes && glute.commonMistakes.length ? `<div style="margin-top:6px;"><b>Vanlige feil:</b><ul>${glute.commonMistakes.map(c => `<li>${c}</li>`).join("")}</ul></div>` : ""}
+      </div>` : ""}
     <div class="set-log-form">
       <input type="number" step="0.5" class="set-weight-input" placeholder="kg" ${last && last.weight != null ? `value="${last.weight}"` : ""}>
       <input type="number" class="set-reps-input" placeholder="reps" ${last ? `value="${last.reps}"` : ""}>
@@ -3659,6 +3726,13 @@ function renderPlan() {
     const exKey = row.dataset.ex;
     const wIn = row.querySelector(".set-weight-input");
     const rIn = row.querySelector(".set-reps-input");
+    const tipToggle = row.querySelector(".glute-tip-toggle");
+    if (tipToggle) {
+      tipToggle.addEventListener("click", () => {
+        gluteTipExpandedKey = gluteTipExpandedKey === exKey ? null : exKey;
+        renderPlan();
+      });
+    }
     const fillBtn = row.querySelector(".set-log-fill");
     if (fillBtn) {
       fillBtn.addEventListener("click", () => {
