@@ -577,6 +577,17 @@ def main():
     sleep = load_json("sleep.json", {})
     hrv = load_json("hrv.json", {})
     weight = load_json("weight.json", {})
+    # Only the fields the dashboard actually shows (kg, body fat %, muscle mass) - the rest
+    # of what pull_weight() captures (bmi, visceralFat, ...) stays in data/weight.json for
+    # later, unverified until a real smart-scale reading comes through.
+    garmin_weight = {}
+    for d, v in weight.items():
+        entry = {"kg": round(v["weightGrams"] / 1000, 1)}
+        if v.get("bodyFat") is not None:
+            entry["bodyFat"] = round(v["bodyFat"], 1)
+        if v.get("muscleMass") is not None:
+            entry["muscleMassKg"] = round(v["muscleMass"] / 1000, 1)
+        garmin_weight[d] = entry
 
     # ---------------------------------------------------------------- dates
     all_dates = set(daily.keys()) | set(sleep.keys()) | set(hrv.keys())
@@ -1107,6 +1118,7 @@ def main():
         "kneePainRule": KNEE_PAIN_RULE,
         "gluteTechniqueCues": GLUTE_TECHNIQUE_CUES,
         "dailyRoutineItems": DAILY_ROUTINE_ITEMS,
+        "garminWeight": garmin_weight,
         "nutritionPlan": NUTRITION_PLAN,
         "ingredientCatalog": INGREDIENT_CATALOG,
         "weeklyBySport": weekly_by_sport_out,
@@ -1538,6 +1550,10 @@ TEMPLATE = r"""<!DOCTYPE html>
   .log-list { list-style: none; padding: 0; margin: 10px 0 0; font-size: 13px; }
   .log-list li { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); color: var(--muted); }
   .log-list li b { color: var(--ink); }
+  .weight-source-tag {
+    font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em;
+    color: var(--accent); border: 1px solid var(--accent); border-radius: 8px; padding: 1px 5px;
+  }
   .craving-comment-input {
     flex: 1; min-width: 0; width: 100%; box-sizing: border-box;
     font-family: inherit; font-size: 13px; border: none; background: transparent; color: var(--muted);
@@ -3105,7 +3121,7 @@ function renderHjemWeightReminder() {
   if (!el) return;
   if (!loadSettings().personalityEnabled || isVacationActive()) { el.innerHTML = ""; return; }
 
-  const weightLog = loadWeightLog().sort((a, b) => a.date.localeCompare(b.date));
+  const weightLog = effectiveWeightLog().sort((a, b) => a.date.localeCompare(b.date));
   const measureLog = loadMeasureLog().sort((a, b) => a.date.localeCompare(b.date));
   const weightDays = weightLog.length ? daysSinceDate(weightLog[weightLog.length - 1].date) : null;
   const measureDays = measureLog.length ? daysSinceDate(measureLog[measureLog.length - 1].date) : null;
@@ -4434,6 +4450,21 @@ function emKeysBack(n) {
 function loadWeightLog() { return loadLS(WEIGHT_LOG_KEY, []); }
 function saveWeightLog(l) { saveLS(WEIGHT_LOG_KEY, l); }
 
+// Slår sammen manuelt loggført vekt med det Garmin-vekten synkroniserer automatisk.
+// Garmin vinner når begge finnes for samme dato (det er nå hovedkilden), men gammel
+// manuell historikk før hun fikk vekten blir stående akkurat som den er. Brukes for all
+// visning/analyse av vekt - selve "legg til/fjern"-skjemaet jobber fortsatt direkte på
+// loadWeightLog()/saveWeightLog(), siden det bare er ment for manuelle korreksjoner.
+function effectiveWeightLog() {
+  const byDate = {};
+  loadWeightLog().forEach(e => { byDate[e.date] = { date: e.date, kg: e.kg, source: "manual" }; });
+  const garmin = DATA.garminWeight || {};
+  Object.keys(garmin).forEach(d => {
+    byDate[d] = Object.assign({ date: d, source: "garmin" }, garmin[d]);
+  });
+  return Object.values(byDate);
+}
+
 // ---- measurement log ----
 function loadMeasureLog() { return loadLS(MEASURE_LOG_KEY, []); }
 function saveMeasureLog(l) { saveLS(MEASURE_LOG_KEY, l); }
@@ -4618,7 +4649,7 @@ function computePoints() {
     if (day.sessionType !== "rest" && day.loggedTypes.includes(day.sessionType)) sessionPts++;
     if (day.stepGoalMet) stepPts++;
   });
-  const weightWeeks = new Set(loadWeightLog().map(e => isoWeekOf(e.date))).size;
+  const weightWeeks = new Set(effectiveWeightLog().map(e => isoWeekOf(e.date))).size;
   const measureMonths = new Set(loadMeasureLog().map(e => monthOf(e.date))).size;
   const newRecords = Object.values(DATA.records || {}).filter(r => r && r.date && r.date >= DATA.programStart).length;
   const balance = fundBalance();
@@ -4756,7 +4787,7 @@ function renderWeeklySnapshot() {
   const sessionsDone = th.filter(d => d.sessionType !== "rest" && d.loggedTypes.includes(d.sessionType)).length;
   const stepsDone = th.filter(d => d.stepGoalMet).length;
 
-  const allWeights = loadWeightLog().sort((a, b) => a.date.localeCompare(b.date));
+  const allWeights = effectiveWeightLog().sort((a, b) => a.date.localeCompare(b.date));
   const recentWeights = allWeights.filter(e => e.date >= sinceStr);
   let kgChangeLabel = "–";
   if (recentWeights.length >= 2) {
@@ -4782,7 +4813,7 @@ document.getElementById("measure-date").value = todayISO();
 
 function renderPlateau() {
   const card = document.getElementById("plateau-card");
-  const log = loadWeightLog().sort((a, b) => a.date.localeCompare(b.date));
+  const log = effectiveWeightLog().sort((a, b) => a.date.localeCompare(b.date));
   if (log.length < 3) { card.innerHTML = ""; return; }
 
   const a = log[log.length - 3], z = log[log.length - 1];
@@ -4818,7 +4849,7 @@ function weightRollingAvgSeries(log) {
 function renderWeightTrend() {
   const el = document.getElementById("weight-trend");
   if (!el) return;
-  const log = loadWeightLog().sort((a, b) => a.date.localeCompare(b.date));
+  const log = effectiveWeightLog().sort((a, b) => a.date.localeCompare(b.date));
   if (log.length < 3) { el.innerHTML = ""; return; }
 
   const series = weightRollingAvgSeries(log);
@@ -4832,7 +4863,7 @@ function renderWeightChart(svgId, tooltipId) {
   const svg = document.getElementById(svgId || "chart-weight");
   const tooltip = document.getElementById(tooltipId || "tt-weight");
   if (!svg) return;
-  const log = loadWeightLog().sort((a, b) => a.date.localeCompare(b.date));
+  const log = effectiveWeightLog().sort((a, b) => a.date.localeCompare(b.date));
   if (log.length < 2) { svg.innerHTML = ""; return; }
 
   const avgSeries = weightRollingAvgSeries(log);
@@ -4893,7 +4924,7 @@ function renderWeightChart(svgId, tooltipId) {
 }
 
 function renderWeightLog() {
-  const log = loadWeightLog().sort((a, b) => b.date.localeCompare(a.date));
+  const log = effectiveWeightLog().sort((a, b) => b.date.localeCompare(a.date));
   document.getElementById("weight-list").innerHTML = log.slice(0, 8).map((e, i) => {
     const prev = log[i + 1];
     let delta = "";
@@ -4901,7 +4932,19 @@ function renderWeightLog() {
       const d = e.kg - prev.kg;
       delta = `<span class="log-delta ${d <= 0 ? "down" : "up"}">${d > 0 ? "+" : ""}${d.toFixed(1)} kg</span>`;
     }
-    return `<li data-date="${e.date}"><span>${fmtShort(e.date)}</span><b>${e.kg} kg</b> ${delta}<button class="log-remove-btn" data-weight-remove="${e.date}">✕</button></li>`;
+    const bits = [];
+    if (e.bodyFat != null) bits.push(`${e.bodyFat}% fett`);
+    if (e.muscleMassKg != null) bits.push(`${e.muscleMassKg} kg muskelmasse`);
+    const compNote = bits.length ? `<div class="section-sub" style="margin:2px 0 0;width:100%;">${bits.join(" · ")}</div>` : "";
+    const sourceTag = e.source === "garmin" ? `<span class="weight-source-tag" title="Synkronisert fra Garmin-vekten">Garmin</span>` : "";
+    const removeBtn = e.source === "manual" ? `<button class="log-remove-btn" data-weight-remove="${e.date}">✕</button>` : "";
+    return `<li data-date="${e.date}" style="${compNote ? "flex-wrap:wrap;" : ""}">
+      <div style="display:flex;justify-content:space-between;align-items:center;width:100%;">
+        <span>${fmtShort(e.date)} ${sourceTag}</span>
+        <span><b>${e.kg} kg</b> ${delta}${removeBtn}</span>
+      </div>
+      ${compNote}
+    </li>`;
   }).join("") || `<li style="border-top:none;color:var(--muted);">Ingen målinger ennå - logg vekten din i dag for å komme i gang 👆</li>`;
   document.querySelectorAll("#weight-list button[data-weight-remove]").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -6378,7 +6421,7 @@ function computeCalorieCalibration() {
   const history = (DATA.dailyHistory || []).filter(d => d.calories != null);
   if (history.length < 10) return null;
 
-  const weightLog = loadWeightLog().sort((a, b) => a.date.localeCompare(b.date));
+  const weightLog = effectiveWeightLog().sort((a, b) => a.date.localeCompare(b.date));
   if (weightLog.length < 2) return null;
   const avgSeries = weightRollingAvgSeries(weightLog);
 
@@ -6438,7 +6481,7 @@ function renderCalorieCalibration() {
 function renderBodyGoalChart() {
   if (!document.getElementById("chart-body")) return;
   const cutoff = isoAddDays(todayISO(), -bodyChartPeriodMonths * 30);
-  const weightInRange = loadWeightLog().filter(e => e.date >= cutoff).sort((a, b) => a.date.localeCompare(b.date));
+  const weightInRange = effectiveWeightLog().filter(e => e.date >= cutoff).sort((a, b) => a.date.localeCompare(b.date));
   const measureInRange = loadMeasureLog()
     .filter(e => e.date >= cutoff && e[bodyChartMeasure] != null)
     .sort((a, b) => a.date.localeCompare(b.date));
@@ -7550,7 +7593,7 @@ function buildCoachingSummary(startDate, endDate, periodWord) {
   }
 
   // ---- kroppsmål og fettprosent-trend ----
-  const weightLog = loadWeightLog().filter(e => e.date >= startDate && e.date <= endDate && !isSickDay(e.date)).sort((a, b) => a.date.localeCompare(b.date));
+  const weightLog = effectiveWeightLog().filter(e => e.date >= startDate && e.date <= endDate && !isSickDay(e.date)).sort((a, b) => a.date.localeCompare(b.date));
   const measureLog = loadMeasureLog().filter(e => e.date >= startDate && e.date <= endDate && e.waist != null && !isSickDay(e.date)).sort((a, b) => a.date.localeCompare(b.date));
   if (weightLog.length >= 2) {
     const avgSeries = weightRollingAvgSeries(weightLog);
